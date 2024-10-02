@@ -1,6 +1,7 @@
 import SwiftUI
 import AuthenticationServices
 import GoogleSignIn
+import Firebase
 
 #if canImport(UIKit)
 import UIKit
@@ -52,12 +53,12 @@ struct LoginView: View {
                     return
                 }
 
-                GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController) { user, error in
+                GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController) { signInResult, error in
                     if let error = error {
                         print("Google Sign-In failed: \(error.localizedDescription)")
-                    } else if let user = user {
+                    } else if let user = signInResult?.user {
                         // Handle successful Google login
-                        print("Google Sign-In success: \(user)")
+                        print("Google Sign-In success: \(user.profile?.email ?? "No Email")")
                         UserDefaults.standard.set(true, forKey: "isLoggedIn") // Save login status
                         isLoggedIn = true // Update state to show ContentView
                     }
