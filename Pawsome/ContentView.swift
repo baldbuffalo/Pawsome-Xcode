@@ -17,7 +17,8 @@ struct ContentView: View {
 struct MainAppView: View {
     @State private var selectedTab = 0  // Track the selected tab
     @State private var showProfileView = false  // Track profile view status
-    
+    @State private var showScanView = false  // Track scan view status
+
     var body: some View {
         TabView(selection: $selectedTab) {
             HomeView()  // Home/Feed tab
@@ -27,12 +28,22 @@ struct MainAppView: View {
                 }
                 .tag(0)
             
-            UploadView()  // Upload tab
-                .tabItem {
-                    Image(systemName: "plus.circle.fill")
-                    Text("Upload")
+            Button(action: {
+                showScanView = true  // Show ScanView when button is pressed
+            }) {
+                VStack {
+                    Image(systemName: "camera.fill")  // Adjust icon as needed
+                    Text("Scan")
                 }
-                .tag(1)
+            }
+            .tabItem {
+                Image(systemName: "camera.fill")
+                Text("Scan")
+            }
+            .tag(1)
+            .sheet(isPresented: $showScanView) {
+                ScanView()  // Launch ScanView as a modal
+            }
             
             ProfileButtonView(showProfileView: $showProfileView)  // Profile tab
                 .tabItem {
@@ -48,7 +59,6 @@ struct MainAppView: View {
     }
 }
 
-// New struct for the Profile Button
 struct ProfileButtonView: View {
     @Binding var showProfileView: Bool
     
@@ -76,7 +86,6 @@ struct HomeView: View {
                     .font(.subheadline)
                     .padding(.bottom, 20)
                 
-                // Placeholder for list of cat images/posts
                 List(0..<10) { index in
                     HStack {
                         Image(systemName: "photo.fill")
@@ -95,32 +104,6 @@ struct HomeView: View {
                 }
             }
             .navigationTitle("Pawsome Feed")
-        }
-    }
-}
-
-struct UploadView: View {
-    var body: some View {
-        VStack {
-            Text("Upload Your Cat Photo")
-                .font(.title)
-                .padding()
-            
-            Button(action: {
-                // Action to upload a cat photo
-                print("Upload button pressed")
-            }) {
-                Text("Upload Photo")
-                    .font(.headline)
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
-                    .padding(.horizontal, 20)
-            }
-            
-            Spacer()
         }
     }
 }

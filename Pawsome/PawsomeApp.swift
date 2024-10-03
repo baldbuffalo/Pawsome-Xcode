@@ -7,7 +7,7 @@ struct PawsomeApp: App {
 
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            Item.self,  // Use the existing Item model
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -21,19 +21,13 @@ struct PawsomeApp: App {
     var body: some Scene {
         WindowGroup {
             if isLoggedIn {
-                // Launch the ContentView from ContentView.swift after login
-                ContentView()
+                // Pass the binding of isLoggedIn to ContentView
+                ContentView(isLoggedIn: $isLoggedIn)
             } else {
-                // Show LoginView if not logged in
+                // Pass the binding of isLoggedIn to LoginView
                 LoginView(isLoggedIn: $isLoggedIn)
             }
         }
         .modelContainer(sharedModelContainer)
     }
-}
-
-// Sample model structure
-struct Item: Identifiable {
-    var id: UUID = UUID()
-    var name: String
 }

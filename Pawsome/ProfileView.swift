@@ -19,8 +19,6 @@ struct ProfileView: View {
                 .font(.headline)
                 .padding(.top, 10)
             
-            Spacer()
-            
             Button(action: {
                 // Handle sign-out
                 UserDefaults.standard.set(false, forKey: "isLoggedIn")
@@ -35,8 +33,6 @@ struct ProfileView: View {
                     .cornerRadius(10)
                     .padding(.horizontal, 20)
             }
-            
-            Spacer()
         }
     }
 }

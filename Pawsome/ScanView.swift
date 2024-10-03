@@ -78,9 +78,6 @@ class CatScanner: NSObject, AVCapturePhotoCaptureDelegate, ObservableObject {
         previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
         #endif
         super.init()
-        #if os(iOS)
-        setupCamera() // Initialize camera setup on iOS
-        #endif
     }
 
     #if os(iOS)
