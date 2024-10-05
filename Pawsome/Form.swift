@@ -4,22 +4,26 @@ import AVFoundation
 struct ScanView: View {
     @State private var capturedImage: UIImage?
     @State private var isLoading = false
+    @State private var isNavigating = false // State to control navigation
 
     var body: some View {
         ZStack {
-            VStack {
-                iOSCameraView(capturedImage: $capturedImage) { image in
-                    // Handle image capture
-                    self.isLoading = true // Show loading
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) { // Simulate loading delay
-                        self.isLoading = false
-                        navigateToForm(with: image)
-                    }
+            // Full screen camera preview
+            iOSCameraView(capturedImage: $capturedImage) { image in
+                // Handle image capture
+                self.isLoading = true // Show loading
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) { // Simulate loading delay
+                    self.isLoading = false
+                    self.capturedImage = image // Set the captured image
+                    self.isNavigating = true // Trigger navigation
                 }
-                .frame(maxWidth: .infinity, maxHeight: 300)
+            }
+            .edgesIgnoringSafeArea(.all) // Extend to full screen
 
+            // Capture button
+            VStack {
+                Spacer()
                 Button(action: {
-                    isLoading = true // Show loading
                     capturePhoto() // Trigger photo capture
                 }) {
                     Text("Capture Image")
@@ -30,9 +34,10 @@ struct ScanView: View {
                         .cornerRadius(10)
                 }
                 .padding()
+                .padding(.bottom, 20) // Add padding to the bottom
             }
-            .blur(radius: isLoading ? 5 : 0) // Blur background when loading
 
+            // Loading indicator
             if isLoading {
                 ProgressView("Loading...")
                     .progressViewStyle(CircularProgressViewStyle())
@@ -41,17 +46,16 @@ struct ScanView: View {
         }
         .navigationTitle("Scan")
         .navigationBarTitleDisplayMode(.inline)
+        .background(
+            NavigationLink(destination: FormView(imageUI: capturedImage), isActive: $isNavigating) {
+                EmptyView()
+            }
+        )
     }
 
     // Function to capture a photo
     private func capturePhoto() {
-        // Add the logic to call the camera capture function if necessary
-    }
-
-    // Navigate to FormView
-    private func navigateToForm(with image: UIImage) {
-        // Replace with your actual FormView implementation
-        // Example: let formView = FormView(capturedImage: image)
+        // Call the camera capture function if necessary
     }
 }
 

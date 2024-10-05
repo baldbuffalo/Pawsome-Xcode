@@ -1,10 +1,11 @@
 import SwiftUI
+import AVFoundation
 
 struct ContentView: View {
     @Binding var isLoggedIn: Bool  // Track login status
     
     var body: some View {
-        VStack {
+        VStack(spacing: 0) {  // Set spacing to 0
             if isLoggedIn {
                 MainAppView()  // Show main content after login
             } else {
@@ -32,13 +33,13 @@ struct MainAppView: View {
                 showScanView = true  // Show ScanView when button is pressed
             }) {
                 VStack {
-                    Image(systemName: "camera.fill")  // Adjust icon as needed
-                    Text("Scan")
+                    Image(systemName: "camera.fill")  // Icon for post
+                    Text("Post")  // Button text
                 }
             }
             .tabItem {
                 Image(systemName: "camera.fill")
-                Text("Scan")
+                Text("Post")  // Button text
             }
             .tag(1)
             .sheet(isPresented: $showScanView) {
@@ -76,34 +77,39 @@ struct ProfileButtonView: View {
 
 struct HomeView: View {
     var body: some View {
-        NavigationView {
-            VStack {
-                Text("Welcome to Pawsome!")
-                    .font(.largeTitle)
-                    .padding()
-                
-                Text("Explore the latest posts about adorable cats.")
-                    .font(.subheadline)
-                    .padding(.bottom, 20)
-                
-                List(0..<10) { index in
-                    HStack {
-                        Image(systemName: "photo.fill")
-                            .resizable()
-                            .frame(width: 50, height: 50)
-                            .cornerRadius(8)
-                        
-                        VStack(alignment: .leading) {
-                            Text("Cat Post #\(index + 1)")
-                                .font(.headline)
-                            Text("User \(index + 1)")
-                                .font(.subheadline)
-                        }
+        VStack(spacing: 0) {  // Set spacing to 0 to remove extra gaps
+            Text("Welcome to Pawsome!")
+                .font(.largeTitle)
+                .padding()
+            
+            Text("Explore the latest posts about adorable cats.")
+                .font(.subheadline)
+                .padding(.bottom, 20)
+            
+            List(0..<10) { index in
+                HStack {
+                    Image(systemName: "photo.fill")
+                        .resizable()
+                        .frame(width: 50, height: 50)
+                        .cornerRadius(8)
+                    
+                    VStack(alignment: .leading) {
+                        Text("Cat Post #\(index + 1)")
+                            .font(.headline)
+                        Text("User \(index + 1)")
+                            .font(.subheadline)
                     }
-                    .padding(.vertical, 8)
                 }
+                .padding(.vertical, 8)
             }
-            .navigationTitle("Pawsome Feed")
         }
+        // Removed NavigationView to eliminate the navigation bar
+    }
+}
+
+// Preview for ContentView
+struct ContentView_Previews: PreviewProvider {
+    static var previews: some View {
+        ContentView(isLoggedIn: .constant(true)) // Example of ContentView in previews
     }
 }

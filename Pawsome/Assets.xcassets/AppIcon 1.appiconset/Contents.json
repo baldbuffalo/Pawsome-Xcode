@@ -1,180 +1,429 @@
 {
   "images" : [
     {
-      "filename" : "WhatsApp Image 2024-10-02 at 21.43.56 (1).jpeg",
+      "display-gamut" : "sRGB",
+      "filename" : "Pawsome logo.jpeg",
+      "idiom" : "universal",
+      "language-direction" : "left-to-right",
+      "platform" : "ios",
+      "size" : "1024x1024"
+    },
+    {
+      "display-gamut" : "sRGB",
+      "idiom" : "universal",
+      "language-direction" : "right-to-left",
+      "platform" : "ios",
+      "size" : "1024x1024"
+    },
+    {
+      "display-gamut" : "display-P3",
+      "idiom" : "universal",
+      "language-direction" : "left-to-right",
+      "platform" : "ios",
+      "size" : "1024x1024"
+    },
+    {
+      "display-gamut" : "display-P3",
+      "idiom" : "universal",
+      "language-direction" : "right-to-left",
+      "platform" : "ios",
+      "size" : "1024x1024"
+    },
+    {
+      "display-gamut" : "sRGB",
       "idiom" : "mac",
       "scale" : "1x",
       "size" : "16x16"
     },
     {
+      "display-gamut" : "sRGB",
       "idiom" : "mac",
       "language-direction" : "left-to-right",
       "scale" : "1x",
       "size" : "16x16"
     },
     {
+      "display-gamut" : "sRGB",
       "idiom" : "mac",
       "language-direction" : "right-to-left",
       "scale" : "1x",
       "size" : "16x16"
     },
     {
-      "filename" : "WhatsApp Image 2024-10-02 at 21.43.56 (2).jpeg",
+      "display-gamut" : "display-P3",
+      "idiom" : "mac",
+      "scale" : "1x",
+      "size" : "16x16"
+    },
+    {
+      "display-gamut" : "display-P3",
+      "idiom" : "mac",
+      "language-direction" : "left-to-right",
+      "scale" : "1x",
+      "size" : "16x16"
+    },
+    {
+      "display-gamut" : "display-P3",
+      "idiom" : "mac",
+      "language-direction" : "right-to-left",
+      "scale" : "1x",
+      "size" : "16x16"
+    },
+    {
+      "display-gamut" : "sRGB",
       "idiom" : "mac",
       "scale" : "2x",
       "size" : "16x16"
     },
     {
+      "display-gamut" : "sRGB",
       "idiom" : "mac",
       "language-direction" : "left-to-right",
       "scale" : "2x",
       "size" : "16x16"
     },
     {
+      "display-gamut" : "sRGB",
       "idiom" : "mac",
       "language-direction" : "right-to-left",
       "scale" : "2x",
       "size" : "16x16"
     },
     {
-      "filename" : "WhatsApp Image 2024-10-02 at 21.43.56 (2) 1.jpeg",
+      "display-gamut" : "display-P3",
+      "idiom" : "mac",
+      "scale" : "2x",
+      "size" : "16x16"
+    },
+    {
+      "display-gamut" : "display-P3",
+      "idiom" : "mac",
+      "language-direction" : "left-to-right",
+      "scale" : "2x",
+      "size" : "16x16"
+    },
+    {
+      "display-gamut" : "display-P3",
+      "idiom" : "mac",
+      "language-direction" : "right-to-left",
+      "scale" : "2x",
+      "size" : "16x16"
+    },
+    {
+      "display-gamut" : "sRGB",
       "idiom" : "mac",
       "scale" : "1x",
       "size" : "32x32"
     },
     {
+      "display-gamut" : "sRGB",
       "idiom" : "mac",
       "language-direction" : "left-to-right",
       "scale" : "1x",
       "size" : "32x32"
     },
     {
+      "display-gamut" : "sRGB",
       "idiom" : "mac",
       "language-direction" : "right-to-left",
       "scale" : "1x",
       "size" : "32x32"
     },
     {
-      "filename" : "WhatsApp Image 2024-10-02 at 21.43.56 (3).jpeg",
+      "display-gamut" : "display-P3",
+      "idiom" : "mac",
+      "scale" : "1x",
+      "size" : "32x32"
+    },
+    {
+      "display-gamut" : "display-P3",
+      "idiom" : "mac",
+      "language-direction" : "left-to-right",
+      "scale" : "1x",
+      "size" : "32x32"
+    },
+    {
+      "display-gamut" : "display-P3",
+      "idiom" : "mac",
+      "language-direction" : "right-to-left",
+      "scale" : "1x",
+      "size" : "32x32"
+    },
+    {
+      "display-gamut" : "sRGB",
       "idiom" : "mac",
       "scale" : "2x",
       "size" : "32x32"
     },
     {
+      "display-gamut" : "sRGB",
       "idiom" : "mac",
       "language-direction" : "left-to-right",
       "scale" : "2x",
       "size" : "32x32"
     },
     {
+      "display-gamut" : "sRGB",
       "idiom" : "mac",
       "language-direction" : "right-to-left",
       "scale" : "2x",
       "size" : "32x32"
     },
     {
-      "filename" : "WhatsApp Image 2024-10-02 at 21.43.56 (4).jpeg",
+      "display-gamut" : "display-P3",
+      "idiom" : "mac",
+      "scale" : "2x",
+      "size" : "32x32"
+    },
+    {
+      "display-gamut" : "display-P3",
+      "idiom" : "mac",
+      "language-direction" : "left-to-right",
+      "scale" : "2x",
+      "size" : "32x32"
+    },
+    {
+      "display-gamut" : "display-P3",
+      "idiom" : "mac",
+      "language-direction" : "right-to-left",
+      "scale" : "2x",
+      "size" : "32x32"
+    },
+    {
+      "display-gamut" : "sRGB",
       "idiom" : "mac",
       "scale" : "1x",
       "size" : "128x128"
     },
     {
+      "display-gamut" : "sRGB",
       "idiom" : "mac",
       "language-direction" : "left-to-right",
       "scale" : "1x",
       "size" : "128x128"
     },
     {
+      "display-gamut" : "sRGB",
       "idiom" : "mac",
       "language-direction" : "right-to-left",
       "scale" : "1x",
       "size" : "128x128"
     },
     {
-      "filename" : "WhatsApp Image 2024-10-02 at 21.43.56 (5).jpeg",
+      "display-gamut" : "display-P3",
+      "idiom" : "mac",
+      "scale" : "1x",
+      "size" : "128x128"
+    },
+    {
+      "display-gamut" : "display-P3",
+      "idiom" : "mac",
+      "language-direction" : "left-to-right",
+      "scale" : "1x",
+      "size" : "128x128"
+    },
+    {
+      "display-gamut" : "display-P3",
+      "idiom" : "mac",
+      "language-direction" : "right-to-left",
+      "scale" : "1x",
+      "size" : "128x128"
+    },
+    {
+      "display-gamut" : "sRGB",
       "idiom" : "mac",
       "scale" : "2x",
       "size" : "128x128"
     },
     {
+      "display-gamut" : "sRGB",
       "idiom" : "mac",
       "language-direction" : "left-to-right",
       "scale" : "2x",
       "size" : "128x128"
     },
     {
+      "display-gamut" : "sRGB",
       "idiom" : "mac",
       "language-direction" : "right-to-left",
       "scale" : "2x",
       "size" : "128x128"
     },
     {
-      "filename" : "WhatsApp Image 2024-10-02 at 21.43.56 (5) 1.jpeg",
+      "display-gamut" : "display-P3",
+      "idiom" : "mac",
+      "scale" : "2x",
+      "size" : "128x128"
+    },
+    {
+      "display-gamut" : "display-P3",
+      "idiom" : "mac",
+      "language-direction" : "left-to-right",
+      "scale" : "2x",
+      "size" : "128x128"
+    },
+    {
+      "display-gamut" : "display-P3",
+      "idiom" : "mac",
+      "language-direction" : "right-to-left",
+      "scale" : "2x",
+      "size" : "128x128"
+    },
+    {
+      "display-gamut" : "sRGB",
       "idiom" : "mac",
       "scale" : "1x",
       "size" : "256x256"
     },
     {
+      "display-gamut" : "sRGB",
       "idiom" : "mac",
       "language-direction" : "left-to-right",
       "scale" : "1x",
       "size" : "256x256"
     },
     {
+      "display-gamut" : "sRGB",
       "idiom" : "mac",
       "language-direction" : "right-to-left",
       "scale" : "1x",
       "size" : "256x256"
     },
     {
-      "filename" : "WhatsApp Image 2024-10-02 at 21.43.56 (6) 1.jpeg",
+      "display-gamut" : "display-P3",
+      "idiom" : "mac",
+      "scale" : "1x",
+      "size" : "256x256"
+    },
+    {
+      "display-gamut" : "display-P3",
+      "idiom" : "mac",
+      "language-direction" : "left-to-right",
+      "scale" : "1x",
+      "size" : "256x256"
+    },
+    {
+      "display-gamut" : "display-P3",
+      "idiom" : "mac",
+      "language-direction" : "right-to-left",
+      "scale" : "1x",
+      "size" : "256x256"
+    },
+    {
+      "display-gamut" : "sRGB",
       "idiom" : "mac",
       "scale" : "2x",
       "size" : "256x256"
     },
     {
+      "display-gamut" : "sRGB",
       "idiom" : "mac",
       "language-direction" : "left-to-right",
       "scale" : "2x",
       "size" : "256x256"
     },
     {
+      "display-gamut" : "sRGB",
       "idiom" : "mac",
       "language-direction" : "right-to-left",
       "scale" : "2x",
       "size" : "256x256"
     },
     {
-      "filename" : "WhatsApp Image 2024-10-02 at 21.43.56 (6).jpeg",
+      "display-gamut" : "display-P3",
+      "idiom" : "mac",
+      "scale" : "2x",
+      "size" : "256x256"
+    },
+    {
+      "display-gamut" : "display-P3",
+      "idiom" : "mac",
+      "language-direction" : "left-to-right",
+      "scale" : "2x",
+      "size" : "256x256"
+    },
+    {
+      "display-gamut" : "display-P3",
+      "idiom" : "mac",
+      "language-direction" : "right-to-left",
+      "scale" : "2x",
+      "size" : "256x256"
+    },
+    {
+      "display-gamut" : "sRGB",
       "idiom" : "mac",
       "scale" : "1x",
       "size" : "512x512"
     },
     {
+      "display-gamut" : "sRGB",
       "idiom" : "mac",
       "language-direction" : "left-to-right",
       "scale" : "1x",
       "size" : "512x512"
     },
     {
+      "display-gamut" : "sRGB",
       "idiom" : "mac",
       "language-direction" : "right-to-left",
       "scale" : "1x",
       "size" : "512x512"
     },
     {
-      "filename" : "WhatsApp Image 2024-10-02 at 21.43.56 (7).jpeg",
+      "display-gamut" : "display-P3",
+      "idiom" : "mac",
+      "scale" : "1x",
+      "size" : "512x512"
+    },
+    {
+      "display-gamut" : "display-P3",
+      "idiom" : "mac",
+      "language-direction" : "left-to-right",
+      "scale" : "1x",
+      "size" : "512x512"
+    },
+    {
+      "display-gamut" : "display-P3",
+      "idiom" : "mac",
+      "language-direction" : "right-to-left",
+      "scale" : "1x",
+      "size" : "512x512"
+    },
+    {
+      "display-gamut" : "sRGB",
       "idiom" : "mac",
       "scale" : "2x",
       "size" : "512x512"
     },
     {
+      "display-gamut" : "sRGB",
       "idiom" : "mac",
       "language-direction" : "left-to-right",
       "scale" : "2x",
       "size" : "512x512"
     },
     {
+      "display-gamut" : "sRGB",
+      "idiom" : "mac",
+      "language-direction" : "right-to-left",
+      "scale" : "2x",
+      "size" : "512x512"
+    },
+    {
+      "display-gamut" : "display-P3",
+      "idiom" : "mac",
+      "scale" : "2x",
+      "size" : "512x512"
+    },
+    {
+      "display-gamut" : "display-P3",
+      "idiom" : "mac",
+      "language-direction" : "left-to-right",
+      "scale" : "2x",
+      "size" : "512x512"
+    },
+    {
+      "display-gamut" : "display-P3",
       "idiom" : "mac",
       "language-direction" : "right-to-left",
       "scale" : "2x",
