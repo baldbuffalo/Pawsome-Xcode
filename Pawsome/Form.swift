@@ -9,7 +9,7 @@ struct ScanView: View {
     var body: some View {
         ZStack {
             // Full screen camera preview
-            iOSCameraView(capturedImage: $capturedImage) { image in
+            CustomCameraView(capturedImage: $capturedImage) { image in
                 // Handle image capture
                 self.isLoading = true // Show loading
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2) { // Simulate loading delay
@@ -60,7 +60,7 @@ struct ScanView: View {
 }
 
 #if os(iOS)
-struct iOSCameraView: UIViewControllerRepresentable {
+struct CustomCameraView: UIViewControllerRepresentable {
     @Binding var capturedImage: UIImage?
     var onCapture: (UIImage) -> Void // Capture callback
 
@@ -83,11 +83,11 @@ struct iOSCameraView: UIViewControllerRepresentable {
     }
 
     class Coordinator: NSObject, AVCapturePhotoCaptureDelegate {
-        var parent: iOSCameraView
+        var parent: CustomCameraView
         var captureSession: AVCaptureSession?
         var photoOutput: AVCapturePhotoOutput?
 
-        init(_ parent: iOSCameraView) {
+        init(_ parent: CustomCameraView) {
             self.parent = parent
         }
 
