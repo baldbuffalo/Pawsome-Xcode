@@ -5,18 +5,17 @@ struct ScanView: View {
     @State private var capturedImage: UIImage?
     @State private var isLoading = false
     @State private var isNavigatingToForm = false
-    @State private var zoomFactor: CGFloat = 1.0 // State variable for zoom factor
 
     var body: some View {
         NavigationStack {
             ZStack {
-                iOSCameraView(capturedImage: $capturedImage, zoomFactor: $zoomFactor) { image in
-                    // This closure is called when the image is captured
+                iOSCameraView(capturedImage: $capturedImage) { image in
+                    // When image is captured, show a loading animation, then navigate
                     self.isLoading = true
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) { // Simulate loading
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) { // Simulate loading time
                         self.isLoading = false
-                        self.capturedImage = image // Set the captured image
-                        isNavigatingToForm = true // Trigger navigation when image is set
+                        self.capturedImage = image // Set captured image
+                        isNavigatingToForm = true // Navigate to form
                     }
                 }
                 .edgesIgnoringSafeArea(.all)
@@ -30,16 +29,9 @@ struct ScanView: View {
                 }
 
                 VStack {
-                    Spacer() // Push the button to the bottom
-
-                    // Zoom Slider
-                    Slider(value: $zoomFactor, in: 1...5, step: 0.1)
-                        .padding()
-                        .accentColor(.blue)
-                    Text("Zoom: \(String(format: "%.1f", zoomFactor))x") // Display zoom level
+                    Spacer()
 
                     Button(action: {
-                        isLoading = true // Show loading spinner
                         capturePhoto() // Trigger photo capture
                     }) {
                         Text("Capture Image")
@@ -55,23 +47,22 @@ struct ScanView: View {
             }
             .navigationTitle("Scan")
             .navigationBarTitleDisplayMode(.inline)
-            .navigationDestination(isPresented: $isNavigatingToForm) { // Navigate to Form view
-                Form(imageUI: capturedImage) // Pass captured image to Form
+            .navigationDestination(isPresented: $isNavigatingToForm) {
+                FormView(imageUI: capturedImage) // Pass captured image to the form
             }
         }
     }
 
     private func capturePhoto() {
-        // Simulate the photo capture for now, since iOSCameraView manages real capture
-        // In your app, ensure iOSCameraView properly calls capture and processes the image
+        // Implement the function for capturing a photo
+        isNavigatingToForm = false // Reset navigation state before capturing
     }
 }
 
 #if os(iOS)
 struct iOSCameraView: UIViewControllerRepresentable {
     @Binding var capturedImage: UIImage?
-    @Binding var zoomFactor: CGFloat // Add zoom factor binding
-    var onCapture: (UIImage) -> Void // Callback for captured image
+    var onCapture: (UIImage) -> Void
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
@@ -83,14 +74,7 @@ struct iOSCameraView: UIViewControllerRepresentable {
         return viewController
     }
 
-    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {
-        // Update the zoom factor whenever it changes
-        if let device = AVCaptureDevice.default(for: .video) {
-            try? device.lockForConfiguration()
-            device.videoZoomFactor = zoomFactor
-            device.unlockForConfiguration()
-        }
-    }
+    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
 
     class Coordinator: NSObject, AVCapturePhotoCaptureDelegate {
         var parent: iOSCameraView
@@ -125,12 +109,12 @@ struct iOSCameraView: UIViewControllerRepresentable {
             captureSession.startRunning()
         }
 
-        // Delegate function for processing captured photo
+        // Process the captured photo
         func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
             if let data = photo.fileDataRepresentation(), let image = UIImage(data: data) {
-                parent.onCapture(image) // Call the capture callback with the image
+                parent.onCapture(image)
             } else {
-                parent.capturedImage = nil // Ensure captured image is nil if capture fails
+                parent.capturedImage = nil
             }
         }
     }
