@@ -2,13 +2,33 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <!-- Background Modes -->
     <key>UIBackgroundModes</key>
     <array>
         <string>remote-notification</string>
     </array>
+    
+    <!-- Camera Access -->
     <key>NSCameraUsageDescription</key>
     <string>This app requires access to the camera to allow users to capture images of cats.</string>
+    
+    <!-- Photo Library Access -->
     <key>NSPhotoLibraryUsageDescription</key>
     <string>This app requires access to your photo library to display and select images of cats.</string>
+    
+    <!-- URL Schemes -->
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>com.googleusercontent.apps.70386804757-8dp73qcfvb5coce3hh8me5cju47v75hq</string>
+            </array>
+        </dict>
+    </array>
+    
+    <!-- Google Client ID -->
+    <key>GIDClientID</key>
+    <string>70386804757-8dp73qcfvb5coce3hh8me5cju47v75hq.apps.googleusercontent.com</string>
 </dict>
 </plist>
