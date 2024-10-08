@@ -47,7 +47,7 @@ struct ScanView: View, CameraViewDelegate {
             .navigationTitle("Scan")
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(isPresented: $isNavigatingToForm) {
-                FormView(imageUI: capturedImage) // Pass captured image to the form
+                Form(imageUI: capturedImage) // Pass captured image to the form
             }
         }
     }
