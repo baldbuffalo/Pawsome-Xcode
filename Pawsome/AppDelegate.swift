@@ -2,8 +2,12 @@
 import UIKit
 import Firebase
 import GoogleSignIn
+import AVFoundation
 
 class AppDelegate: NSObject, UIApplicationDelegate {
+    var window: UIWindow?
+    var photoOutput: AVCapturePhotoOutput? // Add this line to declare photoOutput
+
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         FirebaseApp.configure() // Initialize Firebase

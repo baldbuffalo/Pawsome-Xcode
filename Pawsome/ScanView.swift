@@ -1,18 +1,23 @@
 import SwiftUI
 import AVFoundation
 
-struct ScanView: View {
+// Define a protocol for camera capturing
+protocol CameraViewDelegate {
+    func didTapCapture()
+}
+
+struct ScanView: View, CameraViewDelegate {
     @State private var capturedImage: UIImage?
     @State private var isLoading = false
     @State private var isNavigatingToForm = false
+    @State private var coordinator: CameraView.Coordinator? // Store coordinator reference
 
     var body: some View {
         NavigationStack {
             ZStack {
-                CameraView(capturedImage: $capturedImage) { image in
-                    // Handle the captured image here if needed
-                }
-                .edgesIgnoringSafeArea(.all)
+                // Bind coordinator and pass delegate
+                CameraView(capturedImage: $capturedImage, delegate: self, coordinatorBinding: $coordinator)
+                    .edgesIgnoringSafeArea(.all)
 
                 if isLoading {
                     ProgressView("Loading...")
@@ -49,71 +54,91 @@ struct ScanView: View {
 
     private func capturePhoto() {
         isLoading = true // Show loading indicator
-
-        // Simulate photo capture delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            isLoading = false // Hide loading indicator
-            isNavigatingToForm = true // Navigate to FormView
-        }
+        // Trigger photo capture through the coordinator
+        coordinator?.captureImage()
     }
 
-    struct CameraView: UIViewControllerRepresentable {
-        @Binding var capturedImage: UIImage?
-        var onCapture: (UIImage) -> Void
+    // Implement the delegate method
+    func didTapCapture() {
+        isLoading = false // Hide loading indicator
+        isNavigatingToForm = true // Navigate to FormView
+    }
+}
 
-        func makeCoordinator() -> Coordinator {
-            Coordinator(self)
+struct CameraView: UIViewControllerRepresentable {
+    @Binding var capturedImage: UIImage?
+    var delegate: CameraViewDelegate? // Add delegate
+    @Binding var coordinatorBinding: Coordinator? // Bind coordinator to ScanView
+
+    func makeCoordinator() -> Coordinator {
+        let coordinator = Coordinator(self)
+        DispatchQueue.main.async {
+            self.coordinatorBinding = coordinator // Bind the coordinator
+        }
+        return coordinator
+    }
+
+    func makeUIViewController(context: Context) -> UIViewController {
+        let viewController = UIViewController()
+        context.coordinator.setupCamera(in: viewController)
+        return viewController
+    }
+
+    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
+
+    class Coordinator: NSObject, AVCapturePhotoCaptureDelegate {
+        var parent: CameraView
+        var captureSession: AVCaptureSession?
+        var photoOutput: AVCapturePhotoOutput?
+
+        init(_ parent: CameraView) {
+            self.parent = parent
         }
 
-        func makeUIViewController(context: Context) -> UIViewController {
-            let viewController = UIViewController()
-            context.coordinator.setupCamera(in: viewController)
-            return viewController
+        func setupCamera(in viewController: UIViewController) {
+            captureSession = AVCaptureSession()
+
+            guard let videoCaptureDevice = AVCaptureDevice.default(for: .video),
+                  let videoInput = try? AVCaptureDeviceInput(device: videoCaptureDevice),
+                  let captureSession = captureSession else { return }
+
+            if captureSession.canAddInput(videoInput) {
+                captureSession.addInput(videoInput)
+            }
+
+            photoOutput = AVCapturePhotoOutput()
+            if let photoOutput = photoOutput, captureSession.canAddOutput(photoOutput) {
+                captureSession.addOutput(photoOutput)
+            }
+
+            let previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
+            previewLayer.videoGravity = .resizeAspectFill
+            previewLayer.frame = viewController.view.bounds
+            viewController.view.layer.addSublayer(previewLayer)
+
+            captureSession.startRunning()
         }
 
-        func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
+        func captureImage() {
+            let settings = AVCapturePhotoSettings()
+            photoOutput?.capturePhoto(with: settings, delegate: self) // Capture the photo
+        }
 
-        class Coordinator: NSObject, AVCapturePhotoCaptureDelegate {
-            var parent: CameraView
-            var captureSession: AVCaptureSession?
-            var photoOutput: AVCapturePhotoOutput?
-
-            init(_ parent: CameraView) {
-                self.parent = parent
-            }
-
-            func setupCamera(in viewController: UIViewController) {
-                captureSession = AVCaptureSession()
-
-                guard let videoCaptureDevice = AVCaptureDevice.default(for: .video),
-                      let videoInput = try? AVCaptureDeviceInput(device: videoCaptureDevice),
-                      let captureSession = captureSession else { return }
-
-                if captureSession.canAddInput(videoInput) {
-                    captureSession.addInput(videoInput)
-                }
-
-                photoOutput = AVCapturePhotoOutput()
-                if let photoOutput = photoOutput, captureSession.canAddOutput(photoOutput) {
-                    captureSession.addOutput(photoOutput)
-                }
-
-                let previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
-                previewLayer.videoGravity = .resizeAspectFill
-                previewLayer.frame = viewController.view.bounds
-                viewController.view.layer.addSublayer(previewLayer)
-
-                captureSession.startRunning()
-            }
-
-            // Process the captured photo
-            func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
+        // Process the captured photo
+        func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
+            DispatchQueue.main.async {
+                self.parent.capturedImage = nil // Reset the captured image
                 if let data = photo.fileDataRepresentation(), let image = UIImage(data: data) {
-                    parent.onCapture(image) // Call the onCapture closure with the captured image
+                    self.parent.capturedImage = image // Assign the captured image
+                    // Call the delegate to notify the scan view
+                    self.parent.delegate?.didTapCapture()
                 } else {
-                    parent.capturedImage = nil
+                    print("Failed to capture image.")
                 }
             }
         }
     }
 }
+#if os(iOS) || os(tvOS) || targetEnvironment(macCatalyst)
+import SwiftUI
+#endif
