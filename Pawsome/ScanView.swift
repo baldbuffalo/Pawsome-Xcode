@@ -54,8 +54,7 @@ struct ScanView: View, CameraViewDelegate {
 
     private func capturePhoto() {
         isLoading = true // Show loading indicator
-        // Trigger photo capture through the coordinator
-        coordinator?.captureImage()
+        coordinator?.captureImage() // Trigger photo capture through the coordinator
     }
 
     // Implement the delegate method
@@ -90,6 +89,7 @@ struct CameraView: UIViewControllerRepresentable {
         var parent: CameraView
         var captureSession: AVCaptureSession?
         var photoOutput: AVCapturePhotoOutput?
+        var previewLayer: AVCaptureVideoPreviewLayer?
 
         init(_ parent: CameraView) {
             self.parent = parent
@@ -111,10 +111,11 @@ struct CameraView: UIViewControllerRepresentable {
                 captureSession.addOutput(photoOutput)
             }
 
-            let previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
-            previewLayer.videoGravity = .resizeAspectFill
-            previewLayer.frame = viewController.view.bounds
-            viewController.view.layer.addSublayer(previewLayer)
+            // Setup preview layer to show what the camera sees
+            previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
+            previewLayer?.videoGravity = .resizeAspectFill
+            previewLayer?.frame = viewController.view.bounds
+            viewController.view.layer.addSublayer(previewLayer!)
 
             captureSession.startRunning()
         }
@@ -122,6 +123,9 @@ struct CameraView: UIViewControllerRepresentable {
         func captureImage() {
             let settings = AVCapturePhotoSettings()
             photoOutput?.capturePhoto(with: settings, delegate: self) // Capture the photo
+
+            // Freeze the preview when capturing the image
+            previewLayer?.connection?.isEnabled = false
         }
 
         // Process the captured photo
@@ -130,10 +134,11 @@ struct CameraView: UIViewControllerRepresentable {
                 self.parent.capturedImage = nil // Reset the captured image
                 if let data = photo.fileDataRepresentation(), let image = UIImage(data: data) {
                     self.parent.capturedImage = image // Assign the captured image
-                    // Call the delegate to notify the scan view
-                    self.parent.delegate?.didTapCapture()
+                    self.parent.delegate?.didTapCapture() // Notify that the image has been captured
+                    self.previewLayer?.connection?.isEnabled = true // Re-enable the preview after capture
                 } else {
                     print("Failed to capture image.")
+                    self.previewLayer?.connection?.isEnabled = true // Re-enable preview if failed
                 }
             }
         }
