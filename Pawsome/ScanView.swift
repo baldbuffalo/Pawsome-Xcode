@@ -7,10 +7,11 @@ protocol CameraViewDelegate {
 }
 
 struct ScanView: View, CameraViewDelegate {
-    @State private var capturedImage: UIImage?
+    @Binding var capturedImage: UIImage? // Binding for capturedImage
+    @Binding var catPosts: [CatPost] // Ensure this binding is available
     @State private var isLoading = false
     @State private var isNavigatingToForm = false
-    @State private var coordinator: CameraView.Coordinator? // Store coordinator reference
+    @State private var coordinator: CameraView.Coordinator?
 
     var body: some View {
         NavigationStack {
@@ -31,7 +32,7 @@ struct ScanView: View, CameraViewDelegate {
                     Spacer()
 
                     Button(action: {
-                        capturePhoto() // Trigger photo capture
+                        capturePhoto()
                     }) {
                         Text("Capture Image")
                             .frame(maxWidth: .infinity)
@@ -47,32 +48,31 @@ struct ScanView: View, CameraViewDelegate {
             .navigationTitle("Scan")
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(isPresented: $isNavigatingToForm) {
-                Form(imageUI: capturedImage) // Pass captured image to the form
+                FormView(catPosts: $catPosts, imageUI: capturedImage) // Pass catPosts and captured image
             }
         }
     }
 
     private func capturePhoto() {
-        isLoading = true // Show loading indicator
-        coordinator?.captureImage() // Trigger photo capture through the coordinator
+        isLoading = true
+        coordinator?.captureImage()
     }
 
-    // Implement the delegate method
     func didTapCapture() {
-        isLoading = false // Hide loading indicator
-        isNavigatingToForm = true // Navigate to FormView
+        isLoading = false
+        isNavigatingToForm = true
     }
 }
 
 struct CameraView: UIViewControllerRepresentable {
-    @Binding var capturedImage: UIImage?
-    var delegate: CameraViewDelegate? // Add delegate
-    @Binding var coordinatorBinding: Coordinator? // Bind coordinator to ScanView
+    @Binding var capturedImage: UIImage? // Captured image from camera
+    var delegate: CameraViewDelegate?
+    @Binding var coordinatorBinding: Coordinator?
 
     func makeCoordinator() -> Coordinator {
         let coordinator = Coordinator(self)
         DispatchQueue.main.async {
-            self.coordinatorBinding = coordinator // Bind the coordinator
+            self.coordinatorBinding = coordinator
         }
         return coordinator
     }
@@ -111,7 +111,6 @@ struct CameraView: UIViewControllerRepresentable {
                 captureSession.addOutput(photoOutput)
             }
 
-            // Setup preview layer to show what the camera sees
             previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
             previewLayer?.videoGravity = .resizeAspectFill
             previewLayer?.frame = viewController.view.bounds
@@ -122,28 +121,23 @@ struct CameraView: UIViewControllerRepresentable {
 
         func captureImage() {
             let settings = AVCapturePhotoSettings()
-            photoOutput?.capturePhoto(with: settings, delegate: self) // Capture the photo
+            photoOutput?.capturePhoto(with: settings, delegate: self)
 
-            // Freeze the preview when capturing the image
             previewLayer?.connection?.isEnabled = false
         }
 
-        // Process the captured photo
         func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
             DispatchQueue.main.async {
-                self.parent.capturedImage = nil // Reset the captured image
+                self.parent.capturedImage = nil
                 if let data = photo.fileDataRepresentation(), let image = UIImage(data: data) {
-                    self.parent.capturedImage = image // Assign the captured image
-                    self.parent.delegate?.didTapCapture() // Notify that the image has been captured
-                    self.previewLayer?.connection?.isEnabled = true // Re-enable the preview after capture
+                    self.parent.capturedImage = image
+                    self.parent.delegate?.didTapCapture()
+                    self.previewLayer?.connection?.isEnabled = true
                 } else {
                     print("Failed to capture image.")
-                    self.previewLayer?.connection?.isEnabled = true // Re-enable preview if failed
+                    self.previewLayer?.connection?.isEnabled = true
                 }
             }
         }
     }
 }
-#if os(iOS) || os(tvOS) || targetEnvironment(macCatalyst)
-import SwiftUI
-#endif

@@ -12,13 +12,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>149</string>
+					<string>143</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>149</string>
+					<string>143</string>
 					<key>Timestamp</key>
-					<string>750076475.346764</string>
+					<string>750173460.966892</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -36,8 +36,8 @@
 				<key>focused</key>
 				<string></string>
 				<key>leading</key>
-				<string>import SwiftUI
-#endif
+				<string>    }
+}
 </string>
 				<key>trailing</key>
 				<string></string>

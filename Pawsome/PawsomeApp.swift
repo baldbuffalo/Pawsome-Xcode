@@ -5,9 +5,11 @@ import SwiftData
 struct PawsomeApp: App {
     @State private var isLoggedIn: Bool = false // Track login status
 
+    // Create a shared model container
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Item.self,  // Use the existing Item model
+            // Add other models here if needed
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -20,14 +22,14 @@ struct PawsomeApp: App {
 
     var body: some Scene {
         WindowGroup {
+            // Use @ViewBuilder to conditionally return different views
             if isLoggedIn {
-                // Pass the binding of isLoggedIn to ContentView
-                ContentView(isLoggedIn: $isLoggedIn)
+                HomeView(isLoggedIn: $isLoggedIn)
+                    .modelContainer(sharedModelContainer) // Set the model container for the HomeView
             } else {
-                // Pass the binding of isLoggedIn to LoginView
                 LoginView(isLoggedIn: $isLoggedIn)
+                    .modelContainer(sharedModelContainer) // Set the model container for the LoginView
             }
         }
-        .modelContainer(sharedModelContainer)
     }
 }
