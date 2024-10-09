@@ -5,7 +5,7 @@ struct HomeView: View {
     @State private var catPosts: [CatPost] = []
     @State private var showScanView = false
     @State private var capturedImage: UIImage? = nil
-    @State private var selectedTab = 0 // Track the selected tab
+    @State private var selectedTab = 0
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -92,6 +92,7 @@ struct HomeView: View {
             }
             .tag(1)
             .sheet(isPresented: $showScanView) {
+                // Correctly passing capturedImage and catPosts to ScanView
                 ScanView(capturedImage: $capturedImage, catPosts: $catPosts)
             }
 

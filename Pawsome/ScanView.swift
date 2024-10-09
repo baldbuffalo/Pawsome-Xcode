@@ -7,8 +7,8 @@ protocol CameraViewDelegate {
 }
 
 struct ScanView: View, CameraViewDelegate {
-    @Binding var capturedImage: UIImage? // Binding for capturedImage
-    @Binding var catPosts: [CatPost] // Ensure this binding is available
+    @Binding var capturedImage: UIImage? // Expecting capturedImage as a binding
+    @Binding var catPosts: [CatPost] // Expecting catPosts as a binding
     @State private var isLoading = false
     @State private var isNavigatingToForm = false
     @State private var coordinator: CameraView.Coordinator?
@@ -16,7 +16,7 @@ struct ScanView: View, CameraViewDelegate {
     var body: some View {
         NavigationStack {
             ZStack {
-                // Bind coordinator and pass delegate
+                // Pass the capturedImage binding and other parameters to CameraView
                 CameraView(capturedImage: $capturedImage, delegate: self, coordinatorBinding: $coordinator)
                     .edgesIgnoringSafeArea(.all)
 
@@ -48,7 +48,7 @@ struct ScanView: View, CameraViewDelegate {
             .navigationTitle("Scan")
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(isPresented: $isNavigatingToForm) {
-                FormView(catPosts: $catPosts, imageUI: capturedImage) // Pass catPosts and captured image
+                FormView(catPosts: $catPosts, imageUI: capturedImage) // Passing image to the FormView
             }
         }
     }
@@ -65,7 +65,7 @@ struct ScanView: View, CameraViewDelegate {
 }
 
 struct CameraView: UIViewControllerRepresentable {
-    @Binding var capturedImage: UIImage? // Captured image from camera
+    @Binding var capturedImage: UIImage?
     var delegate: CameraViewDelegate?
     @Binding var coordinatorBinding: Coordinator?
 
