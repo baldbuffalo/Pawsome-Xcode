@@ -99,8 +99,8 @@ class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
         let buttonHeight: CGFloat = 70
         let buttonWidth: CGFloat = 70
 
-        // Center the button horizontally and place it slightly above the bottom of the preview box
-        let buttonYPosition = self.view.frame.height - buttonHeight - 50 // 50 points above the bottom edge
+        // Center the button horizontally and place it at the bottom middle of the preview
+        let buttonYPosition = self.view.frame.height - buttonHeight - 20 // 20 points above the bottom edge
 
         let captureButton = UIButton(frame: CGRect(x: (self.view.frame.width - buttonWidth) / 2,
                                                    y: buttonYPosition,
@@ -129,13 +129,5 @@ class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
 
         // Set the captured image
         capturedImage = image
-
-        // Show the image editing view
-        showImageEditingView(with: image)
-    }
-
-    private func showImageEditingView(with image: UIImage) {
-        let editingView = UIHostingController(rootView: ImageEditingView(image: image))
-        self.present(editingView, animated: true, completion: nil)
     }
 }
