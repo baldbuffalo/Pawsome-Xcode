@@ -4,12 +4,12 @@ import AVFoundation
 struct ScanView: View {
     @Binding var capturedImage: UIImage? // Bind the captured image from HomeView
     @Binding var hideTabBar: Bool // Bind to control the tab bar visibility
-    @State private var showEditView = false // State to control the presentation of the edit view
+    @State private var showFormView = false // State to control the presentation of the form view
 
     var body: some View {
         ZStack {
             CameraView(capturedImage: $capturedImage, onCapture: {
-                showEditView = true // Show the editing view after capturing the image
+                showFormView = true // Show the form view after capturing the image
             })
             .edgesIgnoringSafeArea(.all)
 
@@ -36,9 +36,9 @@ struct ScanView: View {
         .onDisappear {
             hideTabBar = false // Show the tab bar again when ScanView disappears
         }
-        .fullScreenCover(isPresented: $showEditView) {
+        .fullScreenCover(isPresented: $showFormView) {
             if let capturedImage = capturedImage {
-                ImageEditing(image: capturedImage) // Present the ImageEditing view
+                FormView(capturedImage: capturedImage) // Present the FormView with the captured image
             }
         }
     }
@@ -65,6 +65,9 @@ class CameraViewController: UIViewController {
     private var captureSession: AVCaptureSession!
     private var photoOutput: AVCapturePhotoOutput!
     private var previewLayer: AVCaptureVideoPreviewLayer!
+    
+    private var currentZoomFactor: CGFloat = 1.0
+    private var maxZoomFactor: CGFloat = 5.0
 
     init(capturedImage: Binding<UIImage?>, onCapture: @escaping () -> Void) {
         _capturedImage = capturedImage
@@ -79,6 +82,7 @@ class CameraViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupCamera()
+        addPinchGesture()
     }
 
     private func setupCamera() {
@@ -118,6 +122,27 @@ class CameraViewController: UIViewController {
     @objc private func captureImage() {
         let settings = AVCapturePhotoSettings()
         photoOutput.capturePhoto(with: settings, delegate: self)
+    }
+
+    private func addPinchGesture() {
+        let pinchGesture = UIPinchGestureRecognizer(target: self, action: #selector(handlePinchGesture(_:)))
+        view.addGestureRecognizer(pinchGesture)
+    }
+
+    @objc private func handlePinchGesture(_ sender: UIPinchGestureRecognizer) {
+        guard let device = AVCaptureDevice.default(for: .video) else { return }
+        if sender.state == .began || sender.state == .changed {
+            do {
+                try device.lockForConfiguration()
+                currentZoomFactor *= sender.scale
+                currentZoomFactor = min(maxZoomFactor, max(1.0, currentZoomFactor))
+                device.videoZoomFactor = currentZoomFactor
+                device.unlockForConfiguration()
+                sender.scale = 1.0
+            } catch {
+                print("Error locking configuration: \(error)")
+            }
+        }
     }
 
     override func viewWillDisappear(_ animated: Bool) {
