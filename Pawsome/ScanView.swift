@@ -168,14 +168,8 @@ class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         // Handle touch for zooming
         guard let touch = touches.first else { return }
-        let touchLocation = touch.location(in: view)
 
         // Calculate zoom factor based on touch location
-        let width = view.bounds.width
-        let height = view.bounds.height
-        let x = touchLocation.x / width
-        let y = touchLocation.y / height
-
         if zoomFactor < maxZoomFactor {
             zoomFactor += 1.0 // Increase zoom factor (can adjust this increment)
         } else {
