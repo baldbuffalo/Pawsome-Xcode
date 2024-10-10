@@ -2,7 +2,8 @@ import SwiftUI
 import AVFoundation
 
 struct ScanView: View {
-    @State private var capturedImage: UIImage?
+    @Binding var capturedImage: UIImage? // Bind the captured image from HomeView
+    @Binding var hideTabBar: Bool // Bind to control the tab bar visibility
     @State private var showEditView = false // State to control the presentation of the edit view
 
     var body: some View {
@@ -16,7 +17,7 @@ struct ScanView: View {
                 Spacer()
                 // Camera capture button
                 Button(action: {
-                    // The CameraView will handle the image capture
+                    NotificationCenter.default.post(name: Notification.Name("captureImage"), object: nil) // Trigger capture
                 }) {
                     Image(systemName: "camera.fill")
                         .resizable()
@@ -28,6 +29,12 @@ struct ScanView: View {
                 }
                 .padding(.bottom, 30) // Position it above the bottom
             }
+        }
+        .onAppear {
+            hideTabBar = true // Hide the tab bar when ScanView appears
+        }
+        .onDisappear {
+            hideTabBar = false // Show the tab bar again when ScanView disappears
         }
         .fullScreenCover(isPresented: $showEditView) {
             if let capturedImage = capturedImage {
@@ -51,15 +58,16 @@ struct CameraView: UIViewControllerRepresentable {
     }
 }
 
-class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
+class CameraViewController: UIViewController {
     @Binding var capturedImage: UIImage?
-    var onCapture: () -> Void // Closure to call when image is captured
+    var onCapture: () -> Void // Closure to call when the image is captured
 
-    private var captureSession: AVCaptureSession?
-    private var photoOutput: AVCapturePhotoOutput?
+    private var captureSession: AVCaptureSession!
+    private var photoOutput: AVCapturePhotoOutput!
+    private var previewLayer: AVCaptureVideoPreviewLayer!
 
     init(capturedImage: Binding<UIImage?>, onCapture: @escaping () -> Void) {
-        self._capturedImage = capturedImage
+        _capturedImage = capturedImage
         self.onCapture = onCapture
         super.init(nibName: nil, bundle: nil)
     }
@@ -75,53 +83,54 @@ class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
 
     private func setupCamera() {
         captureSession = AVCaptureSession()
+        guard let videoCaptureDevice = AVCaptureDevice.default(for: .video) else { return }
+        let videoInput: AVCaptureDeviceInput
 
-        // Check for camera availability
-        guard let videoCaptureDevice = AVCaptureDevice.default(for: .video) else {
-            print("No video capture device available")
+        do {
+            videoInput = try AVCaptureDeviceInput(device: videoCaptureDevice)
+        } catch {
             return
         }
 
-        do {
-            let videoInput = try AVCaptureDeviceInput(device: videoCaptureDevice)
-            if captureSession?.canAddInput(videoInput) == true {
-                captureSession?.addInput(videoInput)
-            } else {
-                print("Could not add video input")
-                return
-            }
-        } catch {
-            print("Error initializing video input: \(error)")
+        if (captureSession.canAddInput(videoInput)) {
+            captureSession.addInput(videoInput)
+        } else {
             return
         }
 
         photoOutput = AVCapturePhotoOutput()
-        if let photoOutput = photoOutput, captureSession?.canAddOutput(photoOutput) == true {
-            captureSession?.addOutput(photoOutput)
+        if (captureSession.canAddOutput(photoOutput)) {
+            captureSession.addOutput(photoOutput)
         } else {
-            print("Could not add photo output")
             return
         }
 
-        // Setup the preview layer
-        let previewLayer = AVCaptureVideoPreviewLayer(session: captureSession!)
+        previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
         previewLayer.frame = view.layer.bounds
         previewLayer.videoGravity = .resizeAspectFill
         view.layer.addSublayer(previewLayer)
 
-        captureSession?.startRunning()
+        captureSession.startRunning()
+
+        NotificationCenter.default.addObserver(self, selector: #selector(captureImage), name: Notification.Name("captureImage"), object: nil)
     }
 
-    @objc func captureImage() {
+    @objc private func captureImage() {
         let settings = AVCapturePhotoSettings()
-        photoOutput?.capturePhoto(with: settings, delegate: self)
+        photoOutput.capturePhoto(with: settings, delegate: self)
     }
 
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        captureSession.stopRunning()
+        NotificationCenter.default.removeObserver(self)
+    }
+}
+
+extension CameraViewController: AVCapturePhotoCaptureDelegate {
     func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
-        guard let imageData = photo.fileDataRepresentation(),
-              let image = UIImage(data: imageData) else { return }
-        
-        capturedImage = image // Set the captured image
-        onCapture() // Call the capture closure
+        guard let imageData = photo.fileDataRepresentation() else { return }
+        capturedImage = UIImage(data: imageData)
+        onCapture() // Call the closure to indicate that an image has been captured
     }
 }

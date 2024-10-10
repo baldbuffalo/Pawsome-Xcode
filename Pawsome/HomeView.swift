@@ -8,6 +8,7 @@ struct HomeView: View {
     @State private var selectedImage: UIImage? = nil
     @State private var capturedImage: UIImage? = nil // Manage captured images
     @State private var hideTabBar: Bool = false // Control tab bar visibility
+    @State private var showScanView: Bool = false // Control ScanView visibility
 
     var body: some View {
         TabView {
@@ -30,9 +31,27 @@ struct HomeView: View {
                 Label("Home", systemImage: "house")
             }
             
-            NavigationView {
-                // Use ScanView and pass the new hideTabBar binding
-                ScanView(capturedImage: $capturedImage, hideTabBar: $hideTabBar) // Pass the required parameters
+            NavigationStack {
+                VStack {
+                    Button("Start Scan") {
+                        showScanView = true // Activate the NavigationLink
+                    }
+                    .padding()
+                    .background(Color.green)
+                    .foregroundColor(.white)
+                    .cornerRadius(8)
+
+                    // NavigationLink to open ScanView using the new method
+                    NavigationLink(value: "ScanView") {
+                        EmptyView() // Invisible part of the NavigationLink
+                    }
+                    .navigationDestination(for: String.self) { value in
+                        if value == "ScanView" {
+                            ScanView(capturedImage: $capturedImage, hideTabBar: $hideTabBar)
+                        }
+                    }
+                }
+                .navigationTitle("Scan") // Optional title for the Scan view
             }
             .tabItem {
                 Label("Post", systemImage: "camera")
@@ -52,7 +71,6 @@ struct HomeView: View {
     }
 
     private var headerView: some View {
-        // Your header view implementation here
         Text("Welcome to Pawsome")
             .font(.largeTitle)
             .padding()
@@ -60,7 +78,6 @@ struct HomeView: View {
 
     private var postListView: some View {
         List(catPosts) { post in
-            // Your post view implementation here
             VStack(alignment: .leading) {
                 if let imageData = post.imageData, let image = UIImage(data: imageData) {
                     Image(uiImage: image)
