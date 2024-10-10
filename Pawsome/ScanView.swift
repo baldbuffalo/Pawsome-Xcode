@@ -4,6 +4,7 @@ import AVFoundation
 struct ScanView: UIViewControllerRepresentable {
     @Binding var capturedImage: UIImage?
     var currentUsername: String
+    @Binding var hideTabBar: Bool // New binding to manage tab bar visibility
 
     func makeUIViewController(context: Context) -> CameraViewController {
         let cameraViewController = CameraViewController(capturedImage: $capturedImage, currentUsername: currentUsername)
@@ -18,15 +19,14 @@ struct ScanView: UIViewControllerRepresentable {
 class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
     @Binding var capturedImage: UIImage?
     var currentUsername: String
-
+    
     private var captureSession: AVCaptureSession?
-    private var previewLayer: AVCaptureVideoPreviewLayer?
-    private var isCameraReady = false
+    private var photoOutput: AVCapturePhotoOutput?
 
     init(capturedImage: Binding<UIImage?>, currentUsername: String) {
         self._capturedImage = capturedImage
         self.currentUsername = currentUsername
-        super.init(nibName: nil, bundle: nil) // Call the superclass initializer
+        super.init(nibName: nil, bundle: nil)
     }
 
     required init?(coder: NSCoder) {
@@ -35,23 +35,11 @@ class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        startCamera()
-        setupCaptureButton()
+        setupCamera()
     }
 
-    override func viewWillDisappear(_ animated: Bool) {
-        super.viewWillDisappear(animated)
-        stopCamera()
-    }
-
-    override func viewDidLayoutSubviews() {
-        super.viewDidLayoutSubviews()
-        // Update the previewLayer's frame to match the view's bounds
-        previewLayer?.frame = view.bounds
-    }
-
-    private func startCamera() {
-        let session = AVCaptureSession()
+    private func setupCamera() {
+        captureSession = AVCaptureSession()
         guard let videoCaptureDevice = AVCaptureDevice.default(for: .video) else { return }
         let videoInput: AVCaptureDeviceInput
 
@@ -61,74 +49,52 @@ class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
             return
         }
 
-        if session.canAddInput(videoInput) {
-            session.addInput(videoInput)
+        if (captureSession?.canAddInput(videoInput) == true) {
+            captureSession?.addInput(videoInput)
         } else {
             return
         }
 
-        let videoOutput = AVCapturePhotoOutput()
-        if session.canAddOutput(videoOutput) {
-            session.addOutput(videoOutput)
+        photoOutput = AVCapturePhotoOutput()
+        if (captureSession?.canAddOutput(photoOutput!) == true) {
+            captureSession?.addOutput(photoOutput!)
         } else {
             return
         }
 
-        captureSession = session
-        previewLayer = AVCaptureVideoPreviewLayer(session: captureSession!)
-        previewLayer?.videoGravity = .resizeAspectFill
-
-        // Set the frame to the view's bounds initially
-        DispatchQueue.main.async {
-            if let previewLayer = self.previewLayer {
-                previewLayer.frame = self.view.layer.bounds
-                self.view.layer.addSublayer(previewLayer)
-            }
-        }
+        let previewLayer = AVCaptureVideoPreviewLayer(session: captureSession!)
+        previewLayer.frame = view.layer.bounds
+        previewLayer.videoGravity = .resizeAspectFill
+        view.layer.addSublayer(previewLayer)
 
         captureSession?.startRunning()
-        isCameraReady = true
-    }
 
-    private func stopCamera() {
-        captureSession?.stopRunning()
-        captureSession = nil
+        setupCaptureButton()
     }
 
     private func setupCaptureButton() {
-        let buttonHeight: CGFloat = 70
-        let buttonWidth: CGFloat = 70
-
-        // Calculate the middle position of the preview layer
-        let previewHeight = self.view.frame.height - 80 // Subtract the bottom bar height
-        let middleYPosition = (previewHeight - buttonHeight) / 2 // Center the button vertically in the preview area
-
-        let captureButton = UIButton(frame: CGRect(x: (self.view.frame.width - buttonWidth) / 2,
-                                                   y: middleYPosition,
-                                                   width: buttonWidth,
-                                                   height: buttonHeight))
-
-        captureButton.setTitle("📸", for: .normal) // Set an icon to make it visually appealing
-        captureButton.backgroundColor = UIColor.black.withAlphaComponent(0.6)
-        captureButton.layer.cornerRadius = buttonHeight / 2  // Make it a circular button
-        captureButton.clipsToBounds = true
+        let captureButton = UIButton(frame: CGRect(x: (view.frame.width - 70) / 2, y: view.frame.height - 100, width: 70, height: 70))
+        captureButton.layer.cornerRadius = 35
+        captureButton.backgroundColor = .blue
+        captureButton.setTitle("Capture", for: .normal)
         captureButton.addTarget(self, action: #selector(captureImage), for: .touchUpInside)
-
-        self.view.addSubview(captureButton)
+        view.addSubview(captureButton)
     }
 
     @objc private func captureImage() {
-        guard let captureOutput = captureSession?.outputs.first as? AVCapturePhotoOutput else { return }
+        // Hide the tab bar when capturing the image
+        if let homeView = self.parent as? HomeView {
+            homeView.hideTabBar = true // Hide tab bar when capturing the image
+        }
+
         let settings = AVCapturePhotoSettings()
-        captureOutput.capturePhoto(with: settings, delegate: self)
+        photoOutput?.capturePhoto(with: settings, delegate: self)
     }
 
-    // MARK: - AVCapturePhotoCaptureDelegate
-    func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto) {
-        guard let imageData = photo.fileDataRepresentation(),
-              let image = UIImage(data: imageData) else { return }
-
-        // Set the captured image
-        capturedImage = image
+    func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
+        guard let imageData = photo.fileDataRepresentation() else { return }
+        let image = UIImage(data: imageData)
+        capturedImage = image // Set the captured image
+        // Handle image editing or other actions here
     }
 }

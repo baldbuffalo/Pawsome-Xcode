@@ -7,6 +7,7 @@ struct HomeView: View {
     @State private var showForm: Bool = false
     @State private var selectedImage: UIImage? = nil
     @State private var capturedImage: UIImage? = nil // Add this to manage captured images
+    @State private var hideTabBar: Bool = false // New state variable to control tab bar visibility
 
     var body: some View {
         TabView {
@@ -30,7 +31,12 @@ struct HomeView: View {
             }
             
             NavigationView {
-                ScanView(capturedImage: $capturedImage, currentUsername: currentUsername) // Pass the required parameters
+                // Use ScanView and pass the new hideTabBar binding
+                ScanView(capturedImage: $capturedImage, currentUsername: currentUsername, hideTabBar: $hideTabBar) // Pass the required parameters
+                    .onDisappear {
+                        // Show tab bar when leaving ScanView
+                        hideTabBar = false
+                    }
             }
             .tabItem {
                 Label("Post", systemImage: "camera")
@@ -44,6 +50,9 @@ struct HomeView: View {
                 Label("Profile", systemImage: "person")
             }
         }
+        .tabViewStyle(DefaultTabViewStyle())
+        .edgesIgnoringSafeArea(hideTabBar ? .bottom : [])
+        .animation(hideTabBar ? .easeInOut : .default, value: hideTabBar) // Updated animation syntax
     }
 
     private var headerView: some View {
