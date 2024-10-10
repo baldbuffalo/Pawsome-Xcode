@@ -46,9 +46,8 @@ class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        // Update the previewLayer's frame to fit the view's bounds minus the height of the bottom bar
-        let bottomBarHeight: CGFloat = 80 // Adjust this value based on your bottom bar height
-        previewLayer?.frame = CGRect(x: 0, y: 0, width: view.bounds.width, height: view.bounds.height - bottomBarHeight)
+        // Update the previewLayer's frame to match the view's bounds
+        previewLayer?.frame = view.bounds
     }
 
     private func startCamera() {
@@ -79,10 +78,10 @@ class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
         previewLayer = AVCaptureVideoPreviewLayer(session: captureSession!)
         previewLayer?.videoGravity = .resizeAspectFill
 
-        // Add the preview layer to the view
+        // Set the frame to the view's bounds initially
         DispatchQueue.main.async {
             if let previewLayer = self.previewLayer {
-                previewLayer.frame = CGRect(x: 0, y: 0, width: self.view.layer.bounds.width, height: self.view.layer.bounds.height - 80) // Update to include bottom bar height
+                previewLayer.frame = self.view.layer.bounds
                 self.view.layer.addSublayer(previewLayer)
             }
         }
@@ -100,11 +99,12 @@ class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
         let buttonHeight: CGFloat = 70
         let buttonWidth: CGFloat = 70
 
-        // Center the button horizontally and place it at the bottom middle of the preview
-        let buttonYPosition = self.view.frame.height - buttonHeight - 20 // 20 points above the bottom edge
+        // Calculate the middle position of the preview layer
+        let previewHeight = self.view.frame.height - 80 // Subtract the bottom bar height
+        let middleYPosition = (previewHeight - buttonHeight) / 2 // Center the button vertically in the preview area
 
         let captureButton = UIButton(frame: CGRect(x: (self.view.frame.width - buttonWidth) / 2,
-                                                   y: buttonYPosition,
+                                                   y: middleYPosition,
                                                    width: buttonWidth,
                                                    height: buttonHeight))
 

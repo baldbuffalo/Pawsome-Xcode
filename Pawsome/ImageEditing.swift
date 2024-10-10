@@ -37,7 +37,10 @@ struct ImageEditingView: View {
     }
 
     private func dismissView() {
-        // Dismiss the current view controller (the UIHostingController)
-        UIApplication.shared.windows.first?.rootViewController?.dismiss(animated: true, completion: nil)
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
+            if let window = windowScene.windows.first {
+                window.rootViewController?.dismiss(animated: true, completion: nil)
+            }
+        }
     }
 }
