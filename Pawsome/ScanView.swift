@@ -4,36 +4,29 @@ import AVFoundation
 struct ScanView: View {
     @Binding var capturedImage: UIImage?
     @Binding var hideTabBar: Bool // To hide the tab bar during image capture
-    @State private var hideButtons: Bool = false // To hide buttons during capture
 
     var body: some View {
         ZStack {
-            CameraView(capturedImage: $capturedImage, hideTabBar: $hideTabBar, hideButtons: $hideButtons)
+            CameraView(capturedImage: $capturedImage, hideTabBar: $hideTabBar)
                 .edgesIgnoringSafeArea(.all)
 
-            if !hideButtons {
-                VStack {
-                    Spacer()
-                    // Add the camera icon button
-                    Button(action: {
-                        // Capture the image using the CameraViewController
-                        hideButtons = true // Hide buttons during capture
-                    }) {
-                        Image(systemName: "camera.fill") // Use SF Symbols for the camera icon
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 70, height: 70)
-                            .foregroundColor(.blue)
-                            .padding()
-                    }
-                    .padding(.bottom, 40) // Adjust padding to position the button
+            VStack {
+                Spacer()
+                // Camera capture button
+                Button(action: {
+                    // Action to capture image
+                    hideTabBar = true
+                }) {
+                    Image(systemName: "camera.fill")
+                        .resizable()
+                        .frame(width: 50, height: 50)
+                        .padding()
+                        .background(Color.white.opacity(0.7))
+                        .clipShape(Circle())
+                        .shadow(radius: 5)
                 }
+                .padding(.bottom, 30) // Position it above the bottom
             }
-        }
-        .onDisappear {
-            // Ensure the tab bar is shown when leaving ScanView
-            hideTabBar = false
-            hideButtons = false // Show buttons when leaving
         }
     }
 }
@@ -41,10 +34,9 @@ struct ScanView: View {
 struct CameraView: UIViewControllerRepresentable {
     @Binding var capturedImage: UIImage?
     @Binding var hideTabBar: Bool // Binding to manage tab bar visibility
-    @Binding var hideButtons: Bool // Binding to manage buttons visibility
 
     func makeUIViewController(context: Context) -> CameraViewController {
-        let cameraVC = CameraViewController(capturedImage: $capturedImage, hideTabBar: $hideTabBar, hideButtons: $hideButtons)
+        let cameraVC = CameraViewController(capturedImage: $capturedImage, hideTabBar: $hideTabBar)
         return cameraVC
     }
 
@@ -56,13 +48,9 @@ struct CameraView: UIViewControllerRepresentable {
 class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
     @Binding var capturedImage: UIImage?
     @Binding var hideTabBar: Bool // To hide the tab bar during image capture
-    @Binding var hideButtons: Bool // To hide buttons during image capture
 
     private var captureSession: AVCaptureSession?
     private var photoOutput: AVCapturePhotoOutput?
-    private var videoPreviewLayer: AVCaptureVideoPreviewLayer?
-
-    // Zoom factors
     private let maxZoomFactor: CGFloat = 5.0
     private var zoomFactor: CGFloat = 1.0 {
         didSet {
@@ -70,10 +58,9 @@ class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
         }
     }
 
-    init(capturedImage: Binding<UIImage?>, hideTabBar: Binding<Bool>, hideButtons: Binding<Bool>) {
+    init(capturedImage: Binding<UIImage?>, hideTabBar: Binding<Bool>) {
         self._capturedImage = capturedImage
         self._hideTabBar = hideTabBar
-        self._hideButtons = hideButtons
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -84,7 +71,6 @@ class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupCamera()
-        setupDoubleTapGesture()
     }
 
     private func setupCamera() {
@@ -118,64 +104,56 @@ class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
         }
 
         // Setup the preview layer
-        videoPreviewLayer = AVCaptureVideoPreviewLayer(session: captureSession!)
-        videoPreviewLayer?.frame = view.layer.bounds
-        videoPreviewLayer?.videoGravity = .resizeAspectFill
-        view.layer.addSublayer(videoPreviewLayer!)
+        let previewLayer = AVCaptureVideoPreviewLayer(session: captureSession!)
+        previewLayer.frame = view.layer.bounds
+        previewLayer.videoGravity = .resizeAspectFill
+        view.layer.addSublayer(previewLayer)
 
         captureSession?.startRunning()
+        setupGestureRecognizers()
     }
 
-    private func setupDoubleTapGesture() {
-        let doubleTapGesture = UITapGestureRecognizer(target: self, action: #selector(handleDoubleTap))
+    private func setupGestureRecognizers() {
+        let doubleTapGesture = UITapGestureRecognizer(target: self, action: #selector(captureImage))
         doubleTapGesture.numberOfTapsRequired = 2
         view.addGestureRecognizer(doubleTapGesture)
+
+        let pinchGesture = UIPinchGestureRecognizer(target: self, action: #selector(zoomCamera(_:)))
+        view.addGestureRecognizer(pinchGesture)
     }
 
-    @objc private func handleDoubleTap() {
-        captureImage()
+    @objc private func zoomCamera(_ sender: UIPinchGestureRecognizer) {
+        if sender.state == .changed {
+            zoomFactor *= sender.scale
+            sender.scale = 1.0
+        }
     }
 
-    private func captureImage() {
-        // Hide the tab bar and buttons when capturing the image
+    @objc private func captureImage() {
+        // Hide the tab bar when capturing the image
         hideTabBar = true
-        hideButtons = true
 
         let settings = AVCapturePhotoSettings()
         photoOutput?.capturePhoto(with: settings, delegate: self)
     }
 
-    func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
-        guard let imageData = photo.fileDataRepresentation(), let image = UIImage(data: imageData) else { return }
-        capturedImage = image // Set the captured image
-        
-        // Show the tab bar and buttons after capturing the image
-        hideTabBar = false
-        hideButtons = false
-    }
-
     private func updateZoom() {
-        guard let videoDevice = AVCaptureDevice.default(for: .video) else { return }
+        guard let device = AVCaptureDevice.default(for: .video) else { return }
+
         do {
-            try videoDevice.lockForConfiguration()
-            videoDevice.videoZoomFactor = zoomFactor
-            videoDevice.unlockForConfiguration()
+            try device.lockForConfiguration()
+            device.videoZoomFactor = zoomFactor
+            device.unlockForConfiguration()
         } catch {
             print("Error setting zoom: \(error)")
         }
     }
 
-    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        // Handle touch for zooming
-        guard let touch = touches.first else { return }
-
-        // Calculate zoom factor based on touch location
-        if zoomFactor < maxZoomFactor {
-            zoomFactor += 1.0 // Increase zoom factor (can adjust this increment)
-        } else {
-            zoomFactor = 1.0 // Reset zoom factor to 1.0
-        }
-
-        updateZoom()
+    func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
+        guard let imageData = photo.fileDataRepresentation(),
+              let image = UIImage(data: imageData) else { return }
+        
+        capturedImage = image // Set the captured image
+        hideTabBar = false // Show the tab bar after capturing the image
     }
 }
