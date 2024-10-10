@@ -1,15 +1,17 @@
+import Foundation
 import SwiftUI
 
-struct CatPost: Codable, Identifiable {
+struct CatPost: Identifiable, Codable {
     var id: UUID
     var name: String
     var breed: String
     var age: String
-    var imageData: Data? // Use Data to hold image binary data
+    var imageData: Data?
     var username: String
-    var creationTime: Date // This should also be Decodable
+    var creationTime: Date
     var likes: Int
-    var comments: [String]
+    var comments: [String] // Optional array for comments
+
 
     // Computed property to get UIImage from imageData
     var image: UIImage? {

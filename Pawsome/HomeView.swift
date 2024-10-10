@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct HomeView: View {
+    @Binding var isLoggedIn: Bool // Binding to track login status
     @State private var catPosts: [CatPost] = [] // Array to hold cat posts
     @State private var showForm: Bool = false
     @State private var selectedImage: UIImage? = nil
@@ -24,6 +25,13 @@ struct HomeView: View {
                         showForm.toggle() // Show the form when image is selected
                     }) {
                         Text("Create Post")
+                    }
+                }
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: {
+                        isLoggedIn = false // Logout action
+                    }) {
+                        Text("Logout")
                     }
                 }
             }
