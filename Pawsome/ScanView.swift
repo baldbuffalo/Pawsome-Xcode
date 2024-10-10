@@ -3,7 +3,6 @@ import AVFoundation
 
 class ScanView: UIViewController, AVCapturePhotoCaptureDelegate {
     @Binding var capturedImage: UIImage?
-    @Binding var catPosts: [CatPost]
     var currentUsername: String
 
     private var captureSession: AVCaptureSession?
@@ -11,9 +10,8 @@ class ScanView: UIViewController, AVCapturePhotoCaptureDelegate {
     private var isCameraReady = false
 
     // Custom initializer for the class
-    init(capturedImage: Binding<UIImage?>, catPosts: Binding<[CatPost]>, currentUsername: String) {
+    init(capturedImage: Binding<UIImage?>, currentUsername: String) {
         self._capturedImage = capturedImage
-        self._catPosts = catPosts
         self.currentUsername = currentUsername
         super.init(nibName: nil, bundle: nil) // Call the superclass initializer
     }
@@ -39,7 +37,6 @@ class ScanView: UIViewController, AVCapturePhotoCaptureDelegate {
                 .padding()
 
             Button(action: {
-                // Explicitly reference 'self' when calling captureImage
                 self.captureImage()
             }) {
                 Text("Capture Cat Photo")
@@ -104,7 +101,7 @@ class ScanView: UIViewController, AVCapturePhotoCaptureDelegate {
 
         // Set preview layer frame
         DispatchQueue.main.async {
-            if let previewLayer = self.previewLayer { // Explicitly use 'self'
+            if let previewLayer = self.previewLayer {
                 // Get the current window scene and set the preview layer
                 if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
                     if let window = windowScene.windows.first {
@@ -135,7 +132,7 @@ class ScanView: UIViewController, AVCapturePhotoCaptureDelegate {
     func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto) {
         guard let imageData = photo.fileDataRepresentation(),
               let image = UIImage(data: imageData) else { return }
-        
+
         // Set the captured image
         capturedImage = image
     }
