@@ -31,8 +31,7 @@ struct HomeView: View {
             }
             
             NavigationView {
-                // Use ScanView and pass the new hideTabBar binding
-                ScanView(capturedImage: $capturedImage, currentUsername: currentUsername, hideTabBar: $hideTabBar) // Pass the required parameters
+                ScanView(capturedImage: $capturedImage, currentUsername: currentUsername, hideTabBar: $hideTabBar)
                     .onDisappear {
                         // Show tab bar when leaving ScanView
                         hideTabBar = false
