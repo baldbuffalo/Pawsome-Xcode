@@ -2,24 +2,21 @@ import SwiftUI
 import AVFoundation
 
 struct ScanView: View {
-    @Binding var capturedImage: UIImage?
-    @Binding var hideTabBar: Bool // To hide the tab bar during image capture
+    @State private var capturedImage: UIImage?
     @State private var showEditView = false // State to control the presentation of the edit view
 
     var body: some View {
         ZStack {
-            CameraView(capturedImage: $capturedImage, hideTabBar: $hideTabBar) {
-                // This closure is called when the image is captured
-                hideTabBar = true
+            CameraView(capturedImage: $capturedImage, onCapture: {
                 showEditView = true // Show the editing view after capturing the image
-            }
+            })
             .edgesIgnoringSafeArea(.all)
 
             VStack {
                 Spacer()
                 // Camera capture button
                 Button(action: {
-                    // Action to capture image
+                    // The CameraView will handle the image capture
                 }) {
                     Image(systemName: "camera.fill")
                         .resizable()
@@ -34,9 +31,7 @@ struct ScanView: View {
         }
         .fullScreenCover(isPresented: $showEditView) {
             if let capturedImage = capturedImage {
-                EditImageView(image: capturedImage, onDismiss: {
-                    showEditView = false // Dismiss the edit view
-                })
+                ImageEditing(image: capturedImage) // Present the ImageEditing view
             }
         }
     }
@@ -44,11 +39,10 @@ struct ScanView: View {
 
 struct CameraView: UIViewControllerRepresentable {
     @Binding var capturedImage: UIImage?
-    @Binding var hideTabBar: Bool // Binding to manage tab bar visibility
     var onCapture: () -> Void // Closure to call when the image is captured
 
     func makeUIViewController(context: Context) -> CameraViewController {
-        let cameraVC = CameraViewController(capturedImage: $capturedImage, hideTabBar: $hideTabBar, onCapture: onCapture)
+        let cameraVC = CameraViewController(capturedImage: $capturedImage, onCapture: onCapture)
         return cameraVC
     }
 
@@ -59,21 +53,13 @@ struct CameraView: UIViewControllerRepresentable {
 
 class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
     @Binding var capturedImage: UIImage?
-    @Binding var hideTabBar: Bool // To hide the tab bar during image capture
     var onCapture: () -> Void // Closure to call when image is captured
 
     private var captureSession: AVCaptureSession?
     private var photoOutput: AVCapturePhotoOutput?
-    private let maxZoomFactor: CGFloat = 5.0
-    private var zoomFactor: CGFloat = 1.0 {
-        didSet {
-            updateZoom()
-        }
-    }
 
-    init(capturedImage: Binding<UIImage?>, hideTabBar: Binding<Bool>, onCapture: @escaping () -> Void) {
+    init(capturedImage: Binding<UIImage?>, onCapture: @escaping () -> Void) {
         self._capturedImage = capturedImage
-        self._hideTabBar = hideTabBar
         self.onCapture = onCapture
         super.init(nibName: nil, bundle: nil)
     }
@@ -124,43 +110,11 @@ class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
         view.layer.addSublayer(previewLayer)
 
         captureSession?.startRunning()
-        setupGestureRecognizers()
     }
 
-    private func setupGestureRecognizers() {
-        let doubleTapGesture = UITapGestureRecognizer(target: self, action: #selector(captureImage))
-        doubleTapGesture.numberOfTapsRequired = 2
-        view.addGestureRecognizer(doubleTapGesture)
-
-        let pinchGesture = UIPinchGestureRecognizer(target: self, action: #selector(zoomCamera(_:)))
-        view.addGestureRecognizer(pinchGesture)
-    }
-
-    @objc private func zoomCamera(_ sender: UIPinchGestureRecognizer) {
-        if sender.state == .changed {
-            zoomFactor *= sender.scale
-            sender.scale = 1.0
-        }
-    }
-
-    @objc private func captureImage() {
-        // Hide the tab bar when capturing the image
-        hideTabBar = true
-
+    @objc func captureImage() {
         let settings = AVCapturePhotoSettings()
         photoOutput?.capturePhoto(with: settings, delegate: self)
-    }
-
-    private func updateZoom() {
-        guard let device = AVCaptureDevice.default(for: .video) else { return }
-
-        do {
-            try device.lockForConfiguration()
-            device.videoZoomFactor = zoomFactor
-            device.unlockForConfiguration()
-        } catch {
-            print("Error setting zoom: \(error)")
-        }
     }
 
     func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
@@ -169,40 +123,5 @@ class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
         
         capturedImage = image // Set the captured image
         onCapture() // Call the capture closure
-    }
-}
-
-struct EditImageView: View {
-    var image: UIImage
-    var onDismiss: () -> Void // Dismiss closure
-
-    var body: some View {
-        VStack {
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFit()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-            // Add editing options (e.g., save, filters, etc.)
-            HStack {
-                Button(action: {
-                    // Save or perform editing action
-                }) {
-                    Text("Save")
-                }
-                .padding()
-
-                Spacer()
-
-                Button(action: {
-                    onDismiss() // Call dismiss closure
-                }) {
-                    Text("Discard")
-                }
-                .padding()
-            }
-        }
-        .navigationTitle("Edit Image")
-        .navigationBarTitleDisplayMode(.inline)
     }
 }

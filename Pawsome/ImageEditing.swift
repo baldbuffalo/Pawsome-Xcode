@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct ImageEditingView: View {
+struct ImageEditing: View {
     var image: UIImage
 
     var body: some View {
