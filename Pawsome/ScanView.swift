@@ -7,7 +7,7 @@ struct ScanView: UIViewControllerRepresentable {
     @Binding var hideTabBar: Bool // New binding to manage tab bar visibility
 
     func makeUIViewController(context: Context) -> CameraViewController {
-        let cameraViewController = CameraViewController(capturedImage: $capturedImage, currentUsername: currentUsername)
+        let cameraViewController = CameraViewController(capturedImage: $capturedImage, currentUsername: currentUsername, hideTabBar: $hideTabBar) // Pass the hideTabBar binding
         return cameraViewController
     }
 
@@ -19,13 +19,15 @@ struct ScanView: UIViewControllerRepresentable {
 class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
     @Binding var capturedImage: UIImage?
     var currentUsername: String
-    
+    @Binding var hideTabBar: Bool // Add binding to manage tab bar visibility
+
     private var captureSession: AVCaptureSession?
     private var photoOutput: AVCapturePhotoOutput?
 
-    init(capturedImage: Binding<UIImage?>, currentUsername: String) {
+    init(capturedImage: Binding<UIImage?>, currentUsername: String, hideTabBar: Binding<Bool>) {
         self._capturedImage = capturedImage
         self.currentUsername = currentUsername
+        self._hideTabBar = hideTabBar // Initialize the hideTabBar binding
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -83,9 +85,7 @@ class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
 
     @objc private func captureImage() {
         // Hide the tab bar when capturing the image
-        if let homeView = self.parent as? HomeView {
-            homeView.hideTabBar = true // Hide tab bar when capturing the image
-        }
+        hideTabBar = true // Directly modify the binding
 
         let settings = AVCapturePhotoSettings()
         photoOutput?.capturePhoto(with: settings, delegate: self)
