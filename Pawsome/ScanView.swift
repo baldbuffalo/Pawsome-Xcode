@@ -23,13 +23,10 @@ class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
     private var previewLayer: AVCaptureVideoPreviewLayer?
     private var isCameraReady = false
 
-    // Define the height of the bottom bar
-    private let bottomBarHeight: CGFloat = 100
-
     init(capturedImage: Binding<UIImage?>, currentUsername: String) {
         self._capturedImage = capturedImage
         self.currentUsername = currentUsername
-        super.init(nibName: nil, bundle: nil)
+        super.init(nibName: nil, bundle: nil) // Call the superclass initializer
     }
 
     required init?(coder: NSCoder) {
@@ -49,10 +46,8 @@ class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        
-        // Set the frame to leave space for the bottom bar
-        let previewHeight = self.view.bounds.height - bottomBarHeight
-        previewLayer?.frame = CGRect(x: 0, y: 0, width: self.view.bounds.width, height: previewHeight)
+        // Update the previewLayer's frame to match the view's bounds
+        previewLayer?.frame = view.bounds
     }
 
     private func startCamera() {
@@ -83,11 +78,10 @@ class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
         previewLayer = AVCaptureVideoPreviewLayer(session: captureSession!)
         previewLayer?.videoGravity = .resizeAspectFill
 
-        // Set the frame initially
+        // Set the frame to the view's bounds initially
         DispatchQueue.main.async {
             if let previewLayer = self.previewLayer {
-                let previewHeight = self.view.bounds.height - self.bottomBarHeight
-                previewLayer.frame = CGRect(x: 0, y: 0, width: self.view.bounds.width, height: previewHeight)
+                previewLayer.frame = self.view.layer.bounds
                 self.view.layer.addSublayer(previewLayer)
             }
         }
@@ -105,8 +99,8 @@ class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
         let buttonHeight: CGFloat = 70
         let buttonWidth: CGFloat = 70
 
-        // Position the button closer to the middle, about 200 points above the screen's center
-        let buttonYPosition = self.view.frame.height / 2 + 200
+        // Center the button horizontally and place it slightly above the bottom of the preview box
+        let buttonYPosition = self.view.frame.height - buttonHeight - 50 // 50 points above the bottom edge
 
         let captureButton = UIButton(frame: CGRect(x: (self.view.frame.width - buttonWidth) / 2,
                                                    y: buttonYPosition,
@@ -135,5 +129,13 @@ class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
 
         // Set the captured image
         capturedImage = image
+
+        // Show the image editing view
+        showImageEditingView(with: image)
+    }
+
+    private func showImageEditingView(with image: UIImage) {
+        let editingView = UIHostingController(rootView: ImageEditingView(image: image))
+        self.present(editingView, animated: true, completion: nil)
     }
 }
