@@ -31,7 +31,6 @@ struct HomeView: View {
             
             NavigationView {
                 ScanView(capturedImage: $capturedImage, currentUsername: currentUsername) // Pass the required parameters
-                    .navigationTitle("Post")
             }
             .tabItem {
                 Label("Post", systemImage: "camera")

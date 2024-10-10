@@ -23,10 +23,13 @@ class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
     private var previewLayer: AVCaptureVideoPreviewLayer?
     private var isCameraReady = false
 
+    // Define the height of the bottom bar
+    private let bottomBarHeight: CGFloat = 100
+
     init(capturedImage: Binding<UIImage?>, currentUsername: String) {
         self._capturedImage = capturedImage
         self.currentUsername = currentUsername
-        super.init(nibName: nil, bundle: nil) // Call the superclass initializer
+        super.init(nibName: nil, bundle: nil)
     }
 
     required init?(coder: NSCoder) {
@@ -42,6 +45,14 @@ class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         stopCamera()
+    }
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        
+        // Set the frame to leave space for the bottom bar
+        let previewHeight = self.view.bounds.height - bottomBarHeight
+        previewLayer?.frame = CGRect(x: 0, y: 0, width: self.view.bounds.width, height: previewHeight)
     }
 
     private func startCamera() {
@@ -72,9 +83,11 @@ class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
         previewLayer = AVCaptureVideoPreviewLayer(session: captureSession!)
         previewLayer?.videoGravity = .resizeAspectFill
 
+        // Set the frame initially
         DispatchQueue.main.async {
             if let previewLayer = self.previewLayer {
-                previewLayer.frame = self.view.layer.bounds
+                let previewHeight = self.view.bounds.height - self.bottomBarHeight
+                previewLayer.frame = CGRect(x: 0, y: 0, width: self.view.bounds.width, height: previewHeight)
                 self.view.layer.addSublayer(previewLayer)
             }
         }
@@ -89,10 +102,23 @@ class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
     }
 
     private func setupCaptureButton() {
-        let captureButton = UIButton(frame: CGRect(x: (self.view.frame.width - 100) / 2, y: self.view.frame.height - 100, width: 100, height: 50))
-        captureButton.setTitle("Capture", for: .normal)
-        captureButton.backgroundColor = .blue
+        let buttonHeight: CGFloat = 70
+        let buttonWidth: CGFloat = 70
+
+        // Position the button closer to the middle, about 200 points above the screen's center
+        let buttonYPosition = self.view.frame.height / 2 + 200
+
+        let captureButton = UIButton(frame: CGRect(x: (self.view.frame.width - buttonWidth) / 2,
+                                                   y: buttonYPosition,
+                                                   width: buttonWidth,
+                                                   height: buttonHeight))
+
+        captureButton.setTitle("📸", for: .normal) // Set an icon to make it visually appealing
+        captureButton.backgroundColor = UIColor.black.withAlphaComponent(0.6)
+        captureButton.layer.cornerRadius = buttonHeight / 2  // Make it a circular button
+        captureButton.clipsToBounds = true
         captureButton.addTarget(self, action: #selector(captureImage), for: .touchUpInside)
+
         self.view.addSubview(captureButton)
     }
 
