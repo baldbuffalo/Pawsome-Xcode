@@ -8,7 +8,7 @@ struct ScanView: View {
     
     @State private var captureSession: AVCaptureSession?
     @State private var photoOutput: AVCapturePhotoOutput?
-    
+
     var body: some View {
         ZStack {
             if let session = captureSession {
@@ -49,12 +49,14 @@ struct ScanView: View {
     
     private func setupCamera() {
         captureSession = AVCaptureSession()
+        
         guard let videoCaptureDevice = AVCaptureDevice.default(for: .video) else {
             print("No video capture device available")
             return
         }
+        
         let videoInput: AVCaptureDeviceInput
-
+        
         do {
             videoInput = try AVCaptureDeviceInput(device: videoCaptureDevice)
         } catch {
