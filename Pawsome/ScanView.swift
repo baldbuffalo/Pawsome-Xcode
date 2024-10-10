@@ -48,6 +48,15 @@ class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
 
     private var captureSession: AVCaptureSession?
     private var photoOutput: AVCapturePhotoOutput?
+    private var videoPreviewLayer: AVCaptureVideoPreviewLayer?
+
+    // Zoom factors
+    private let maxZoomFactor: CGFloat = 5.0
+    private var zoomFactor: CGFloat = 1.0 {
+        didSet {
+            updateZoom()
+        }
+    }
 
     init(capturedImage: Binding<UIImage?>, hideTabBar: Binding<Bool>, hideButtons: Binding<Bool>) {
         self._capturedImage = capturedImage
@@ -63,6 +72,7 @@ class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupCamera()
+        setupDoubleTapGesture()
     }
 
     private func setupCamera() {
@@ -96,16 +106,25 @@ class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
         }
 
         // Setup the preview layer
-        let previewLayer = AVCaptureVideoPreviewLayer(session: captureSession!)
-        previewLayer.frame = view.layer.bounds
-        previewLayer.videoGravity = .resizeAspectFill
-        view.layer.addSublayer(previewLayer)
+        videoPreviewLayer = AVCaptureVideoPreviewLayer(session: captureSession!)
+        videoPreviewLayer?.frame = view.layer.bounds
+        videoPreviewLayer?.videoGravity = .resizeAspectFill
+        view.layer.addSublayer(videoPreviewLayer!)
 
         captureSession?.startRunning()
     }
 
-    // Function to capture the image programmatically, if needed
-    func captureImage() {
+    private func setupDoubleTapGesture() {
+        let doubleTapGesture = UITapGestureRecognizer(target: self, action: #selector(handleDoubleTap))
+        doubleTapGesture.numberOfTapsRequired = 2
+        view.addGestureRecognizer(doubleTapGesture)
+    }
+
+    @objc private func handleDoubleTap() {
+        captureImage()
+    }
+
+    private func captureImage() {
         // Hide the tab bar and buttons when capturing the image
         hideTabBar = true
         hideButtons = true
@@ -121,5 +140,36 @@ class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
         // Show the tab bar and buttons after capturing the image
         hideTabBar = false
         hideButtons = false
+    }
+
+    private func updateZoom() {
+        guard let videoDevice = AVCaptureDevice.default(for: .video) else { return }
+        do {
+            try videoDevice.lockForConfiguration()
+            videoDevice.videoZoomFactor = zoomFactor
+            videoDevice.unlockForConfiguration()
+        } catch {
+            print("Error setting zoom: \(error)")
+        }
+    }
+
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        // Handle touch for zooming
+        guard let touch = touches.first else { return }
+        let touchLocation = touch.location(in: view)
+
+        // Calculate zoom factor based on touch location
+        let width = view.bounds.width
+        let height = view.bounds.height
+        let x = touchLocation.x / width
+        let y = touchLocation.y / height
+
+        if zoomFactor < maxZoomFactor {
+            zoomFactor += 1.0 // Increase zoom factor (can adjust this increment)
+        } else {
+            zoomFactor = 1.0 // Reset zoom factor to 1.0
+        }
+
+        updateZoom()
     }
 }
