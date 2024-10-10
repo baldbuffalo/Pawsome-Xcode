@@ -14,7 +14,19 @@ struct ScanView: View {
             if !hideButtons {
                 VStack {
                     Spacer()
-                    // Add any additional buttons or UI elements here if needed
+                    // Add the camera icon button
+                    Button(action: {
+                        // Capture the image using the CameraViewController
+                        hideButtons = true // Hide buttons during capture
+                    }) {
+                        Image(systemName: "camera.fill") // Use SF Symbols for the camera icon
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 70, height: 70)
+                            .foregroundColor(.blue)
+                            .padding()
+                    }
+                    .padding(.bottom, 40) // Adjust padding to position the button
                 }
             }
         }
