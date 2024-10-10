@@ -46,8 +46,9 @@ class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        // Update the previewLayer's frame to match the view's bounds
-        previewLayer?.frame = view.bounds
+        // Update the previewLayer's frame to fit the view's bounds minus the height of the bottom bar
+        let bottomBarHeight: CGFloat = 80 // Adjust this value based on your bottom bar height
+        previewLayer?.frame = CGRect(x: 0, y: 0, width: view.bounds.width, height: view.bounds.height - bottomBarHeight)
     }
 
     private func startCamera() {
@@ -78,10 +79,10 @@ class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
         previewLayer = AVCaptureVideoPreviewLayer(session: captureSession!)
         previewLayer?.videoGravity = .resizeAspectFill
 
-        // Set the frame to the view's bounds initially
+        // Add the preview layer to the view
         DispatchQueue.main.async {
             if let previewLayer = self.previewLayer {
-                previewLayer.frame = self.view.layer.bounds
+                previewLayer.frame = CGRect(x: 0, y: 0, width: self.view.layer.bounds.width, height: self.view.layer.bounds.height - 80) // Update to include bottom bar height
                 self.view.layer.addSublayer(previewLayer)
             }
         }
