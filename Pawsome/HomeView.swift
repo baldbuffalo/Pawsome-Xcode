@@ -6,8 +6,8 @@ struct HomeView: View {
     @State private var catPosts: [CatPost] = [] // Array to hold cat posts
     @State private var showForm: Bool = false
     @State private var selectedImage: UIImage? = nil
-    @State private var capturedImage: UIImage? = nil // Add this to manage captured images
-    @State private var hideTabBar: Bool = false // New state variable to control tab bar visibility
+    @State private var capturedImage: UIImage? = nil // Manage captured images
+    @State private var hideTabBar: Bool = false // Control tab bar visibility
 
     var body: some View {
         TabView {
@@ -33,10 +33,6 @@ struct HomeView: View {
             NavigationView {
                 // Use ScanView and pass the new hideTabBar binding
                 ScanView(capturedImage: $capturedImage, hideTabBar: $hideTabBar) // Pass the required parameters
-                    .onDisappear {
-                        // Show tab bar when leaving ScanView
-                        hideTabBar = false
-                    }
             }
             .tabItem {
                 Label("Post", systemImage: "camera")
