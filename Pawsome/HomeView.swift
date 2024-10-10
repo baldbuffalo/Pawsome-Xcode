@@ -164,26 +164,25 @@ struct HomeView: View {
             .tag(1)
             .sheet(isPresented: $showScanView) {
                 ScanView(capturedImage: $capturedImage, catPosts: $catPosts, currentUsername: currentUsername)
-                    .onDisappear {
-                        // Check if a new post has been created
-                        if let image = capturedImage {
-                            let imageData = image.jpegData(compressionQuality: 1.0) // Convert UIImage to Data
-                            let newPost = CatPost(
-                                id: UUID(),
-                                name: "Cat Name", // Replace with actual name input from user
-                                breed: "Breed", // Replace with actual breed input from user
-                                age: "Age", // Replace with actual age input from user
-                                imageData: imageData, // Store image data
-                                username: currentUsername,
-                                creationTime: Date(), // Set the creation time to now
-                                likes: 0,
-                                comments: []
-                            )
-                            catPosts.append(newPost) // Add new post to the list
-                            savePosts() // Save updated posts
-                            capturedImage = nil // Reset captured image
-                        }
-                    }
+            }
+            .onChange(of: capturedImage) { newImage in
+                if let image = newImage {
+                    let imageData = image.jpegData(compressionQuality: 1.0) // Convert UIImage to Data
+                    let newPost = CatPost(
+                        id: UUID(),
+                        name: "Cat Name", // Replace with actual name input from user
+                        breed: "Breed", // Replace with actual breed input from user
+                        age: "Age", // Replace with actual age input from user
+                        imageData: imageData, // Store image data
+                        username: currentUsername,
+                        creationTime: Date(), // Set the creation time to now
+                        likes: 0,
+                        comments: []
+                    )
+                    catPosts.append(newPost) // Add new post to the list
+                    savePosts() // Save updated posts
+                    capturedImage = nil // Reset captured image
+                }
             }
 
             // Profile Tab

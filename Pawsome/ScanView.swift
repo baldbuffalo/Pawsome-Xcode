@@ -105,8 +105,13 @@ class ScanView: UIViewController, AVCapturePhotoCaptureDelegate {
         // Set preview layer frame
         DispatchQueue.main.async {
             if let previewLayer = self.previewLayer { // Explicitly use 'self'
-                previewLayer.frame = UIScreen.main.bounds
-                UIApplication.shared.windows.first?.layer.addSublayer(previewLayer)
+                // Get the current window scene and set the preview layer
+                if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
+                    if let window = windowScene.windows.first {
+                        previewLayer.frame = window.bounds
+                        window.layer.addSublayer(previewLayer)
+                    }
+                }
             }
         }
 
