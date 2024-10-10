@@ -4,23 +4,35 @@ import AVFoundation
 struct ScanView: View {
     @Binding var capturedImage: UIImage?
     @Binding var hideTabBar: Bool // To hide the tab bar during image capture
+    @State private var hideButtons: Bool = false // To hide buttons during capture
 
     var body: some View {
-        CameraView(capturedImage: $capturedImage, hideTabBar: $hideTabBar)
-            .edgesIgnoringSafeArea(.all)
-            .onDisappear {
-                // Ensure the tab bar is shown when leaving ScanView
-                hideTabBar = false
+        ZStack {
+            CameraView(capturedImage: $capturedImage, hideTabBar: $hideTabBar, hideButtons: $hideButtons)
+                .edgesIgnoringSafeArea(.all)
+
+            if !hideButtons {
+                VStack {
+                    Spacer()
+                    // Add any additional buttons or UI elements here if needed
+                }
             }
+        }
+        .onDisappear {
+            // Ensure the tab bar is shown when leaving ScanView
+            hideTabBar = false
+            hideButtons = false // Show buttons when leaving
+        }
     }
 }
 
 struct CameraView: UIViewControllerRepresentable {
     @Binding var capturedImage: UIImage?
     @Binding var hideTabBar: Bool // Binding to manage tab bar visibility
+    @Binding var hideButtons: Bool // Binding to manage buttons visibility
 
     func makeUIViewController(context: Context) -> CameraViewController {
-        let cameraVC = CameraViewController(capturedImage: $capturedImage, hideTabBar: $hideTabBar)
+        let cameraVC = CameraViewController(capturedImage: $capturedImage, hideTabBar: $hideTabBar, hideButtons: $hideButtons)
         return cameraVC
     }
 
@@ -32,13 +44,15 @@ struct CameraView: UIViewControllerRepresentable {
 class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
     @Binding var capturedImage: UIImage?
     @Binding var hideTabBar: Bool // To hide the tab bar during image capture
+    @Binding var hideButtons: Bool // To hide buttons during image capture
 
     private var captureSession: AVCaptureSession?
     private var photoOutput: AVCapturePhotoOutput?
 
-    init(capturedImage: Binding<UIImage?>, hideTabBar: Binding<Bool>) {
+    init(capturedImage: Binding<UIImage?>, hideTabBar: Binding<Bool>, hideButtons: Binding<Bool>) {
         self._capturedImage = capturedImage
         self._hideTabBar = hideTabBar
+        self._hideButtons = hideButtons
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -88,21 +102,13 @@ class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
         view.layer.addSublayer(previewLayer)
 
         captureSession?.startRunning()
-        setupCaptureButton()
     }
 
-    private func setupCaptureButton() {
-        let captureButton = UIButton(frame: CGRect(x: view.frame.width - 90, y: view.frame.height - 90, width: 70, height: 70))
-        captureButton.layer.cornerRadius = 35
-        captureButton.backgroundColor = .blue
-        captureButton.setTitle("Capture", for: .normal)
-        captureButton.addTarget(self, action: #selector(captureImage), for: .touchUpInside)
-        view.addSubview(captureButton)
-    }
-
-    @objc private func captureImage() {
-        // Hide the tab bar when capturing the image
+    // Function to capture the image programmatically, if needed
+    func captureImage() {
+        // Hide the tab bar and buttons when capturing the image
         hideTabBar = true
+        hideButtons = true
 
         let settings = AVCapturePhotoSettings()
         photoOutput?.capturePhoto(with: settings, delegate: self)
@@ -112,7 +118,8 @@ class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
         guard let imageData = photo.fileDataRepresentation(), let image = UIImage(data: imageData) else { return }
         capturedImage = image // Set the captured image
         
-        // Show the tab bar after capturing the image
+        // Show the tab bar and buttons after capturing the image
         hideTabBar = false
+        hideButtons = false
     }
 }
