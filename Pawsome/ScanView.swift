@@ -1,69 +1,49 @@
 import SwiftUI
-import AVFoundation
 
-struct ScanView: View, CameraViewDelegate {
+struct ScanView: View {
     @Binding var capturedImage: UIImage?
     @Binding var catPosts: [CatPost]
-    @State private var isLoading = false
-    @State private var isNavigatingToForm = false
-    @State private var coordinator: CameraView.Coordinator?
-    private var postStorage = PostStorage() // Instance to load posts
-
-    init(capturedImage: Binding<UIImage?>, catPosts: Binding<[CatPost]>) {
-        _capturedImage = capturedImage
-        _catPosts = catPosts
-        loadPosts() // Load posts when initializing
-    }
+    var currentUsername: String
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                CameraView(capturedImage: $capturedImage, delegate: self, coordinatorBinding: $coordinator)
-                    .edgesIgnoringSafeArea(.all)
+        VStack {
+            // Replace with your actual camera scan UI
+            Text("Scan View for Cat Photo")
+                .padding()
 
-                if isLoading {
-                    ProgressView("Loading...")
-                        .progressViewStyle(CircularProgressViewStyle())
-                        .padding()
-                        .background(Color.white.opacity(0.7))
-                        .cornerRadius(10)
-                }
-
-                VStack {
-                    Spacer()
-                    Button(action: {
-                        capturePhoto()
-                    }) {
-                        Text("Capture Image")
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.blue)
-                            .foregroundColor(.white)
-                            .cornerRadius(10)
-                    }
+            // Display the captured image if available
+            if let image = capturedImage {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxWidth: 300, maxHeight: 300)
+                    .cornerRadius(10)
                     .padding()
-                    .blur(radius: isLoading ? 5 : 0)
-                }
             }
-            .navigationTitle("Scan")
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationDestination(isPresented: $isNavigatingToForm) {
-                FormView(catPosts: $catPosts, imageUI: capturedImage)
+
+            Button(action: {
+                // Simulate capturing an image
+                let sampleImage = UIImage(named: "sample_cat") // Replace with actual capture logic
+                capturedImage = sampleImage
+            }) {
+                Text("Capture Cat Photo")
+                    .padding()
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
             }
+
+            Button(action: {
+                // Close the scan view and automatically add the new post
+                // This action is handled in the HomeView when ScanView is dismissed
+            }) {
+                Text("Done")
+                    .padding()
+                    .background(Color.green)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
+            }
+            .padding()
         }
-    }
-
-    private func loadPosts() {
-        catPosts = postStorage.loadPosts() // Load posts when initializing
-    }
-
-    private func capturePhoto() {
-        isLoading = true
-        coordinator?.captureImage()
-    }
-
-    func didTapCapture() {
-        isLoading = false
-        isNavigatingToForm = true
     }
 }

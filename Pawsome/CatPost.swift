@@ -1,12 +1,21 @@
-import UIKit
+import SwiftUI
 
-struct CatPost: Codable {
+struct CatPost: Codable, Identifiable {
+    var id: UUID
+    var name: String
+    var breed: String
+    var age: String
+    var imageData: Data? // Use Data to hold image binary data
     var username: String
-    var image: Data // Use Data instead of UIImage for easier storage
-    var timestamp: Date // Add a timestamp property to track post time
+    var creationTime: Date // This should also be Decodable
+    var likes: Int
+    var comments: [String]
 
-    // Computed property to convert Data back to UIImage
-    var uiImage: UIImage? {
-        return UIImage(data: image)
+    // Computed property to get UIImage from imageData
+    var image: UIImage? {
+        if let data = imageData {
+            return UIImage(data: data)
+        }
+        return nil
     }
 }
