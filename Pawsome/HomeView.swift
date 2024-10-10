@@ -36,7 +36,7 @@ struct HomeView: View {
                                 VStack(alignment: .leading) {
                                     Text(post.username) // Display username from post
                                         .font(.headline)
-                                    Text(formatPostTime(post.creationTime)) // Format and display post time
+                                    Text(formatPostTime(post.timestamp)) // Format and display post time
                                         .font(.caption)
                                         .foregroundColor(.gray)
                                 }
@@ -46,7 +46,7 @@ struct HomeView: View {
                             .padding(.horizontal)
 
                             // Cat image content
-                            if let image = post.image {
+                            if let image = post.uiImage {
                                 Image(uiImage: image)
                                     .resizable()
                                     .scaledToFit()
@@ -193,17 +193,23 @@ struct HomeView: View {
 
     // Save posts to UserDefaults
     private func savePosts() {
-        if let encodedData = try? JSONEncoder().encode(catPosts) {
-            UserDefaults.standard.set(encodedData, forKey: "catPosts")
+        do {
+            let encoder = JSONEncoder()
+            let data = try encoder.encode(catPosts)
+            UserDefaults.standard.set(data, forKey: "catPosts")
+        } catch {
+            print("Error saving posts: \(error)")
         }
     }
     
     // Load posts from UserDefaults
     private func loadPosts() {
-        if let savedData = UserDefaults.standard.data(forKey: "catPosts") {
-            if let decodedPosts = try? JSONDecoder().decode([CatPost].self, from: savedData) {
-                catPosts = decodedPosts
-            }
+        guard let data = UserDefaults.standard.data(forKey: "catPosts") else { return }
+        do {
+            let decoder = JSONDecoder()
+            catPosts = try decoder.decode([CatPost].self, from: data)
+        } catch {
+            print("Error loading posts: \(error)")
         }
     }
 
