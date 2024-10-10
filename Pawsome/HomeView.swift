@@ -2,42 +2,48 @@ import SwiftUI
 
 struct HomeView: View {
     @Binding var isLoggedIn: Bool // Binding to track login status
+    @State private var currentUsername: String = "User" // Replace with actual logic to get the username
     @State private var catPosts: [CatPost] = [] // Array to hold cat posts
     @State private var showForm: Bool = false
     @State private var selectedImage: UIImage? = nil
+    @State private var capturedImage: UIImage? = nil // Add this to manage captured images
 
     var body: some View {
-        NavigationView {
-            VStack(spacing: 0) {
-                headerView
-                postListView
-            }
-            .navigationTitle("Pawsome")
-            .sheet(isPresented: $showForm) {
-                // Present the form with bindings
-                FormView(showForm: $showForm, catPosts: $catPosts, imageUI: selectedImage)
-            }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        // Trigger image picker here or any method to capture the image
-                        // selectedImage = ... (your logic to capture the image)
-                        showForm.toggle() // Show the form when image is selected
-                    }) {
-                        Text("Create Post")
-                    }
+        TabView {
+            NavigationView {
+                VStack(spacing: 0) {
+                    headerView
+                    postListView
+                    Spacer() // Pushes the bottom bar to the bottom
                 }
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: {
-                        isLoggedIn = false // Logout action
-                    }) {
-                        Text("Logout")
-                    }
+                .navigationTitle("Pawsome")
+                .sheet(isPresented: $showForm) {
+                    // Present the form with bindings
+                    FormView(showForm: $showForm, catPosts: $catPosts, imageUI: selectedImage)
+                }
+                .onAppear {
+                    loadPosts() // Load posts when the view appears
                 }
             }
-        }
-        .onAppear {
-            loadPosts() // Load posts when the view appears
+            .tabItem {
+                Label("Home", systemImage: "house")
+            }
+            
+            NavigationView {
+                ScanView(capturedImage: $capturedImage, currentUsername: currentUsername) // Pass the required parameters
+                    .navigationTitle("Post")
+            }
+            .tabItem {
+                Label("Post", systemImage: "camera")
+            }
+            
+            NavigationView {
+                ProfileView(isLoggedIn: $isLoggedIn, currentUsername: currentUsername) // Pass the required parameters
+                    .navigationTitle("Profile")
+            }
+            .tabItem {
+                Label("Profile", systemImage: "person")
+            }
         }
     }
 
