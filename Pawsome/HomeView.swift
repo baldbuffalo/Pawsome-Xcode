@@ -6,7 +6,8 @@ struct HomeView: View {
     @State private var showScanView = false
     @State private var capturedImage: UIImage? = nil
     @State private var selectedTab = 0
-    
+    @State private var currentUsername = "User" // Placeholder for username
+
     // Track liked post IDs for the current user
     @State private var likedPostIDs: Set<UUID> = []
 
@@ -33,9 +34,9 @@ struct HomeView: View {
                                     .clipShape(Circle())
                                 
                                 VStack(alignment: .leading) {
-                                    Text("CatLover123") // Placeholder username
+                                    Text(post.username) // Display username from post
                                         .font(.headline)
-                                    Text("2 hours ago") // Placeholder post time
+                                    Text(formatPostTime(post.creationTime)) // Format and display post time
                                         .font(.caption)
                                         .foregroundColor(.gray)
                                 }
@@ -61,6 +62,7 @@ struct HomeView: View {
                                     if !likedPostIDs.contains(post.id) {
                                         post.likes += 1
                                         likedPostIDs.insert(post.id)
+                                        savePosts() // Save changes
                                     }
                                 }) {
                                     HStack {
@@ -139,6 +141,9 @@ struct HomeView: View {
                 Text("Home")
             }
             .tag(0)
+            .onAppear {
+                loadPosts() // Load posts when the view appears
+            }
 
             // Post Tab (Scan View)
             Button(action: {
@@ -158,7 +163,7 @@ struct HomeView: View {
             }
             .tag(1)
             .sheet(isPresented: $showScanView) {
-                ScanView(capturedImage: $capturedImage, catPosts: $catPosts)
+                ScanView(capturedImage: $capturedImage, catPosts: $catPosts, currentUsername: currentUsername)
             }
 
             // Profile Tab
@@ -185,7 +190,30 @@ struct HomeView: View {
             .tag(2)
         }
     }
-}
-#Preview {
+
+    // Save posts to UserDefaults
+    private func savePosts() {
+        if let encodedData = try? JSONEncoder().encode(catPosts) {
+            UserDefaults.standard.set(encodedData, forKey: "catPosts")
+        }
+    }
     
+    // Load posts from UserDefaults
+    private func loadPosts() {
+        if let savedData = UserDefaults.standard.data(forKey: "catPosts") {
+            if let decodedPosts = try? JSONDecoder().decode([CatPost].self, from: savedData) {
+                catPosts = decodedPosts
+            }
+        }
+    }
+
+    // Format the post time relative to the current time
+    private func formatPostTime(_ postTime: Date) -> String {
+        let timeInterval = Date().timeIntervalSince(postTime)
+        let formatter = DateComponentsFormatter()
+        formatter.allowedUnits = [.minute, .hour, .day]
+        formatter.maximumUnitCount = 1
+        formatter.unitsStyle = .full
+        return formatter.string(from: timeInterval) ?? "Just now"
+    }
 }
