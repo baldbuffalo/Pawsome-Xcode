@@ -4,18 +4,22 @@ import AVFoundation
 struct ScanView: View {
     @Binding var capturedImage: UIImage?
     @Binding var hideTabBar: Bool // To hide the tab bar during image capture
+    @State private var showEditView = false // State to control the presentation of the edit view
 
     var body: some View {
         ZStack {
-            CameraView(capturedImage: $capturedImage, hideTabBar: $hideTabBar)
-                .edgesIgnoringSafeArea(.all)
+            CameraView(capturedImage: $capturedImage, hideTabBar: $hideTabBar) {
+                // This closure is called when the image is captured
+                hideTabBar = true
+                showEditView = true // Show the editing view after capturing the image
+            }
+            .edgesIgnoringSafeArea(.all)
 
             VStack {
                 Spacer()
                 // Camera capture button
                 Button(action: {
                     // Action to capture image
-                    hideTabBar = true
                 }) {
                     Image(systemName: "camera.fill")
                         .resizable()
@@ -28,15 +32,23 @@ struct ScanView: View {
                 .padding(.bottom, 30) // Position it above the bottom
             }
         }
+        .fullScreenCover(isPresented: $showEditView) {
+            if let capturedImage = capturedImage {
+                EditImageView(image: capturedImage, onDismiss: {
+                    showEditView = false // Dismiss the edit view
+                })
+            }
+        }
     }
 }
 
 struct CameraView: UIViewControllerRepresentable {
     @Binding var capturedImage: UIImage?
     @Binding var hideTabBar: Bool // Binding to manage tab bar visibility
+    var onCapture: () -> Void // Closure to call when the image is captured
 
     func makeUIViewController(context: Context) -> CameraViewController {
-        let cameraVC = CameraViewController(capturedImage: $capturedImage, hideTabBar: $hideTabBar)
+        let cameraVC = CameraViewController(capturedImage: $capturedImage, hideTabBar: $hideTabBar, onCapture: onCapture)
         return cameraVC
     }
 
@@ -48,6 +60,7 @@ struct CameraView: UIViewControllerRepresentable {
 class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
     @Binding var capturedImage: UIImage?
     @Binding var hideTabBar: Bool // To hide the tab bar during image capture
+    var onCapture: () -> Void // Closure to call when image is captured
 
     private var captureSession: AVCaptureSession?
     private var photoOutput: AVCapturePhotoOutput?
@@ -58,9 +71,10 @@ class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
         }
     }
 
-    init(capturedImage: Binding<UIImage?>, hideTabBar: Binding<Bool>) {
+    init(capturedImage: Binding<UIImage?>, hideTabBar: Binding<Bool>, onCapture: @escaping () -> Void) {
         self._capturedImage = capturedImage
         self._hideTabBar = hideTabBar
+        self.onCapture = onCapture
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -154,6 +168,41 @@ class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
               let image = UIImage(data: imageData) else { return }
         
         capturedImage = image // Set the captured image
-        hideTabBar = false // Show the tab bar after capturing the image
+        onCapture() // Call the capture closure
+    }
+}
+
+struct EditImageView: View {
+    var image: UIImage
+    var onDismiss: () -> Void // Dismiss closure
+
+    var body: some View {
+        VStack {
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFit()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            // Add editing options (e.g., save, filters, etc.)
+            HStack {
+                Button(action: {
+                    // Save or perform editing action
+                }) {
+                    Text("Save")
+                }
+                .padding()
+
+                Spacer()
+
+                Button(action: {
+                    onDismiss() // Call dismiss closure
+                }) {
+                    Text("Discard")
+                }
+                .padding()
+            }
+        }
+        .navigationTitle("Edit Image")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
