@@ -8,6 +8,10 @@ struct ScanView: View {
     var body: some View {
         CameraView(capturedImage: $capturedImage, hideTabBar: $hideTabBar)
             .edgesIgnoringSafeArea(.all)
+            .onDisappear {
+                // Ensure the tab bar is shown when leaving ScanView
+                hideTabBar = false
+            }
     }
 }
 
@@ -107,6 +111,8 @@ class CameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
     func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
         guard let imageData = photo.fileDataRepresentation(), let image = UIImage(data: imageData) else { return }
         capturedImage = image // Set the captured image
-        hideTabBar = false // Show the tab bar after capturing the image
+        
+        // Show the tab bar after capturing the image
+        hideTabBar = false
     }
 }
