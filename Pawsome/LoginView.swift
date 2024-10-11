@@ -1,41 +1,88 @@
 import SwiftUI
+import AuthenticationServices
+import GoogleSignIn
+#if canImport(UIKit)
+import UIKit
+#endif
 
 struct LoginView: View {
-    @Binding var isLoggedIn: Bool // Track login status
-    @Binding var username: String  // Binding for username input
-    @State private var usernameInput: String = "" // Temporary storage for username input
-    @State private var passwordInput: String = "" // Temporary storage for password input
+    @Binding var isLoggedIn: Bool
+    @Binding var username: String // Add binding for the username
 
     var body: some View {
-        VStack {
-            Text("Login")
+        VStack(spacing: 20) {
+            Text("Welcome to Pawsome!")
                 .font(.largeTitle)
+                .fontWeight(.bold)
                 .padding()
-
-            TextField("Username", text: $usernameInput)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding()
-
-            SecureField("Password", text: $passwordInput)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding()
-
+            
+            Text("Please sign in to continue")
+                .font(.subheadline)
+                .padding(.bottom, 50)
+            
+            // Apple Sign-In Button
+            SignInWithAppleButton(
+                onRequest: { request in
+                    request.requestedScopes = [.fullName, .email] // Request full name and email
+                },
+                onCompletion: { result in
+                    switch result {
+                    case .success(let authResults):
+                        if let appleIDCredential = authResults.credential as? ASAuthorizationAppleIDCredential {
+                            // Safely unwrap fullName
+                            if let fullName = appleIDCredential.fullName {
+                                // Concatenate first and last name
+                                username = "\(fullName.givenName ?? "") \(fullName.familyName ?? "")"
+                            }
+                        }
+                        print("Apple sign-in success: \(authResults)")
+                        UserDefaults.standard.set(true, forKey: "isLoggedIn") // Save login status
+                        isLoggedIn = true // Update state to show ContentView
+                    case .failure(let error):
+                        // Handle error during sign-in
+                        print("Apple sign-in failed: \(error.localizedDescription)")
+                    }
+                }
+            )
+            .signInWithAppleButtonStyle(.black)
+            .frame(height: 50)
+            .padding(.horizontal, 40)
+            
+            // Google Sign-In Button (iOS only)
+            #if canImport(UIKit)
             Button(action: {
-                // Handle login logic (this is where you validate username/password)
-                // If login is successful, set the username and isLoggedIn state
-                username = usernameInput // Set the username for HomeView
-                UserDefaults.standard.set(username, forKey: "username") // Save username
-                isLoggedIn = true // Change login state
-                UserDefaults.standard.set(true, forKey: "isLoggedIn") // Save login state persistently
+                // Trigger Google Sign-In
+                guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                      let rootViewController = scene.windows.first?.rootViewController else {
+                    print("Root view controller not found")
+                    return
+                }
+                
+                GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController) { result, error in
+                    if let error = error {
+                        print("Google Sign-In failed: \(error.localizedDescription)")
+                    } else if let user = result?.user {
+                        username = user.profile?.name ?? "" // Set the username
+                        print("Google Sign-In success: \(user)")
+                        UserDefaults.standard.set(true, forKey: "isLoggedIn") // Save login status
+                        isLoggedIn = true // Update state to show ContentView
+                    }
+                }
             }) {
-                Text("Log In")
-                    .padding()
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(8)
+                HStack {
+                    Image(systemName: "globe")
+                    Text("Sign in with Google")
+                        .fontWeight(.semibold)
+                }
+                .frame(width: 280, height: 50)
+                .background(Color.red)
+                .foregroundColor(.white)
+                .cornerRadius(8)
+                .padding(.horizontal, 40)
             }
-            .padding()
+            #endif
+            
+            Spacer()
         }
-        .padding()
     }
 }
