@@ -53,6 +53,16 @@ class CameraViewController: UIViewController {
     }
 
     private func setupCamera() {
+        #if targetEnvironment(simulator)
+        // Running on the simulator, use the Mac's camera
+        setupSimulatorCamera()
+        #else
+        // Running on a real device, use the device's camera
+        setupDeviceCamera()
+        #endif
+    }
+
+    private func setupDeviceCamera() {
         captureSession = AVCaptureSession()
         guard let videoCaptureDevice = AVCaptureDevice.default(for: .video) else { return }
         let videoInput: AVCaptureDeviceInput
@@ -63,7 +73,38 @@ class CameraViewController: UIViewController {
             return
         }
 
-        if (captureSession.canAddInput(videoInput)) {
+        if captureSession.canAddInput(videoInput) {
+            captureSession.addInput(videoInput)
+        } else {
+            return
+        }
+
+        photoOutput = AVCapturePhotoOutput()
+        if captureSession.canAddOutput(photoOutput) {
+            captureSession.addOutput(photoOutput)
+        }
+
+        previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
+        previewLayer.frame = view.layer.bounds
+        previewLayer.videoGravity = .resizeAspectFill
+        view.layer.addSublayer(previewLayer)
+
+        captureSession.startRunning()
+    }
+
+    private func setupSimulatorCamera() {
+        // Simulator doesn't have a real camera, but it can simulate by showing the Mac's camera
+        captureSession = AVCaptureSession()
+        guard let videoCaptureDevice = AVCaptureDevice.default(for: .video) else { return }
+        let videoInput: AVCaptureDeviceInput
+
+        do {
+            videoInput = try AVCaptureDeviceInput(device: videoCaptureDevice)
+        } catch {
+            return
+        }
+
+        if captureSession.canAddInput(videoInput) {
             captureSession.addInput(videoInput)
         } else {
             return

@@ -9,6 +9,7 @@ import UIKit
 
 struct LoginView: View {
     @Binding var isLoggedIn: Bool
+    @EnvironmentObject var userModel: UserModel // Use environment object to access the shared user model
 
     var body: some View {
         VStack(spacing: 20) {
@@ -30,6 +31,11 @@ struct LoginView: View {
                     switch result {
                     case .success(let authResults):
                         // Handle successful Apple login
+                        if let appleIDCredential = authResults.credential as? ASAuthorizationAppleIDCredential {
+                            if let email = appleIDCredential.email {
+                                userModel.username = email // Store username
+                            }
+                        }
                         print("Apple sign-in success: \(authResults)")
                         UserDefaults.standard.set(true, forKey: "isLoggedIn") // Save login status
                         isLoggedIn = true // Update state to show ContentView
@@ -58,7 +64,8 @@ struct LoginView: View {
                         print("Google Sign-In failed: \(error.localizedDescription)")
                     } else if let user = signInResult?.user {
                         // Handle successful Google login
-                        print("Google Sign-In success: \(user.profile?.email ?? "No Email")")
+                        userModel.username = user.profile?.email ?? "No Email" // Store email
+                        print("Google Sign-In success: \(userModel.username)")
                         UserDefaults.standard.set(true, forKey: "isLoggedIn") // Save login status
                         isLoggedIn = true // Update state to show ContentView
                     }
@@ -79,5 +86,6 @@ struct LoginView: View {
 
             Spacer()
         }
+        .padding()
     }
 }
