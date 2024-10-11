@@ -8,6 +8,7 @@ import UIKit
 struct LoginView: View {
     @Binding var isLoggedIn: Bool
     @Binding var username: String // Add binding for the username
+    @Binding var profileImage: Image? // Add binding for the profile image
 
     var body: some View {
         VStack(spacing: 20) {
@@ -34,6 +35,8 @@ struct LoginView: View {
                                 // Concatenate first and last name
                                 username = "\(fullName.givenName ?? "") \(fullName.familyName ?? "")"
                             }
+                            // Apple does not provide a profile image URL, so we'll leave it as nil or set a default
+                            profileImage = nil // Set a default image if needed
                         }
                         print("Apple sign-in success: \(authResults)")
                         UserDefaults.standard.set(true, forKey: "isLoggedIn") // Save login status
@@ -63,6 +66,14 @@ struct LoginView: View {
                         print("Google Sign-In failed: \(error.localizedDescription)")
                     } else if let user = result?.user {
                         username = user.profile?.name ?? "" // Set the username
+                        if let profileURL = user.profile?.imageURL(withDimension: 100) {
+                            // Load the image from the URL
+                            loadImage(from: profileURL) { image in
+                                profileImage = image // Set the loaded profile image
+                            }
+                        } else {
+                            profileImage = nil // Handle the case where there is no image
+                        }
                         print("Google Sign-In success: \(user)")
                         UserDefaults.standard.set(true, forKey: "isLoggedIn") // Save login status
                         isLoggedIn = true // Update state to show ContentView
@@ -85,4 +96,28 @@ struct LoginView: View {
             Spacer()
         }
     }
+}
+
+// Function to load the image asynchronously
+func loadImage(from url: URL, completion: @escaping (Image?) -> Void) {
+    let task = URLSession.shared.dataTask(with: url) { data, response, error in
+        guard let data = data, error == nil else {
+            DispatchQueue.main.async {
+                completion(nil)
+            }
+            return
+        }
+        
+        if let uiImage = UIImage(data: data) {
+            let image = Image(uiImage: uiImage)
+            DispatchQueue.main.async {
+                completion(image)
+            }
+        } else {
+            DispatchQueue.main.async {
+                completion(nil)
+            }
+        }
+    }
+    task.resume()
 }
