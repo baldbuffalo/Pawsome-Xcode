@@ -4,14 +4,11 @@ import SwiftData
 @main
 struct PawsomeApp: App {
     @State private var isLoggedIn: Bool = false
-    @State private var username: String = "" // Store username with @State
-    
-    // Create a shared model container
+    @State private var username: String = ""
+    @State private var profileImage: Image? = nil // Add @State for profileImage
+
     var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,  // Use the existing Item model
-            // Add other models here if needed
-        ])
+        let schema = Schema([Item.self])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
         do {
@@ -27,7 +24,8 @@ struct PawsomeApp: App {
                 HomeView(isLoggedIn: $isLoggedIn, currentUsername: $username)
                     .modelContainer(sharedModelContainer)
             } else {
-                LoginView(isLoggedIn: $isLoggedIn, username: $username) // Pass the binding for username
+                // Pass all the required bindings, including profileImage
+                LoginView(isLoggedIn: $isLoggedIn, username: $username, profileImage: $profileImage)
                     .modelContainer(sharedModelContainer)
             }
         }
