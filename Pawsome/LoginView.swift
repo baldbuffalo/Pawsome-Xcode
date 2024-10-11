@@ -98,7 +98,7 @@ struct LoginView: View {
             
             // Navigate to ProfileView if logged in
             if isLoggedIn {
-                NavigationLink(destination: ProfileView(isLoggedIn: $isLoggedIn, currentUsername: username, profileImage: profileImage)) {
+                NavigationLink(destination: ProfileView(isLoggedIn: $isLoggedIn, currentUsername: username, profileImage: $profileImage)) {
                     Text("Go to Profile")
                         .fontWeight(.semibold)
                         .foregroundColor(.blue)
@@ -131,14 +131,13 @@ func loadImage(from url: URL, completion: @escaping (Image?) -> Void) {
             }
             return
         }
-        
+
         if let uiImage = UIImage(data: data) {
-            let image = Image(uiImage: uiImage)
             DispatchQueue.main.async {
-                completion(image)
+                completion(Image(uiImage: uiImage))
             }
         } else {
-            print("Failed to create UIImage from data.")
+            print("Failed to create image from data.")
             DispatchQueue.main.async {
                 completion(nil)
             }

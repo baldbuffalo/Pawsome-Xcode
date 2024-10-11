@@ -3,8 +3,8 @@ import PhotosUI
 
 struct ProfileView: View {
     @Binding var isLoggedIn: Bool  // Logout binding
-    var currentUsername: String      // User's username
-    @State private var profileImage: Image? = nil // Profile image as @State
+    var currentUsername: String    // User's username
+    @Binding var profileImage: Image? // Profile image as a binding
     @State private var showImagePicker = false    // State to show image picker
     @State private var selectedItem: PhotosPickerItem? // State for selected item
 
