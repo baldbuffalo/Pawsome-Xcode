@@ -24,25 +24,23 @@ struct LoginView: View {
             // Apple Sign-In Button
             SignInWithAppleButton(
                 onRequest: { request in
-                    request.requestedScopes = [.fullName, .email] // Request full name and email
+                    request.requestedScopes = [.fullName, .email]
                 },
                 onCompletion: { result in
                     switch result {
                     case .success(let authResults):
                         if let appleIDCredential = authResults.credential as? ASAuthorizationAppleIDCredential {
-                            // Safely unwrap fullName
                             if let fullName = appleIDCredential.fullName {
-                                // Concatenate first and last name
+                                // Set the username
                                 username = "\(fullName.givenName ?? "") \(fullName.familyName ?? "")"
+                                print("Signed in with Apple: \(username)") // Debug output
                             }
-                            // Apple does not provide a profile image URL, so we'll leave it as nil or set a default
-                            profileImage = nil // Set a default image if needed
+                            // No profile image is provided by Apple, so set to nil or a default
+                            profileImage = nil // You might consider setting a default image here
                         }
-                        print("Apple sign-in success: \(authResults)")
-                        UserDefaults.standard.set(true, forKey: "isLoggedIn") // Save login status
-                        isLoggedIn = true // Update state to show ContentView
+                        UserDefaults.standard.set(true, forKey: "isLoggedIn")
+                        isLoggedIn = true // Mark as logged in
                     case .failure(let error):
-                        // Handle error during sign-in
                         print("Apple sign-in failed: \(error.localizedDescription)")
                     }
                 }
@@ -54,7 +52,6 @@ struct LoginView: View {
             // Google Sign-In Button (iOS only)
             #if canImport(UIKit)
             Button(action: {
-                // Trigger Google Sign-In
                 guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
                       let rootViewController = scene.windows.first?.rootViewController else {
                     print("Root view controller not found")
@@ -65,18 +62,22 @@ struct LoginView: View {
                     if let error = error {
                         print("Google Sign-In failed: \(error.localizedDescription)")
                     } else if let user = result?.user {
-                        username = user.profile?.name ?? "" // Set the username
+                        // Set the username from Google
+                        username = user.profile?.name ?? ""
+                        print("Signed in with Google: \(username)") // Debug output
+                        
                         if let profileURL = user.profile?.imageURL(withDimension: 100) {
-                            // Load the image from the URL
+                            // Load the profile image
                             loadImage(from: profileURL) { image in
-                                profileImage = image // Set the loaded profile image
+                                profileImage = image // Pass the image to the ProfileView later
                             }
                         } else {
-                            profileImage = nil // Handle the case where there is no image
+                            profileImage = nil // Handle no profile image
+                            print("No profile image URL available from Google.")
                         }
-                        print("Google Sign-In success: \(user)")
-                        UserDefaults.standard.set(true, forKey: "isLoggedIn") // Save login status
-                        isLoggedIn = true // Update state to show ContentView
+                        
+                        UserDefaults.standard.set(true, forKey: "isLoggedIn")
+                        isLoggedIn = true // Mark as logged in
                     }
                 }
             }) {
@@ -94,14 +95,37 @@ struct LoginView: View {
             #endif
             
             Spacer()
+            
+            // Navigate to ProfileView if logged in
+            if isLoggedIn {
+                NavigationLink(destination: ProfileView(username: username, profileImage: profileImage)) {
+                    Text("Go to Profile")
+                        .fontWeight(.semibold)
+                        .foregroundColor(.blue)
+                        .padding()
+                }
+            }
         }
     }
 }
 
-// Function to load the image asynchronously
+// Function to load the profile image asynchronously
 func loadImage(from url: URL, completion: @escaping (Image?) -> Void) {
     let task = URLSession.shared.dataTask(with: url) { data, response, error in
-        guard let data = data, error == nil else {
+        if let error = error {
+            print("Error fetching image: \(error.localizedDescription)")
+            DispatchQueue.main.async {
+                completion(nil)
+            }
+            return
+        }
+        
+        if let httpResponse = response as? HTTPURLResponse {
+            print("HTTP Response Status Code: \(httpResponse.statusCode)")
+        }
+
+        guard let data = data, !data.isEmpty else {
+            print("No data or empty response received.")
             DispatchQueue.main.async {
                 completion(nil)
             }
@@ -114,6 +138,7 @@ func loadImage(from url: URL, completion: @escaping (Image?) -> Void) {
                 completion(image)
             }
         } else {
+            print("Failed to create UIImage from data.")
             DispatchQueue.main.async {
                 completion(nil)
             }
