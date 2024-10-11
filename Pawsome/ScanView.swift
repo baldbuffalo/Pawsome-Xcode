@@ -3,10 +3,17 @@ import AVFoundation
 
 struct ScanView: View {
     @Binding var capturedImage: UIImage?
+    @Binding var hideTabBar: Bool // Add this binding to manage tab bar visibility
 
     var body: some View {
         CameraView(capturedImage: $capturedImage)
             .edgesIgnoringSafeArea(.all)
+            .onAppear {
+                hideTabBar = true // Hide the tab bar when the view appears
+            }
+            .onDisappear {
+                hideTabBar = false // Show the tab bar when the view disappears
+            }
     }
 }
 
