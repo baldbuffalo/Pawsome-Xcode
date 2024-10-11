@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ProfileView: View {
     @Binding var isLoggedIn: Bool  // Logout binding
-    @EnvironmentObject var userModel: UserModel // Access shared user model
+    var currentUsername: String      // User's username
 
     var body: some View {
         VStack {
@@ -16,8 +16,7 @@ struct ProfileView: View {
                 .frame(width: 100, height: 100)
                 .padding(.top, 20)
             
-            // Display the current username from the user model
-            Text(userModel.username.isEmpty ? "No Username" : userModel.username)
+            Text(currentUsername.isEmpty ? "No Username" : currentUsername)  // Display the current username
                 .font(.headline)
                 .padding(.top, 10)
             

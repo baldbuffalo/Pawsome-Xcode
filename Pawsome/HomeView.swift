@@ -2,7 +2,8 @@ import SwiftUI
 
 struct HomeView: View {
     @Binding var isLoggedIn: Bool // Binding to track login status
-    @State private var currentUsername: String = "User" // Replace with actual logic to get the username
+    @Binding var currentUsername: String // Binding to accept username
+
     @State private var catPosts: [CatPost] = [] // Array to hold cat posts
     @State private var showForm: Bool = false
     @State private var selectedImage: UIImage? = nil
@@ -71,9 +72,14 @@ struct HomeView: View {
     }
 
     private var headerView: some View {
-        Text("Welcome to Pawsome")
-            .font(.largeTitle)
-            .padding()
+        VStack {
+            Text("Welcome to Pawsome")
+                .font(.largeTitle)
+                .padding()
+            Text("Hello, \(currentUsername)") // Displaying the username
+                .font(.subheadline)
+                .padding(.bottom)
+        }
     }
 
     private var postListView: some View {

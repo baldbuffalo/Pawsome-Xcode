@@ -4,8 +4,8 @@ import SwiftData
 @main
 struct PawsomeApp: App {
     @State private var isLoggedIn: Bool = false // Track login status
-    @StateObject private var userModel = UserModel() // Create an instance of UserModel to share the username
-
+    @State private var username: String = "" // Use @State to store username
+    
     // Create a shared model container
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
@@ -25,19 +25,12 @@ struct PawsomeApp: App {
         WindowGroup {
             // Use @ViewBuilder to conditionally return different views
             if isLoggedIn {
-                HomeView(isLoggedIn: $isLoggedIn)
-                    .environmentObject(userModel) // Pass userModel to HomeView
+                HomeView(isLoggedIn: $isLoggedIn, currentUsername: $username) // Pass the binding for username
                     .modelContainer(sharedModelContainer) // Set the model container for the HomeView
             } else {
-                LoginView(isLoggedIn: $isLoggedIn)
-                    .environmentObject(userModel) // Pass userModel to LoginView
+                LoginView(isLoggedIn: $isLoggedIn, username: $username) // Pass the binding for username to LoginView
                     .modelContainer(sharedModelContainer) // Set the model container for the LoginView
             }
         }
     }
-}
-
-// User model to hold the username
-class UserModel: ObservableObject {
-    @Published var username: String = ""
 }
