@@ -4,8 +4,8 @@ import PhotosUI
 struct ProfileView: View {
     @Binding var isLoggedIn: Bool  // Logout binding
     var currentUsername: String      // User's username
-    @State private var profileImage: Image?         // Optional profile image
-    @State private var showImagePicker = false // State to show image picker
+    @State private var profileImage: Image? = nil // Profile image as @State
+    @State private var showImagePicker = false    // State to show image picker
     @State private var selectedItem: PhotosPickerItem? // State for selected item
 
     var body: some View {
@@ -105,10 +105,9 @@ struct ProfileView: View {
         .onAppear {
             loadProfileImage() // Load profile image on appear
         }
-        .onChange(of: selectedItem) { oldItem, newItem in
-            // Check if there's a new item
-            if let newItem = newItem {
-                Task {
+        .onChange(of: selectedItem) {
+            Task {
+                if let newItem = selectedItem {
                     // Load the selected image asynchronously
                     if let data = try? await newItem.loadTransferable(type: Data.self),
                        let uiImage = UIImage(data: data) {
