@@ -21,7 +21,8 @@ struct PawsomeApp: App {
     var body: some Scene {
         WindowGroup {
             if isLoggedIn {
-                HomeView(isLoggedIn: $isLoggedIn, currentUsername: $username)
+                // Pass profileImage to HomeView
+                HomeView(isLoggedIn: $isLoggedIn, currentUsername: $username, profileImage: $profileImage)
                     .modelContainer(sharedModelContainer)
             } else {
                 // Pass all the required bindings, including profileImage
