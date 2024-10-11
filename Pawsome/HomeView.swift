@@ -3,6 +3,7 @@ import SwiftUI
 struct HomeView: View {
     @Binding var isLoggedIn: Bool // Binding to track login status
     @Binding var currentUsername: String // Binding to accept username
+    @Binding var profileImage: Image? // Add binding for the profile image
 
     @State private var catPosts: [CatPost] = [] // Array to hold cat posts
     @State private var showForm: Bool = false
@@ -59,7 +60,8 @@ struct HomeView: View {
             }
             
             NavigationView {
-                ProfileView(isLoggedIn: $isLoggedIn, currentUsername: currentUsername) // Pass the required parameters
+                // Pass the profileImage binding to ProfileView
+                ProfileView(isLoggedIn: $isLoggedIn, currentUsername: currentUsername, profileImage: $profileImage)
                     .navigationTitle("Profile")
             }
             .tabItem {
