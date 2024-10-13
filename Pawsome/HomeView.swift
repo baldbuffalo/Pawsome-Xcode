@@ -8,7 +8,6 @@ struct HomeView: View {
     @State private var catPosts: [CatPost] = [] // Array to hold cat posts
     @State private var showForm: Bool = false
     @State private var selectedImage: UIImage? = nil
-    @State private var capturedImage: UIImage? = nil // Manage captured images
     @State private var hideTabBar: Bool = false // Control tab bar visibility
 
     var body: some View {
@@ -31,21 +30,15 @@ struct HomeView: View {
             .tabItem {
                 Label("Home", systemImage: "house")
             }
-            
-            // Navigation link to open ScanView when the "Post" tab is selected
+
+            // Directly navigate to ScanView when the Post tab is clicked
             NavigationView {
-                NavigationLink(destination: ScanView(capturedImage: $capturedImage, hideTabBar: $hideTabBar)) {
-                    Text("Post")
-                        .font(.largeTitle)
-                        .foregroundColor(.green)
-                        .padding()
-                }
-                .navigationTitle("Scan") // Optional title for the Scan view
+                ScanView(capturedImage: .constant(nil), hideTabBar: .constant(false))
             }
             .tabItem {
                 Label("Post", systemImage: "camera")
             }
-            
+
             NavigationView {
                 // Pass the profileImage binding to ProfileView
                 ProfileView(isLoggedIn: $isLoggedIn, currentUsername: currentUsername, profileImage: $profileImage)
