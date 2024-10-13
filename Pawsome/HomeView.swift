@@ -33,19 +33,15 @@ struct HomeView: View {
             }
             
             NavigationStack {
-                VStack {
-                    Button("Start Scan") {
-                        // Activate the NavigationLink
-                        hideTabBar = true // Hide the bottom tab bar
-                    }
-                    .padding()
-                    .background(Color.green)
-                    .foregroundColor(.white)
-                    .cornerRadius(8)
-
-                    // NavigationLink to open ScanView
-                    NavigationLink(destination: ScanView(capturedImage: $capturedImage, hideTabBar: $hideTabBar)) {
-                        EmptyView() // Invisible part of the NavigationLink
+                // NavigationLink to open ScanView directly when the "Post" tab is selected
+                NavigationLink(destination: ScanView(capturedImage: $capturedImage, hideTabBar: $hideTabBar)) {
+                    VStack {
+                        Text("Scan")
+                            .font(.largeTitle)
+                            .foregroundColor(.green)
+                            .padding()
+                        Text("Open Scan View") // Optional label for clarity
+                            .foregroundColor(.gray)
                     }
                 }
                 .navigationTitle("Scan") // Optional title for the Scan view

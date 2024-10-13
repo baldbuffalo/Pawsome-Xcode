@@ -7,19 +7,15 @@ struct ScanView: View {
 
     var body: some View {
         ZStack {
-            CameraPreview()
+            CameraPreview(capturedImage: $capturedImage)
                 .edgesIgnoringSafeArea(.all) // Fill the entire screen
 
             VStack {
-                Text("Scan View")
-                    .font(.largeTitle)
-                    .foregroundColor(.white) // Change text color for visibility
-                    .padding(.top, 40) // Padding from the top
-
-                Spacer()
+                Spacer() // Pushes the capture button to the bottom
 
                 Button(action: {
-                    // Capture image logic can be added here
+                    // Add capture image logic here
+                    print("Capture button tapped")
                 }) {
                     Text("Capture Image")
                         .padding()
@@ -41,6 +37,8 @@ struct ScanView: View {
 
 // UIViewRepresentable for Camera Preview
 struct CameraPreview: UIViewRepresentable {
+    @Binding var capturedImage: UIImage?
+
     func makeUIView(context: Context) -> UIView {
         let view = UIView()
         let captureSession = AVCaptureSession()
@@ -54,7 +52,7 @@ struct CameraPreview: UIViewRepresentable {
             return view
         }
 
-        if (captureSession.canAddInput(videoInput)) {
+        if captureSession.canAddInput(videoInput) {
             captureSession.addInput(videoInput)
         } else {
             return view
