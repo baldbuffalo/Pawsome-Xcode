@@ -4,7 +4,7 @@ import AVFoundation
 struct ScanView: View {
     @Binding var capturedImage: UIImage?
     @Binding var hideTabBar: Bool // Binding to control the visibility of the tab bar
-
+    
     var body: some View {
         ZStack {
             CameraPreview(capturedImage: $capturedImage)
@@ -14,8 +14,7 @@ struct ScanView: View {
                 Spacer() // Pushes the capture button to the bottom
 
                 Button(action: {
-                    // Add capture image logic here
-                    print("Capture button tapped")
+                    captureImage()
                 }) {
                     Text("Capture Image")
                         .padding()
@@ -33,15 +32,22 @@ struct ScanView: View {
             hideTabBar = false // Show the tab bar again when leaving the Scan view
         }
     }
+
+    private func captureImage() {
+        // Capture image logic; you may want to implement this in the CameraPreview.
+        print("Capture button tapped")
+        // Here, you might call a method in your CameraPreview to capture an image.
+    }
 }
 
 // UIViewRepresentable for Camera Preview
 struct CameraPreview: UIViewRepresentable {
     @Binding var capturedImage: UIImage?
+    private let captureSession = AVCaptureSession()
+    private var videoOutput: AVCapturePhotoOutput?
 
     func makeUIView(context: Context) -> UIView {
         let view = UIView()
-        let captureSession = AVCaptureSession()
 
         guard let videoCaptureDevice = AVCaptureDevice.default(for: .video) else { return view }
         let videoInput: AVCaptureDeviceInput
@@ -58,6 +64,11 @@ struct CameraPreview: UIViewRepresentable {
             return view
         }
 
+        videoOutput = AVCapturePhotoOutput()
+        if captureSession.canAddOutput(videoOutput!) {
+            captureSession.addOutput(videoOutput!)
+        }
+
         let previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
         previewLayer.frame = view.layer.bounds
         previewLayer.videoGravity = .resizeAspectFill
@@ -70,5 +81,33 @@ struct CameraPreview: UIViewRepresentable {
 
     func updateUIView(_ uiView: UIView, context: Context) {
         // Update the UIView if needed
+    }
+
+    func capturePhoto() {
+        let settings = AVCapturePhotoSettings()
+        videoOutput?.capturePhoto(with: settings, delegate: context.coordinator)
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    class Coordinator: NSObject, AVCapturePhotoCaptureDelegate {
+        var parent: CameraPreview
+
+        init(_ parent: CameraPreview) {
+            self.parent = parent
+        }
+
+        func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
+            guard let imageData = photo.fileDataRepresentation(), error == nil else {
+                print("Error capturing photo: \(error?.localizedDescription ?? "Unknown error")")
+                return
+            }
+
+            // Convert the image data to a UIImage and assign it to the binding
+            let image = UIImage(data: imageData)
+            parent.capturedImage = image
+        }
     }
 }
