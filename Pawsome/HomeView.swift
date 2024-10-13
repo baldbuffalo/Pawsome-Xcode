@@ -3,14 +3,13 @@ import SwiftUI
 struct HomeView: View {
     @Binding var isLoggedIn: Bool // Binding to track login status
     @Binding var currentUsername: String // Binding to accept username
-    @Binding var profileImage: Image? // Add binding for the profile image
+    @Binding var profileImage: Image? // Binding for the profile image
 
     @State private var catPosts: [CatPost] = [] // Array to hold cat posts
     @State private var showForm: Bool = false
     @State private var selectedImage: UIImage? = nil
     @State private var capturedImage: UIImage? = nil // Manage captured images
     @State private var hideTabBar: Bool = false // Control tab bar visibility
-    @State private var showScanView: Bool = false // Control ScanView visibility
 
     var body: some View {
         TabView {
@@ -36,21 +35,17 @@ struct HomeView: View {
             NavigationStack {
                 VStack {
                     Button("Start Scan") {
-                        showScanView = true // Activate the NavigationLink
+                        // Activate the NavigationLink
+                        hideTabBar = true // Hide the bottom tab bar
                     }
                     .padding()
                     .background(Color.green)
                     .foregroundColor(.white)
                     .cornerRadius(8)
 
-                    // NavigationLink to open ScanView using the new method
-                    NavigationLink(value: "ScanView") {
+                    // NavigationLink to open ScanView
+                    NavigationLink(destination: ScanView(capturedImage: $capturedImage, hideTabBar: $hideTabBar)) {
                         EmptyView() // Invisible part of the NavigationLink
-                    }
-                    .navigationDestination(for: String.self) { value in
-                        if value == "ScanView" {
-                            ScanView(capturedImage: $capturedImage, hideTabBar: $hideTabBar)
-                        }
                     }
                 }
                 .navigationTitle("Scan") // Optional title for the Scan view
@@ -70,7 +65,11 @@ struct HomeView: View {
         }
         .tabViewStyle(DefaultTabViewStyle())
         .edgesIgnoringSafeArea(hideTabBar ? .bottom : [])
-        .animation(hideTabBar ? .easeInOut : .default, value: hideTabBar) // Updated animation syntax
+        .animation(.easeInOut, value: hideTabBar) // Smooth transition
+        .onAppear {
+            // Reset the hideTabBar when the view appears
+            hideTabBar = false
+        }
     }
 
     private var headerView: some View {

@@ -7,8 +7,8 @@ import UIKit
 
 struct LoginView: View {
     @Binding var isLoggedIn: Bool
-    @Binding var username: String // Add binding for the username
-    @Binding var profileImage: Image? // Add binding for the profile image
+    @Binding var username: String // Binding for the username
+    @Binding var profileImage: Image? // Binding for the profile image
 
     var body: some View {
         VStack(spacing: 20) {
@@ -36,7 +36,7 @@ struct LoginView: View {
                                 print("Signed in with Apple: \(username)") // Debug output
                             }
                             // No profile image is provided by Apple, so set to nil or a default
-                            profileImage = nil // You might consider setting a default image here
+                            profileImage = Image(systemName: "person.circle") // Default image or nil
                         }
                         UserDefaults.standard.set(true, forKey: "isLoggedIn")
                         isLoggedIn = true // Mark as logged in
@@ -119,28 +119,17 @@ func loadImage(from url: URL, completion: @escaping (Image?) -> Void) {
             }
             return
         }
-        
-        if let httpResponse = response as? HTTPURLResponse {
-            print("HTTP Response Status Code: \(httpResponse.statusCode)")
-        }
 
-        guard let data = data, !data.isEmpty else {
-            print("No data or empty response received.")
+        guard let data = data, let uiImage = UIImage(data: data) else {
+            print("No data or image creation failed.")
             DispatchQueue.main.async {
                 completion(nil)
             }
             return
         }
 
-        if let uiImage = UIImage(data: data) {
-            DispatchQueue.main.async {
-                completion(Image(uiImage: uiImage))
-            }
-        } else {
-            print("Failed to create image from data.")
-            DispatchQueue.main.async {
-                completion(nil)
-            }
+        DispatchQueue.main.async {
+            completion(Image(uiImage: uiImage))
         }
     }
     task.resume()

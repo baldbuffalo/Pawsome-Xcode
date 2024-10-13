@@ -3,135 +3,74 @@ import AVFoundation
 
 struct ScanView: View {
     @Binding var capturedImage: UIImage?
-    @Binding var hideTabBar: Bool // Add this binding to manage tab bar visibility
+    @Binding var hideTabBar: Bool // Binding to control the visibility of the tab bar
 
     var body: some View {
-        CameraView(capturedImage: $capturedImage)
-            .edgesIgnoringSafeArea(.all)
-            .onAppear {
-                hideTabBar = true // Hide the tab bar when the view appears
-            }
-            .onDisappear {
-                hideTabBar = false // Show the tab bar when the view disappears
-            }
-    }
-}
+        ZStack {
+            CameraPreview()
+                .edgesIgnoringSafeArea(.all) // Fill the entire screen
 
-struct CameraView: UIViewControllerRepresentable {
-    @Binding var capturedImage: UIImage?
+            VStack {
+                Text("Scan View")
+                    .font(.largeTitle)
+                    .foregroundColor(.white) // Change text color for visibility
+                    .padding(.top, 40) // Padding from the top
 
-    func makeUIViewController(context: Context) -> CameraViewController {
-        let cameraViewController = CameraViewController(capturedImage: $capturedImage) {
-            // Callback after image capture
+                Spacer()
+
+                Button(action: {
+                    // Capture image logic can be added here
+                }) {
+                    Text("Capture Image")
+                        .padding()
+                        .background(Color.green)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                }
+                .padding(.bottom, 40) // Padding from the bottom
+            }
         }
-        return cameraViewController
-    }
-
-    func updateUIViewController(_ uiViewController: CameraViewController, context: Context) {
-        // Update logic if needed
+        .onAppear {
+            hideTabBar = true // Hide the tab bar when the Scan view appears
+        }
+        .onDisappear {
+            hideTabBar = false // Show the tab bar again when leaving the Scan view
+        }
     }
 }
 
-class CameraViewController: UIViewController {
-    @Binding var capturedImage: UIImage?
-    var captureSession: AVCaptureSession!
-    var previewLayer: AVCaptureVideoPreviewLayer!
-    var photoOutput: AVCapturePhotoOutput!
+// UIViewRepresentable for Camera Preview
+struct CameraPreview: UIViewRepresentable {
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView()
+        let captureSession = AVCaptureSession()
 
-    init(capturedImage: Binding<UIImage?>, onCapture: @escaping () -> Void) {
-        self._capturedImage = capturedImage
-        super.init(nibName: nil, bundle: nil)
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        setupCamera()
-    }
-
-    private func setupCamera() {
-        #if targetEnvironment(simulator)
-        // Running on the simulator, use the Mac's camera
-        setupSimulatorCamera()
-        #else
-        // Running on a real device, use the device's camera
-        setupDeviceCamera()
-        #endif
-    }
-
-    private func setupDeviceCamera() {
-        captureSession = AVCaptureSession()
-        guard let videoCaptureDevice = AVCaptureDevice.default(for: .video) else { return }
+        guard let videoCaptureDevice = AVCaptureDevice.default(for: .video) else { return view }
         let videoInput: AVCaptureDeviceInput
 
         do {
             videoInput = try AVCaptureDeviceInput(device: videoCaptureDevice)
         } catch {
-            return
+            return view
         }
 
-        if captureSession.canAddInput(videoInput) {
+        if (captureSession.canAddInput(videoInput)) {
             captureSession.addInput(videoInput)
         } else {
-            return
+            return view
         }
 
-        photoOutput = AVCapturePhotoOutput()
-        if captureSession.canAddOutput(photoOutput) {
-            captureSession.addOutput(photoOutput)
-        }
-
-        previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
+        let previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
         previewLayer.frame = view.layer.bounds
         previewLayer.videoGravity = .resizeAspectFill
         view.layer.addSublayer(previewLayer)
 
         captureSession.startRunning()
+
+        return view
     }
 
-    private func setupSimulatorCamera() {
-        // Simulator doesn't have a real camera, but it can simulate by showing the Mac's camera
-        captureSession = AVCaptureSession()
-        guard let videoCaptureDevice = AVCaptureDevice.default(for: .video) else { return }
-        let videoInput: AVCaptureDeviceInput
-
-        do {
-            videoInput = try AVCaptureDeviceInput(device: videoCaptureDevice)
-        } catch {
-            return
-        }
-
-        if captureSession.canAddInput(videoInput) {
-            captureSession.addInput(videoInput)
-        } else {
-            return
-        }
-
-        photoOutput = AVCapturePhotoOutput()
-        if captureSession.canAddOutput(photoOutput) {
-            captureSession.addOutput(photoOutput)
-        }
-
-        previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
-        previewLayer.frame = view.layer.bounds
-        previewLayer.videoGravity = .resizeAspectFill
-        view.layer.addSublayer(previewLayer)
-
-        captureSession.startRunning()
-    }
-
-    func capturePhoto() {
-        let settings = AVCapturePhotoSettings()
-        photoOutput.capturePhoto(with: settings, delegate: self)
-    }
-}
-
-extension CameraViewController: AVCapturePhotoCaptureDelegate {
-    func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
-        guard let imageData = photo.fileDataRepresentation() else { return }
-        capturedImage = UIImage(data: imageData)
+    func updateUIView(_ uiView: UIView, context: Context) {
+        // Update the UIView if needed
     }
 }
