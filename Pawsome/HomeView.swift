@@ -32,13 +32,14 @@ struct HomeView: View {
                 Label("Home", systemImage: "house")
             }
             
-            // Direct NavigationLink to ScanView
-            NavigationStack {
+            // Navigation link to open ScanView when the "Post" tab is selected
+            NavigationView {
                 NavigationLink(destination: ScanView(capturedImage: $capturedImage, hideTabBar: $hideTabBar)) {
-                    // Navigation link will be visible to navigate to ScanView
-                    Text("Go to Scan") // Optional label for clarity; you can remove this if you want no visible content
+                    Text("Post")
+                        .font(.largeTitle)
+                        .foregroundColor(.green)
+                        .padding()
                 }
-                .hidden() // Hide the label but keep the NavigationLink functional
                 .navigationTitle("Scan") // Optional title for the Scan view
             }
             .tabItem {
