@@ -21,7 +21,7 @@ struct HomeView: View {
                 .navigationTitle("Pawsome")
                 .sheet(isPresented: $showForm) {
                     // Present the form with bindings
-                    FormView(showForm: $showForm, catPosts: $catPosts, imageUI: selectedImage)
+                    FormView(showForm: $showForm, catPosts: $catPosts, imageUI: selectedImage) // Pass selectedImage directly
                 }
                 .onAppear {
                     loadPosts() // Load posts when the view appears
@@ -33,7 +33,7 @@ struct HomeView: View {
 
             // Directly navigate to ScanView when the Post tab is clicked
             NavigationView {
-                ScanView(capturedImage: $selectedImage, hideTabBar: $hideTabBar) // Use binding for hideTabBar
+                ScanView(capturedImage: $selectedImage, hideTabBar: $hideTabBar, catPosts: $catPosts) // Pass catPosts binding
             }
             .tabItem {
                 Label("Post", systemImage: "camera")
