@@ -1,50 +1,10 @@
 import SwiftUI
 import AVFoundation
 
-struct ScanView: View {
-    @Binding var capturedImage: UIImage?
-    @Binding var hideTabBar: Bool // Binding to control the visibility of the tab bar
-    
-    var body: some View {
-        ZStack {
-            CameraPreview(capturedImage: $capturedImage)
-                .edgesIgnoringSafeArea(.all) // Fill the entire screen
-
-            VStack {
-                Spacer() // Pushes the capture button to the bottom
-
-                Button(action: {
-                    captureImage()
-                }) {
-                    Text("Capture Image")
-                        .padding()
-                        .background(Color.green)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
-                }
-                .padding(.bottom, 40) // Padding from the bottom
-            }
-        }
-        .onAppear {
-            hideTabBar = true // Hide the tab bar when the Scan view appears
-        }
-        .onDisappear {
-            hideTabBar = false // Show the tab bar again when leaving the Scan view
-        }
-    }
-
-    private func captureImage() {
-        // Notify the CameraPreview to capture the photo
-        NotificationCenter.default.post(name: NSNotification.Name("capturePhoto"), object: nil)
-        print("Capture button tapped")
-    }
-}
-
-// UIViewRepresentable for Camera Preview
 struct CameraPreview: UIViewRepresentable {
     @Binding var capturedImage: UIImage?
-    let captureSession = AVCaptureSession() // Accessible now
-    var videoOutput: AVCapturePhotoOutput? // Accessible now
+    let captureSession = AVCaptureSession() // Camera capture session
+    var videoOutput: AVCapturePhotoOutput? // Photo output
 
     init(capturedImage: Binding<UIImage?>) {
         self._capturedImage = capturedImage
@@ -63,6 +23,7 @@ struct CameraPreview: UIViewRepresentable {
             return view
         }
 
+        // Add input to the session
         if captureSession.canAddInput(videoInput) {
             captureSession.addInput(videoInput)
         } else {
@@ -71,8 +32,8 @@ struct CameraPreview: UIViewRepresentable {
 
         // Set up photo output
         videoOutput = AVCapturePhotoOutput()
-        if captureSession.canAddOutput(videoOutput!) {
-            captureSession.addOutput(videoOutput!)
+        if let videoOutput = videoOutput, captureSession.canAddOutput(videoOutput) {
+            captureSession.addOutput(videoOutput)
         }
 
         // Set up preview layer
@@ -81,13 +42,11 @@ struct CameraPreview: UIViewRepresentable {
         previewLayer.videoGravity = .resizeAspectFill
         view.layer.addSublayer(previewLayer)
 
-        // Start camera session
+        // Start the camera session
         captureSession.startRunning()
 
-        // Capture photo when notification is posted
-        NotificationCenter.default.addObserver(forName: NSNotification.Name("capturePhoto"), object: nil, queue: .main) { [weak self] _ in
-            self?.capturePhoto(context: context)
-        }
+        // Notify the context of updates
+        context.coordinator.captureSession = captureSession
 
         return view
     }
@@ -97,8 +56,9 @@ struct CameraPreview: UIViewRepresentable {
     }
 
     func capturePhoto(context: Context) {
+        guard let videoOutput = videoOutput else { return }
         let settings = AVCapturePhotoSettings()
-        videoOutput?.capturePhoto(with: settings, delegate: context.coordinator)
+        videoOutput.capturePhoto(with: settings, delegate: context.coordinator) // Use context.coordinator
     }
 
     func makeCoordinator() -> Coordinator {
@@ -108,9 +68,19 @@ struct CameraPreview: UIViewRepresentable {
     // Coordinator to handle the photo capturing
     class Coordinator: NSObject, AVCapturePhotoCaptureDelegate {
         var parent: CameraPreview
+        var captureSession: AVCaptureSession? // Keep a reference to the session
 
         init(_ parent: CameraPreview) {
             self.parent = parent
+            super.init()
+            
+            // Set up notification observer
+            NotificationCenter.default.addObserver(self, selector: #selector(captureImageNotification), name: NSNotification.Name("capturePhoto"), object: nil)
+        }
+        
+        @objc func captureImageNotification() {
+            // Capture photo using the current context
+            parent.capturePhoto(context: parent.makeCoordinator()) // Pass the context
         }
 
         func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
@@ -120,8 +90,9 @@ struct CameraPreview: UIViewRepresentable {
             }
 
             // Convert the image data to a UIImage and assign it to the binding
-            let image = UIImage(data: imageData)
-            parent.capturedImage = image
+            if let image = UIImage(data: imageData) {
+                parent.capturedImage = image
+            }
         }
     }
 }
