@@ -4,125 +4,73 @@ import AVFoundation
 struct ScanView: View {
     @Binding var capturedImage: UIImage? // Binding to capture image
     @Binding var hideTabBar: Bool // Binding to control tab bar visibility
-
-    // AVFoundation variables
-    @State private var captureSession = AVCaptureSession()
-    @State private var isCameraReady = false
+    @Binding var catPosts: [CatPost] // Binding to an array of CatPost
 
     var body: some View {
         VStack {
-            CameraPreview(session: captureSession) // Custom camera preview
-                .onAppear {
-                    checkCameraAuthorization()
-                    setupCamera()
-                }
-                .onDisappear {
-                    captureSession.stopRunning() // Stop the session when view disappears
-                }
+            Text("Taking a picture of your cat")
+                .font(.headline)
+                .padding()
 
-            Button("Capture") {
-                captureImage()
+            Button("Open Camera") {
+                openCamera()
             }
             .padding()
         }
-        // Using the new syntax for onChange
-        .onChange(of: isCameraReady) {
-            if isCameraReady { // Check the new state directly
-                captureSession.startRunning()
-            }
-        }
         .navigationTitle("Scan Cat")
-    }
-
-    private func checkCameraAuthorization() {
-        switch AVCaptureDevice.authorizationStatus(for: .video) {
-        case .authorized:
-            isCameraReady = true
-        case .notDetermined:
-            AVCaptureDevice.requestAccess(for: .video) { granted in
-                DispatchQueue.main.async {
-                    isCameraReady = granted
-                }
-            }
-        default:
-            break
+        // Using the updated onChange syntax
+        .onChange(of: capturedImage) { newImage in
+            guard let image = newImage else { return }
+            navigateToForm(with: image)
         }
     }
 
-    private func setupCamera() {
-        guard isCameraReady else { return }
-
-        // Setup camera input and output
-        guard let videoDevice = AVCaptureDevice.default(for: .video) else {
-            print("No video device available")
+    private func openCamera() {
+        // Access the current scene
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let topController = windowScene.windows.first?.rootViewController else {
             return
         }
 
-        do {
-            let videoInput = try AVCaptureDeviceInput(device: videoDevice)
-            if captureSession.canAddInput(videoInput) {
-                captureSession.addInput(videoInput)
-            } else {
-                print("Cannot add video input")
-            }
-
-            // Setup video output
-            let videoOutput = AVCapturePhotoOutput()
-            if captureSession.canAddOutput(videoOutput) {
-                captureSession.addOutput(videoOutput)
-            } else {
-                print("Cannot add video output")
-            }
-
-        } catch {
-            print("Error setting up camera: \(error)")
-        }
+        let imagePicker = UIImagePickerController()
+        imagePicker.sourceType = .camera
+        imagePicker.delegate = makeCoordinator() // Set the coordinator as delegate
+        topController.present(imagePicker, animated: true)
     }
 
-    private func captureImage() {
-        guard let photoOutput = captureSession.outputs.first as? AVCapturePhotoOutput else { return }
-        let settings = AVCapturePhotoSettings()
-        photoOutput.capturePhoto(with: settings, delegate: PhotoCaptureDelegate { image in
-            self.capturedImage = image
-        })
-    }
-}
-
-// A struct for your camera preview layer
-struct CameraPreview: UIViewRepresentable {
-    let session: AVCaptureSession
-
-    func makeUIView(context: Context) -> UIView {
-        let view = UIView()
-        let previewLayer = AVCaptureVideoPreviewLayer(session: session)
-        previewLayer.frame = view.layer.bounds
-        previewLayer.videoGravity = .resizeAspectFill
-        view.layer.addSublayer(previewLayer)
+    private func navigateToForm(with image: UIImage) {
+        let newCatPost = CatPost(id: UUID(), name: "", breed: "", age: "", imageData: image.jpegData(compressionQuality: 1.0), username: "", creationTime: Date(), likes: 0, comments: [])
         
-        return view
+        // Add the new post to the array
+        catPosts.append(newCatPost)
+        hideTabBar = true // Hide the tab bar if needed
+        
+        // Navigate to FormView
+        // This part will depend on how you are managing your navigation.
+        // If you're using NavigationLink or programmatic navigation, add that logic here.
     }
 
-    func updateUIView(_ uiView: UIView, context: Context) {
-        if let previewLayer = uiView.layer.sublayers?.first as? AVCaptureVideoPreviewLayer {
-            previewLayer.frame = uiView.bounds // Update the preview layer frame to match the view
+    // Coordinator to handle UIImagePickerController delegate
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
+        var parent: ScanView
+
+        init(_ parent: ScanView) {
+            self.parent = parent
         }
-    }
-}
 
-// Photo capture delegate
-class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate {
-    var completion: ((UIImage?) -> Void)
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+            if let image = info[.originalImage] as? UIImage {
+                parent.capturedImage = image // Set the captured image
+            }
+            picker.dismiss(animated: true)
+        }
 
-    init(completion: @escaping (UIImage?) -> Void) {
-        self.completion = completion
-    }
-
-    func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto) {
-        if let imageData = photo.fileDataRepresentation(),
-           let image = UIImage(data: imageData) {
-            completion(image)
-        } else {
-            completion(nil)
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            picker.dismiss(animated: true)
         }
     }
 }

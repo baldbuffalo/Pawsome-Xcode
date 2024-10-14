@@ -2,16 +2,15 @@ import Foundation
 import SwiftUI
 
 struct CatPost: Identifiable, Codable {
-    var id: UUID
+    var id: UUID = UUID() // Correctly initialize the UUID
     var name: String
     var breed: String
     var age: String
-    var imageData: Data?
+    var imageData: Data? // Optional property to store image data
     var username: String
-    var creationTime: Date
-    var likes: Int
-    var comments: [String] // Optional array for comments
-
+    var creationTime: Date = Date() // Initialize to the current date
+    var likes: Int = 0 // Default to 0 likes
+    var comments: [String] = [] // Default to an empty array for comments
 
     // Computed property to get UIImage from imageData
     var image: UIImage? {
