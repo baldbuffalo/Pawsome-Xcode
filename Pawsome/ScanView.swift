@@ -5,9 +5,7 @@ struct ScanView: View {
     @Binding var capturedImage: UIImage? // Binding to capture image
     @Binding var hideTabBar: Bool // Binding to control tab bar visibility
     @Binding var catPosts: [CatPost] // Binding to an array of CatPost
-    @State private var isNavigating = false // State to trigger navigation
-    @State private var showEditingView = false // State to control visibility of ImageEditing
-    @State private var fileURL: URL? // Store the URL of the saved file
+    @State private var showForm = false // State to trigger navigation
 
     var body: some View {
         NavigationStack {
@@ -22,14 +20,9 @@ struct ScanView: View {
                 .padding()
             }
             .navigationTitle("Scan Cat")
-            .onChange(of: capturedImage) {
-                if let image = capturedImage {
-                    saveImageToFile(image)
-                }
-            }
-            // Use the new `navigationDestination` for programmatic navigation
-            .navigationDestination(isPresented: $showEditingView) {
-                ImageEditing(capturedImage: $capturedImage, catPosts: $catPosts, hideTabBar: $hideTabBar)
+            .navigationDestination(isPresented: $showForm) {
+                // Only pass the necessary parameters to FormView
+                FormView(showForm: $showForm, catPosts: $catPosts) // Remove capturedImage
             }
         }
     }
@@ -46,37 +39,6 @@ struct ScanView: View {
         topController.present(imagePicker, animated: true)
     }
 
-    private func saveImageToFile(_ image: UIImage) {
-        guard let imageData = image.jpegData(compressionQuality: 1.0) else {
-            print("Failed to convert image to JPEG data")
-            return
-        }
-
-        let fileManager = FileManager.default
-        let directory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
-        let fileName = "form.swift"
-        let fileURL = directory.appendingPathComponent(fileName)
-
-        do {
-            try imageData.write(to: fileURL)
-            self.fileURL = fileURL
-            print("Image saved to file at: \(fileURL)")
-            openFile(fileURL)
-        } catch {
-            print("Error saving image to file: \(error.localizedDescription)")
-        }
-    }
-
-    private func openFile(_ url: URL) {
-        let documentPicker = UIDocumentPickerViewController(forOpeningContentTypes: [.item], asCopy: true)
-        documentPicker.delegate = makeCoordinator() as? UIDocumentPickerDelegate
-        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let topController = windowScene.windows.first?.rootViewController else {
-            return
-        }
-        topController.present(documentPicker, animated: true)
-    }
-
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
     }
@@ -91,7 +53,7 @@ struct ScanView: View {
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
             if let image = info[.originalImage] as? UIImage {
                 parent.capturedImage = image // Set the captured image
-                parent.saveImageToFile(image) // Save image to file
+                parent.showForm = true // Trigger navigation to FormView
             }
             picker.dismiss(animated: true)
         }
