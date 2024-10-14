@@ -1,46 +1,53 @@
 import SwiftUI
 
 struct ImageEditing: View {
-    var image: UIImage
+    @Binding var capturedImage: UIImage? // Binding to the captured image
+    @Binding var catPosts: [CatPost] // Binding to CatPost array
+    @Binding var hideTabBar: Bool // Binding to control tab bar visibility
 
     var body: some View {
         VStack {
-            Image(uiImage: image)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-            Button(action: {
-                // Image editing functionality (e.g., cropping, filters, etc.)
-                print("Edit button tapped")
-            }) {
-                Text("Edit")
+            if let image = capturedImage {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 300)
                     .padding()
-                    .foregroundColor(.white)
-                    .background(Color.blue)
-                    .cornerRadius(10)
-            }
-            .padding()
 
-            Button(action: {
-                // Dismiss the view after editing
-                dismissView()
-            }) {
-                Text("Done")
+                // Add editing options here (e.g., filters, cropping, etc.)
+                Text("Editing Options")
+                    .font(.headline)
                     .padding()
-                    .foregroundColor(.white)
-                    .background(Color.green)
-                    .cornerRadius(10)
+
+                // Example button to save the edited image
+                Button("Save Image") {
+                    saveCatPost(with: image)
+                    hideTabBar = false // Show the tab bar again
+                }
+                .padding()
+            } else {
+                Text("No Image Captured")
             }
-            .padding()
         }
+        .navigationTitle("Edit Cat Image")
     }
 
-    private func dismissView() {
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
-            if let window = windowScene.windows.first {
-                window.rootViewController?.dismiss(animated: true, completion: nil)
-            }
-        }
+    private func saveCatPost(with image: UIImage) {
+        let newCatPost = CatPost(
+            id: UUID(),
+            name: "", // Collect more details if needed
+            breed: "",
+            age: "",
+            imageData: image.jpegData(compressionQuality: 1.0),
+            username: "",
+            creationTime: Date(),
+            likes: 0,
+            comments: []
+        )
+        
+        // Add the new post to the array
+        catPosts.append(newCatPost)
+        
+        // You can dismiss the view or reset the image binding here if necessary
     }
 }

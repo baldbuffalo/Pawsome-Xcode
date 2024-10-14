@@ -6,7 +6,7 @@ struct ScanView: View {
     @Binding var hideTabBar: Bool // Binding to control tab bar visibility
     @Binding var catPosts: [CatPost] // Binding to an array of CatPost
     @State private var isNavigating = false // State to trigger navigation
-    @State private var showForm = false // State to control visibility of FormView
+    @State private var showEditingView = false // State to control visibility of ImageEditing
 
     var body: some View {
         VStack {
@@ -22,10 +22,10 @@ struct ScanView: View {
         .navigationTitle("Scan Cat")
         .onChange(of: capturedImage) { newImage in
             guard let image = newImage else { return }
-            navigateToForm(with: image)
+            navigateToEditingView(with: image)
         }
-        // Add NavigationLink for programmatic navigation
-        NavigationLink(destination: FormView(showForm: $showForm, catPosts: $catPosts), isActive: $isNavigating) {
+        // Add NavigationLink for programmatic navigation to ImageEditing
+        NavigationLink(destination: ImageEditing(capturedImage: $capturedImage, catPosts: $catPosts, hideTabBar: $hideTabBar), isActive: $showEditingView) {
             EmptyView() // Invisible link to handle navigation
         }
     }
@@ -43,26 +43,13 @@ struct ScanView: View {
         topController.present(imagePicker, animated: true)
     }
 
-    private func navigateToForm(with image: UIImage) {
-        let newCatPost = CatPost(
-            id: UUID(),
-            name: "",
-            breed: "",
-            age: "",
-            imageData: image.jpegData(compressionQuality: 1.0),
-            username: "",
-            creationTime: Date(),
-            likes: 0,
-            comments: []
-        )
-        
-        // Add the new post to the array
-        catPosts.append(newCatPost)
+    private func navigateToEditingView(with image: UIImage) {
+        // Set the captured image for editing
+        capturedImage = image
         hideTabBar = true // Hide the tab bar if needed
         
         // Trigger navigation
-        isNavigating = true
-        showForm = true // Set this to true to show the form
+        showEditingView = true
     }
 
     // Coordinator to handle UIImagePickerController delegate
