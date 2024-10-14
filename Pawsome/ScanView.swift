@@ -1,6 +1,36 @@
 import SwiftUI
 import AVFoundation
 
+struct ScanView: View {
+    @Binding var capturedImage: UIImage?
+    @Binding var hideTabBar: Bool // Add this line to bind hideTabBar
+
+    var body: some View {
+        VStack {
+            CameraPreview(capturedImage: $capturedImage)
+                .frame(height: 300)
+            
+            Button(action: {
+                NotificationCenter.default.post(name: NSNotification.Name("capturePhoto"), object: nil)
+            }) {
+                Text("Capture Photo")
+                    .padding()
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(8)
+            }
+            
+            if let image = capturedImage {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 200, height: 200)
+            }
+        }
+        .padding()
+    }
+}
+
 // CameraPreview Component
 final class CameraPreview: UIViewRepresentable {
     @Binding var capturedImage: UIImage?
@@ -105,46 +135,6 @@ final class CameraPreview: UIViewRepresentable {
                     self.parent.capturedImage = image // Correctly update the binding
                 }
             }
-        }
-    }
-}
-
-// ScanView Component
-struct ScanView: View {
-    @State private var capturedImage: UIImage? = nil
-
-    var body: some View {
-        VStack {
-            CameraPreview(capturedImage: $capturedImage)
-                .frame(height: 300) // Adjust the height as needed
-            
-            Button(action: {
-                NotificationCenter.default.post(name: NSNotification.Name("capturePhoto"), object: nil)
-            }) {
-                Text("Capture Photo")
-                    .padding()
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(8)
-            }
-            
-            if let image = capturedImage {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 200, height: 200) // Adjust the size as needed
-            }
-        }
-        .padding()
-    }
-}
-
-// Main App Entry Point
-@main
-struct PawsomeApp: App {
-    var body: some Scene {
-        WindowGroup {
-            ScanView()
         }
     }
 }

@@ -33,7 +33,7 @@ struct HomeView: View {
 
             // Directly navigate to ScanView when the Post tab is clicked
             NavigationView {
-                ScanView(capturedImage: .constant(nil), hideTabBar: .constant(false))
+                ScanView(capturedImage: .constant(nil), hideTabBar: $hideTabBar) // Use binding for hideTabBar
             }
             .tabItem {
                 Label("Post", systemImage: "camera")
