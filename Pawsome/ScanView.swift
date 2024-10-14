@@ -25,8 +25,9 @@ struct ScanView: View {
             }
             .padding()
         }
-        .onChange(of: isCameraReady) { newValue in
-            if newValue { // Using newValue to reference the new value
+        // Using the new syntax for onChange
+        .onChange(of: isCameraReady) {
+            if isCameraReady { // Check the new state directly
                 captureSession.startRunning()
             }
         }
