@@ -12,13 +12,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>142</string>
+					<string>141</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>142</string>
+					<string>141</string>
 					<key>Timestamp</key>
-					<string>750586145.841182</string>
+					<string>750586455.810485</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -36,8 +36,8 @@
 				<key>focused</key>
 				<string></string>
 				<key>leading</key>
-				<string>
-// This file will need to be called from your main application logic
+				<string>    }
+}
 </string>
 				<key>trailing</key>
 				<string></string>
