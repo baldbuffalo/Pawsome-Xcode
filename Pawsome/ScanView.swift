@@ -2,122 +2,126 @@ import SwiftUI
 import AVFoundation
 
 struct ScanView: View {
-    @State private var capturedImage: UIImage? = nil // State to hold the captured image
-    private let captureSession = AVCaptureSession() // Camera capture session
-    @State private var videoOutput = AVCapturePhotoOutput() // Make videoOutput mutable with @State
+    @Binding var capturedImage: UIImage? // Binding to capture image
+    @Binding var hideTabBar: Bool // Binding to control tab bar visibility
+
+    // AVFoundation variables
+    @State private var captureSession = AVCaptureSession()
+    @State private var isCameraReady = false
 
     var body: some View {
         VStack {
-            CameraPreview(capturedImage: $capturedImage, captureSession: captureSession, videoOutput: videoOutput)
-                .frame(height: 300) // Adjust the height as needed
-            
-            Button(action: {
-                capturePhoto() // Capture photo when the button is pressed
-            }) {
-                Text("Capture Photo")
-                    .padding()
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(8)
+            CameraPreview(session: captureSession) // Custom camera preview
+                .onAppear {
+                    checkCameraAuthorization()
+                    setupCamera()
+                }
+                .onDisappear {
+                    captureSession.stopRunning() // Stop the session when view disappears
+                }
+
+            Button("Capture") {
+                captureImage()
             }
-            
-            if let image = capturedImage {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 200, height: 200) // Adjust the size as needed
+            .padding()
+        }
+        .onChange(of: isCameraReady) { newValue in
+            if newValue { // Using newValue to reference the new value
+                captureSession.startRunning()
             }
         }
-        .padding()
-        .onAppear {
-            setupCamera() // Set up the camera session when the view appears
+        .navigationTitle("Scan Cat")
+    }
+
+    private func checkCameraAuthorization() {
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            isCameraReady = true
+        case .notDetermined:
+            AVCaptureDevice.requestAccess(for: .video) { granted in
+                DispatchQueue.main.async {
+                    isCameraReady = granted
+                }
+            }
+        default:
+            break
         }
     }
 
     private func setupCamera() {
-        // Set up camera input
-        guard let videoCaptureDevice = AVCaptureDevice.default(for: .video) else { return }
-        let videoInput: AVCaptureDeviceInput
+        guard isCameraReady else { return }
+
+        // Setup camera input and output
+        guard let videoDevice = AVCaptureDevice.default(for: .video) else {
+            print("No video device available")
+            return
+        }
 
         do {
-            videoInput = try AVCaptureDeviceInput(device: videoCaptureDevice)
+            let videoInput = try AVCaptureDeviceInput(device: videoDevice)
+            if captureSession.canAddInput(videoInput) {
+                captureSession.addInput(videoInput)
+            } else {
+                print("Cannot add video input")
+            }
+
+            // Setup video output
+            let videoOutput = AVCapturePhotoOutput()
+            if captureSession.canAddOutput(videoOutput) {
+                captureSession.addOutput(videoOutput)
+            } else {
+                print("Cannot add video output")
+            }
+
         } catch {
-            return
+            print("Error setting up camera: \(error)")
         }
-
-        // Add input to the session
-        if captureSession.canAddInput(videoInput) {
-            captureSession.addInput(videoInput)
-        } else {
-            return
-        }
-
-        // Initialize and set up photo output
-        if captureSession.canAddOutput(videoOutput) {
-            captureSession.addOutput(videoOutput)
-        }
-
-        // Start the camera session
-        captureSession.startRunning()
     }
 
-    private func capturePhoto() {
+    private func captureImage() {
+        guard let photoOutput = captureSession.outputs.first as? AVCapturePhotoOutput else { return }
         let settings = AVCapturePhotoSettings()
-        videoOutput.capturePhoto(with: settings, delegate: makeCoordinator())
-    }
-
-    private func makeCoordinator() -> Coordinator {
-        return Coordinator(self)
-    }
-
-    // Coordinator to handle the photo capturing
-    class Coordinator: NSObject, AVCapturePhotoCaptureDelegate {
-        var parent: ScanView
-
-        init(_ parent: ScanView) {
-            self.parent = parent
-            super.init()
-        }
-
-        func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
-            guard let imageData = photo.fileDataRepresentation(), error == nil else {
-                print("Error capturing photo: \(error?.localizedDescription ?? "Unknown error")")
-                return
-            }
-
-            // Convert the image data to a UIImage and assign it to the binding
-            if let image = UIImage(data: imageData) {
-                // Use DispatchQueue.main to update the UI
-                DispatchQueue.main.async {
-                    self.parent.capturedImage = image // Correctly update the binding
-                }
-            }
-        }
+        photoOutput.capturePhoto(with: settings, delegate: PhotoCaptureDelegate { image in
+            self.capturedImage = image
+        })
     }
 }
 
-// CameraPreview Component
+// A struct for your camera preview layer
 struct CameraPreview: UIViewRepresentable {
-    @Binding var capturedImage: UIImage?
-    let captureSession: AVCaptureSession
-    var videoOutput: AVCapturePhotoOutput
+    let session: AVCaptureSession
 
     func makeUIView(context: Context) -> UIView {
         let view = UIView()
-
-        // Set up the preview layer
-        let previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
+        let previewLayer = AVCaptureVideoPreviewLayer(session: session)
         previewLayer.frame = view.layer.bounds
         previewLayer.videoGravity = .resizeAspectFill
         view.layer.addSublayer(previewLayer)
-
+        
         return view
     }
 
     func updateUIView(_ uiView: UIView, context: Context) {
-        // Update the preview layer frame when the view's bounds change
         if let previewLayer = uiView.layer.sublayers?.first as? AVCaptureVideoPreviewLayer {
-            previewLayer.frame = uiView.layer.bounds
+            previewLayer.frame = uiView.bounds // Update the preview layer frame to match the view
+        }
+    }
+}
+
+// Photo capture delegate
+class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate {
+    var completion: ((UIImage?) -> Void)
+
+    init(completion: @escaping (UIImage?) -> Void) {
+        self.completion = completion
+    }
+
+    func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto) {
+        if let imageData = photo.fileDataRepresentation(),
+           let image = UIImage(data: imageData) {
+            completion(image)
+        } else {
+            completion(nil)
         }
     }
 }
