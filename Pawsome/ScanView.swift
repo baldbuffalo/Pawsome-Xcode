@@ -5,10 +5,12 @@ struct ScanView: View {
     @Binding var capturedImage: UIImage? // Binding to capture image
     @Binding var hideTabBar: Bool // Binding to control tab bar visibility
     @Binding var catPosts: [CatPost] // Binding to an array of CatPost
+    @State private var isNavigating = false // State to trigger navigation
+    @State private var showForm = false // State to control visibility of FormView
 
     var body: some View {
         VStack {
-            Text("Taking a picture of your cat")
+            Text("Take a Picture of Your Cat")
                 .font(.headline)
                 .padding()
 
@@ -18,10 +20,13 @@ struct ScanView: View {
             .padding()
         }
         .navigationTitle("Scan Cat")
-        // Using the updated onChange syntax
         .onChange(of: capturedImage) { newImage in
             guard let image = newImage else { return }
             navigateToForm(with: image)
+        }
+        // Add NavigationLink for programmatic navigation
+        NavigationLink(destination: FormView(showForm: $showForm, catPosts: $catPosts), isActive: $isNavigating) {
+            EmptyView() // Invisible link to handle navigation
         }
     }
 
@@ -39,15 +44,25 @@ struct ScanView: View {
     }
 
     private func navigateToForm(with image: UIImage) {
-        let newCatPost = CatPost(id: UUID(), name: "", breed: "", age: "", imageData: image.jpegData(compressionQuality: 1.0), username: "", creationTime: Date(), likes: 0, comments: [])
+        let newCatPost = CatPost(
+            id: UUID(),
+            name: "",
+            breed: "",
+            age: "",
+            imageData: image.jpegData(compressionQuality: 1.0),
+            username: "",
+            creationTime: Date(),
+            likes: 0,
+            comments: []
+        )
         
         // Add the new post to the array
         catPosts.append(newCatPost)
         hideTabBar = true // Hide the tab bar if needed
         
-        // Navigate to FormView
-        // This part will depend on how you are managing your navigation.
-        // If you're using NavigationLink or programmatic navigation, add that logic here.
+        // Trigger navigation
+        isNavigating = true
+        showForm = true // Set this to true to show the form
     }
 
     // Coordinator to handle UIImagePickerController delegate
