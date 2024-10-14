@@ -31,9 +31,9 @@ struct CameraPreview: UIViewRepresentable {
         }
 
         // Set up photo output
-        videoOutput = AVCapturePhotoOutput()
+        videoOutput = AVCapturePhotoOutput() // Initialize the AVCapturePhotoOutput
         if let videoOutput = videoOutput, captureSession.canAddOutput(videoOutput) {
-            captureSession.addOutput(videoOutput)
+            captureSession.addOutput(videoOutput) // Add the photo output to the capture session
         }
 
         // Set up preview layer
@@ -52,13 +52,16 @@ struct CameraPreview: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: UIView, context: Context) {
-        // Update the UIView if needed
+        // Update the preview layer frame when the view's bounds change
+        if let previewLayer = uiView.layer.sublayers?.first as? AVCaptureVideoPreviewLayer {
+            previewLayer.frame = uiView.layer.bounds
+        }
     }
 
-    func capturePhoto(context: Context) {
+    func capturePhoto() {
         guard let videoOutput = videoOutput else { return }
         let settings = AVCapturePhotoSettings()
-        videoOutput.capturePhoto(with: settings, delegate: context.coordinator) // Use context.coordinator
+        videoOutput.capturePhoto(with: settings, delegate: makeCoordinator()) // Pass the existing context
     }
 
     func makeCoordinator() -> Coordinator {
@@ -78,9 +81,14 @@ struct CameraPreview: UIViewRepresentable {
             NotificationCenter.default.addObserver(self, selector: #selector(captureImageNotification), name: NSNotification.Name("capturePhoto"), object: nil)
         }
         
+        deinit {
+            // Remove the notification observer
+            NotificationCenter.default.removeObserver(self)
+        }
+        
         @objc func captureImageNotification() {
-            // Capture photo using the current context
-            parent.capturePhoto(context: parent.makeCoordinator()) // Pass the context
+            // Capture photo using the existing context
+            parent.capturePhoto() // Call without context since it's not needed
         }
 
         func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
@@ -91,7 +99,10 @@ struct CameraPreview: UIViewRepresentable {
 
             // Convert the image data to a UIImage and assign it to the binding
             if let image = UIImage(data: imageData) {
-                parent.capturedImage = image
+                // Use DispatchQueue.main to update the UI
+                DispatchQueue.main.async {
+                    self.parent.capturedImage = image // Correctly update the binding
+                }
             }
         }
     }
