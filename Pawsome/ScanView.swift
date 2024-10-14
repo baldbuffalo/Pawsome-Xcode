@@ -67,6 +67,7 @@ struct ScanView: View {
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
             if let image = info[.originalImage] as? UIImage {
                 parent.capturedImage = image // Set the captured image
+                parent.navigateToEditingView(with: image) // Navigate to editing view
             }
             picker.dismiss(animated: true)
         }
