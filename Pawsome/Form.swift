@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct FormView: View {
-    @Binding var showForm: Bool
+    @Binding var showForm: Bool // Binding to control visibility of FormView
     @Binding var catPosts: [CatPost] // Binding to the array of cat posts
     var imageUI: UIImage? // Captured image passed from ScanView
 
@@ -14,6 +14,7 @@ struct FormView: View {
     var body: some View {
         NavigationView {
             Form {
+                // Section to display the captured image if it exists
                 if let image = imageUI {
                     Section(header: Text("Captured Image")) {
                         Image(uiImage: image)
@@ -24,6 +25,7 @@ struct FormView: View {
                     }
                 }
 
+                // Section for entering post details
                 Section(header: Text("Post Details")) {
                     TextField("Cat Name", text: $catName)
                     TextField("Breed", text: $breed)
@@ -35,6 +37,7 @@ struct FormView: View {
                         .disabled(true) // Assuming the username is fetched from the logged-in account
                 }
 
+                // Button to save the post
                 Button(action: {
                     savePost() // Save the post
                 }) {
@@ -45,7 +48,7 @@ struct FormView: View {
             }
             .navigationTitle("Create Post")
             .navigationBarItems(trailing: Button("Cancel") {
-                showForm = false
+                showForm = false // Dismiss the form
             })
         }
     }
