@@ -10,24 +10,27 @@ struct ScanView: View {
     @State private var fileURL: URL? // Store the URL of the saved file
 
     var body: some View {
-        VStack {
-            Text("Take a Picture of Your Cat")
-                .font(.headline)
-                .padding()
+        NavigationStack {
+            VStack {
+                Text("Take a Picture of Your Cat")
+                    .font(.headline)
+                    .padding()
 
-            Button("Open Camera") {
-                openCamera()
+                Button("Open Camera") {
+                    openCamera()
+                }
+                .padding()
             }
-            .padding()
-        }
-        .navigationTitle("Scan Cat")
-        .onChange(of: capturedImage) { newImage in
-            guard let image = newImage else { return }
-            saveImageToFile(image)
-        }
-        // Add NavigationLink for programmatic navigation to ImageEditing
-        NavigationLink(destination: ImageEditing(capturedImage: $capturedImage, catPosts: $catPosts, hideTabBar: $hideTabBar), isActive: $showEditingView) {
-            EmptyView() // Invisible link to handle navigation
+            .navigationTitle("Scan Cat")
+            .onChange(of: capturedImage) {
+                if let image = capturedImage {
+                    saveImageToFile(image)
+                }
+            }
+            // Use the new `navigationDestination` for programmatic navigation
+            .navigationDestination(isPresented: $showEditingView) {
+                ImageEditing(capturedImage: $capturedImage, catPosts: $catPosts, hideTabBar: $hideTabBar)
+            }
         }
     }
 
@@ -48,20 +51,16 @@ struct ScanView: View {
             print("Failed to convert image to JPEG data")
             return
         }
-        
-        // Get the path for the new file
+
         let fileManager = FileManager.default
         let directory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
         let fileName = "form.swift"
         let fileURL = directory.appendingPathComponent(fileName)
 
         do {
-            // Write image data to file
             try imageData.write(to: fileURL)
-            self.fileURL = fileURL // Store the file URL
+            self.fileURL = fileURL
             print("Image saved to file at: \(fileURL)")
-
-            // Optionally, open the file (i.e., for preview or editing)
             openFile(fileURL)
         } catch {
             print("Error saving image to file: \(error.localizedDescription)")
@@ -69,8 +68,6 @@ struct ScanView: View {
     }
 
     private func openFile(_ url: URL) {
-        // Here you could present the file or allow the user to open it in another app
-        // For example:
         let documentPicker = UIDocumentPickerViewController(forOpeningContentTypes: [.item], asCopy: true)
         documentPicker.delegate = makeCoordinator() as? UIDocumentPickerDelegate
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
