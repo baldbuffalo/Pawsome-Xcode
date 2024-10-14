@@ -34,21 +34,26 @@ struct ScanView: View {
     }
 
     private func captureImage() {
-        // Capture image logic; you may want to implement this in the CameraPreview.
+        // Notify the CameraPreview to capture the photo
+        NotificationCenter.default.post(name: NSNotification.Name("capturePhoto"), object: nil)
         print("Capture button tapped")
-        // Here, you might call a method in your CameraPreview to capture an image.
     }
 }
 
 // UIViewRepresentable for Camera Preview
 struct CameraPreview: UIViewRepresentable {
     @Binding var capturedImage: UIImage?
-    private let captureSession = AVCaptureSession()
-    private var videoOutput: AVCapturePhotoOutput?
+    let captureSession = AVCaptureSession() // Accessible now
+    var videoOutput: AVCapturePhotoOutput? // Accessible now
+
+    init(capturedImage: Binding<UIImage?>) {
+        self._capturedImage = capturedImage
+    }
 
     func makeUIView(context: Context) -> UIView {
         let view = UIView()
 
+        // Set up camera input
         guard let videoCaptureDevice = AVCaptureDevice.default(for: .video) else { return view }
         let videoInput: AVCaptureDeviceInput
 
@@ -64,17 +69,25 @@ struct CameraPreview: UIViewRepresentable {
             return view
         }
 
+        // Set up photo output
         videoOutput = AVCapturePhotoOutput()
         if captureSession.canAddOutput(videoOutput!) {
             captureSession.addOutput(videoOutput!)
         }
 
+        // Set up preview layer
         let previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
         previewLayer.frame = view.layer.bounds
         previewLayer.videoGravity = .resizeAspectFill
         view.layer.addSublayer(previewLayer)
 
+        // Start camera session
         captureSession.startRunning()
+
+        // Capture photo when notification is posted
+        NotificationCenter.default.addObserver(forName: NSNotification.Name("capturePhoto"), object: nil, queue: .main) { [weak self] _ in
+            self?.capturePhoto(context: context)
+        }
 
         return view
     }
@@ -83,7 +96,7 @@ struct CameraPreview: UIViewRepresentable {
         // Update the UIView if needed
     }
 
-    func capturePhoto() {
+    func capturePhoto(context: Context) {
         let settings = AVCapturePhotoSettings()
         videoOutput?.capturePhoto(with: settings, delegate: context.coordinator)
     }
@@ -92,6 +105,7 @@ struct CameraPreview: UIViewRepresentable {
         Coordinator(self)
     }
 
+    // Coordinator to handle the photo capturing
     class Coordinator: NSObject, AVCapturePhotoCaptureDelegate {
         var parent: CameraPreview
 
