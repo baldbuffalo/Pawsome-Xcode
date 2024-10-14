@@ -1,7 +1,8 @@
 import SwiftUI
 import AVFoundation
 
-struct CameraPreview: UIViewRepresentable {
+// CameraPreview Component
+final class CameraPreview: UIViewRepresentable {
     @Binding var capturedImage: UIImage?
     let captureSession = AVCaptureSession() // Camera capture session
     var videoOutput: AVCapturePhotoOutput? // Photo output
@@ -30,10 +31,10 @@ struct CameraPreview: UIViewRepresentable {
             return view
         }
 
-        // Set up photo output
+        // Initialize and set up photo output here
         videoOutput = AVCapturePhotoOutput() // Initialize the AVCapturePhotoOutput
         if let videoOutput = videoOutput, captureSession.canAddOutput(videoOutput) {
-            captureSession.addOutput(videoOutput) // Add the photo output to the capture session
+            captureSession.addOutput(videoOutput)
         }
 
         // Set up preview layer
@@ -61,7 +62,7 @@ struct CameraPreview: UIViewRepresentable {
     func capturePhoto() {
         guard let videoOutput = videoOutput else { return }
         let settings = AVCapturePhotoSettings()
-        videoOutput.capturePhoto(with: settings, delegate: makeCoordinator()) // Pass the existing context
+        videoOutput.capturePhoto(with: settings, delegate: makeCoordinator())
     }
 
     func makeCoordinator() -> Coordinator {
@@ -104,6 +105,46 @@ struct CameraPreview: UIViewRepresentable {
                     self.parent.capturedImage = image // Correctly update the binding
                 }
             }
+        }
+    }
+}
+
+// ScanView Component
+struct ScanView: View {
+    @State private var capturedImage: UIImage? = nil
+
+    var body: some View {
+        VStack {
+            CameraPreview(capturedImage: $capturedImage)
+                .frame(height: 300) // Adjust the height as needed
+            
+            Button(action: {
+                NotificationCenter.default.post(name: NSNotification.Name("capturePhoto"), object: nil)
+            }) {
+                Text("Capture Photo")
+                    .padding()
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(8)
+            }
+            
+            if let image = capturedImage {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 200, height: 200) // Adjust the size as needed
+            }
+        }
+        .padding()
+    }
+}
+
+// Main App Entry Point
+@main
+struct PawsomeApp: App {
+    var body: some Scene {
+        WindowGroup {
+            ScanView()
         }
     }
 }
