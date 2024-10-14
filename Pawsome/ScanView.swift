@@ -5,7 +5,7 @@ struct ScanView: View {
     @Binding var capturedImage: UIImage? // Binding to capture image
     @Binding var hideTabBar: Bool // Binding to control tab bar visibility
     @Binding var catPosts: [CatPost] // Binding to an array of CatPost
-    @State private var showForm = false // State to trigger navigation
+    @State private var isNavigating = false // State to trigger navigation
 
     var body: some View {
         NavigationStack {
@@ -20,9 +20,9 @@ struct ScanView: View {
                 .padding()
             }
             .navigationTitle("Scan Cat")
-            .navigationDestination(isPresented: $showForm) {
-                // Only pass the necessary parameters to FormView
-                FormView(showForm: $showForm, catPosts: $catPosts) // Remove capturedImage
+            .navigationDestination(isPresented: $isNavigating) {
+                // Pass capturedImage to FormView
+                FormView(showForm: $isNavigating, catPosts: $catPosts, imageUI: capturedImage)
             }
         }
     }
@@ -53,7 +53,7 @@ struct ScanView: View {
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
             if let image = info[.originalImage] as? UIImage {
                 parent.capturedImage = image // Set the captured image
-                parent.showForm = true // Trigger navigation to FormView
+                parent.isNavigating = true // Trigger navigation to FormView
             }
             picker.dismiss(animated: true)
         }
