@@ -23,18 +23,6 @@ struct ScanView: View {
                     showImagePicker = true // Show the image picker when the button is pressed
                 }
                 .padding()
-
-                // Use NavigationLink with value to trigger navigation
-                NavigationLink(destination: EmptyView(), isActive: Binding(
-                    get: { selectedDestination == .formView },
-                    set: { newValue in
-                        if !newValue {
-                            selectedDestination = nil
-                        }
-                    }
-                )) {
-                    EmptyView() // This will be triggered by the NavigationLink
-                }
             }
             .navigationTitle("Scan Cat")
             .sheet(isPresented: $showImagePicker) {
@@ -46,14 +34,11 @@ struct ScanView: View {
             .navigationDestination(for: NavigationDestination.self) { destination in
                 switch destination {
                 case .formView:
+                    // Navigate to FormView when an image is picked
                     FormView(showForm: .constant(false), catPosts: $catPosts, imageUI: capturedImage)
                 }
             }
         }
-    }
-
-    private func openCamera() {
-        showImagePicker = true // Set to true to open the image picker
     }
 }
 
