@@ -1,12 +1,16 @@
 import SwiftUI
 import AVFoundation
 
+// Enum to represent navigation destinations
+enum NavigationDestination: Hashable {
+    case formView
+}
+
 struct ScanView: View {
     @Binding var capturedImage: UIImage? // Binding to capture image
     @Binding var hideTabBar: Bool // Binding to control tab bar visibility
     @Binding var catPosts: [CatPost] // Binding to an array of CatPost
-    @State private var isNavigating = false // State to trigger navigation
-    @State private var navigationTag: String? = nil // Tag for NavigationLink
+    @State private var selectedDestination: NavigationDestination? // State to track navigation
 
     var body: some View {
         NavigationStack {
@@ -16,20 +20,25 @@ struct ScanView: View {
                     .padding()
 
                 Button("Open Camera") {
-                    openCamera() // Directly open the camera
+                    openCamera()
                 }
                 .padding()
 
-                // New way to handle navigation using NavigationLink and navigationDestination
+                // Use NavigationLink with `value` instead of `tag` and `selection`
                 NavigationLink(
-                    destination: FormView(showForm: $isNavigating, catPosts: $catPosts, imageUI: capturedImage),
-                    tag: "FormView",
-                    selection: $navigationTag // Navigate based on this tag
-                ) {
-                    EmptyView() // Hidden NavigationLink
-                }
+                    value: NavigationDestination.formView,
+                    label: {
+                        EmptyView() // NavigationLink is hidden but used for triggering
+                    }
+                )
             }
             .navigationTitle("Scan Cat")
+            // Use `navigationDestination(for:destination:)` to handle navigation
+            .navigationDestination(for: NavigationDestination.self) { destination in
+                if destination == .formView {
+                    FormView(showForm: .constant(false), catPosts: $catPosts, imageUI: capturedImage)
+                }
+            }
         }
     }
 
@@ -46,7 +55,7 @@ struct ScanView: View {
 
         let imagePicker = UIImagePickerController()
         imagePicker.sourceType = .camera
-        imagePicker.delegate = makeCoordinator() // Set the coordinator as delegate
+        imagePicker.delegate = makeCoordinator()
         topController.present(imagePicker, animated: true)
     }
 
@@ -61,13 +70,12 @@ struct ScanView: View {
             self.parent = parent
         }
 
-        // Automatically use the picture once it is taken
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
             if let image = info[.originalImage] as? UIImage {
                 parent.capturedImage = image // Set the captured image
-                parent.navigationTag = "FormView"   // Trigger navigation to FormView
+                parent.selectedDestination = .formView // Trigger navigation to FormView
             }
-            picker.dismiss(animated: true) // Dismiss the camera view automatically
+            picker.dismiss(animated: true)
         }
 
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
