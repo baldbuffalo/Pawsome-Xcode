@@ -1,8 +1,9 @@
 import SwiftUI
 import AVFoundation
 
+// Enum to represent navigation destinations
 enum NavigationDestination: Hashable {
-    case formView
+    case form
 }
 
 struct ScanView: View {
@@ -44,15 +45,14 @@ struct ScanView: View {
             }
             .sheet(isPresented: $showImagePicker) {
                 ImagePicker(capturedImage: $capturedImage, sourceType: imagePickerSourceType, onImagePicked: {
-                    selectedDestination = .formView // Trigger navigation to FormView after picking the image
+                    selectedDestination = .form // Trigger navigation to FormView after picking the image
                 })
             }
             // Handle navigation based on selectedDestination
             .navigationDestination(for: NavigationDestination.self) { destination in
                 switch destination {
-                case .formView:
-                    // Navigate to FormView when an image is picked
-                    FormView(showForm: .constant(false), catPosts: $catPosts, imageUI: capturedImage)
+                case .form:
+                    FormView(showForm: .constant(true), catPosts: $catPosts, imageUI: capturedImage)
                 }
             }
         }
@@ -62,7 +62,7 @@ struct ScanView: View {
 // ImagePicker struct to handle the UIImagePickerController
 struct ImagePicker: UIViewControllerRepresentable {
     @Binding var capturedImage: UIImage?
-    var sourceType: UIImagePickerController.SourceType // Allow selecting camera or library
+    var sourceType: UIImagePickerController.SourceType
     var onImagePicked: () -> Void
 
     func makeCoordinator() -> Coordinator {
