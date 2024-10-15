@@ -1,7 +1,6 @@
 import SwiftUI
 import AVFoundation
 
-// Enum to represent navigation destinations
 enum NavigationDestination: Hashable {
     case formView
 }
@@ -11,6 +10,8 @@ struct ScanView: View {
     @Binding var catPosts: [CatPost] // Binding to an array of CatPost
     @State private var selectedDestination: NavigationDestination? // State to track navigation
     @State private var showImagePicker: Bool = false // State to show image picker
+    @State private var imagePickerSourceType: UIImagePickerController.SourceType = .camera // Source type for ImagePicker
+    @State private var showActionSheet: Bool = false // State to show action sheet
 
     var body: some View {
         NavigationStack {
@@ -20,13 +21,29 @@ struct ScanView: View {
                     .padding()
 
                 Button("Open Camera") {
-                    showImagePicker = true // Show the image picker when the button is pressed
+                    showActionSheet = true // Show the action sheet when the button is pressed
                 }
                 .padding()
             }
             .navigationTitle("Scan Cat")
+            .actionSheet(isPresented: $showActionSheet) {
+                ActionSheet(
+                    title: Text("Choose Photo Option"),
+                    buttons: [
+                        .default(Text("Take Photo")) {
+                            imagePickerSourceType = .camera
+                            showImagePicker = true
+                        },
+                        .default(Text("Choose from Library")) {
+                            imagePickerSourceType = .photoLibrary
+                            showImagePicker = true
+                        },
+                        .cancel()
+                    ]
+                )
+            }
             .sheet(isPresented: $showImagePicker) {
-                ImagePicker(capturedImage: $capturedImage, onImagePicked: {
+                ImagePicker(capturedImage: $capturedImage, sourceType: imagePickerSourceType, onImagePicked: {
                     selectedDestination = .formView // Trigger navigation to FormView after picking the image
                 })
             }
@@ -45,6 +62,7 @@ struct ScanView: View {
 // ImagePicker struct to handle the UIImagePickerController
 struct ImagePicker: UIViewControllerRepresentable {
     @Binding var capturedImage: UIImage?
+    var sourceType: UIImagePickerController.SourceType // Allow selecting camera or library
     var onImagePicked: () -> Void
 
     func makeCoordinator() -> Coordinator {
@@ -54,7 +72,7 @@ struct ImagePicker: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let imagePicker = UIImagePickerController()
         imagePicker.delegate = context.coordinator
-        imagePicker.sourceType = .camera
+        imagePicker.sourceType = sourceType
         return imagePicker
     }
 
