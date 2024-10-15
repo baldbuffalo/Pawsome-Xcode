@@ -8,7 +8,6 @@ enum NavigationDestination: Hashable {
 
 struct ScanView: View {
     @Binding var capturedImage: UIImage? // Binding to capture image
-    @Binding var hideTabBar: Bool // Binding to control tab bar visibility
     @Binding var catPosts: [CatPost] // Binding to an array of CatPost
     @State private var selectedDestination: NavigationDestination? // State to track navigation
 

@@ -6,9 +6,7 @@ struct HomeView: View {
     @Binding var profileImage: Image? // Binding for the profile image
 
     @State private var catPosts: [CatPost] = [] // Array to hold cat posts
-    @State private var showForm: Bool = false
     @State private var selectedImage: UIImage? = nil
-    @State private var hideTabBar: Bool = false // Control tab bar visibility
 
     var body: some View {
         TabView {
@@ -19,10 +17,6 @@ struct HomeView: View {
                     Spacer() // Pushes the bottom bar to the bottom
                 }
                 .navigationTitle("Pawsome")
-                .sheet(isPresented: $showForm) {
-                    // Present the form with bindings
-                    FormView(showForm: $showForm, catPosts: $catPosts, imageUI: selectedImage) // Pass selectedImage directly
-                }
                 .onAppear {
                     loadPosts() // Load posts when the view appears
                 }
@@ -33,7 +27,7 @@ struct HomeView: View {
 
             // Directly navigate to ScanView when the Post tab is clicked
             NavigationView {
-                ScanView(capturedImage: $selectedImage, hideTabBar: $hideTabBar, catPosts: $catPosts) // Pass catPosts binding
+                ScanView(capturedImage: $selectedImage, catPosts: $catPosts) // Pass catPosts binding
             }
             .tabItem {
                 Label("Post", systemImage: "camera")
@@ -49,12 +43,6 @@ struct HomeView: View {
             }
         }
         .tabViewStyle(DefaultTabViewStyle())
-        .edgesIgnoringSafeArea(hideTabBar ? .bottom : [])
-        .animation(.easeInOut, value: hideTabBar) // Smooth transition
-        .onAppear {
-            // Reset the hideTabBar when the view appears
-            hideTabBar = false
-        }
     }
 
     private var headerView: some View {
