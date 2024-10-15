@@ -6,6 +6,7 @@ struct ScanView: View {
     @Binding var hideTabBar: Bool // Binding to control tab bar visibility
     @Binding var catPosts: [CatPost] // Binding to an array of CatPost
     @State private var isNavigating = false // State to trigger navigation
+    @State private var navigationTag: String? = nil // Tag for NavigationLink
 
     var body: some View {
         NavigationStack {
@@ -15,19 +16,29 @@ struct ScanView: View {
                     .padding()
 
                 Button("Open Camera") {
-                    openCamera()
+                    openCamera() // Directly open the camera
                 }
                 .padding()
+
+                // New way to handle navigation using NavigationLink and navigationDestination
+                NavigationLink(
+                    destination: FormView(showForm: $isNavigating, catPosts: $catPosts, imageUI: capturedImage),
+                    tag: "FormView",
+                    selection: $navigationTag // Navigate based on this tag
+                ) {
+                    EmptyView() // Hidden NavigationLink
+                }
             }
             .navigationTitle("Scan Cat")
-            .navigationDestination(isPresented: $isNavigating) {
-                // Pass capturedImage to FormView
-                FormView(showForm: $isNavigating, catPosts: $catPosts, imageUI: capturedImage)
-            }
         }
     }
 
     private func openCamera() {
+        guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
+            print("Camera not available on this device")
+            return
+        }
+
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
               let topController = windowScene.windows.first?.rootViewController else {
             return
@@ -50,12 +61,13 @@ struct ScanView: View {
             self.parent = parent
         }
 
+        // Automatically use the picture once it is taken
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
             if let image = info[.originalImage] as? UIImage {
                 parent.capturedImage = image // Set the captured image
-                parent.isNavigating = true // Trigger navigation to FormView
+                parent.navigationTag = "FormView"   // Trigger navigation to FormView
             }
-            picker.dismiss(animated: true)
+            picker.dismiss(animated: true) // Dismiss the camera view automatically
         }
 
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
