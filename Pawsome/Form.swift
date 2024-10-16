@@ -9,6 +9,7 @@ struct FormView: View {
     @State private var catName: String = ""
     @State private var breed: String = ""
     @State private var age: String = ""
+    @State private var location: String = "" // New state variable for location
     @State private var description: String = "" // Renamed to description
 
     var body: some View {
@@ -29,6 +30,7 @@ struct FormView: View {
                     TextField("Breed", text: $breed)
                     TextField("Age", text: $age)
                         .keyboardType(.numberPad) // Set keyboard type for age
+                    TextField("Location", text: $location) // New text field for location
                     TextField("Description", text: $description) // Changed to Description
                 }
 
@@ -45,7 +47,8 @@ struct FormView: View {
                         breed: breed,
                         age: age,
                         imageData: imageUI?.jpegData(compressionQuality: 0.8),
-                        username: username // Get the username from the logged-in account
+                        username: username, // Get the username from the logged-in account
+                        location: location // Include location in the CatPost
                     )
                     onPostCreated(newPost) // Call the closure to pass the new post
                     showForm = false // Dismiss the form
@@ -53,7 +56,7 @@ struct FormView: View {
                     Text("Post")
                         .frame(maxWidth: .infinity)
                 }
-                .disabled(catName.isEmpty || breed.isEmpty || age.isEmpty || description.isEmpty)
+                .disabled(catName.isEmpty || breed.isEmpty || age.isEmpty || location.isEmpty || description.isEmpty) // Disable if any field is empty
             }
             .navigationTitle("Create Post")
             .navigationBarItems(trailing: Button("Cancel") {
