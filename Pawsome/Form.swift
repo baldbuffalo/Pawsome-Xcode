@@ -1,6 +1,5 @@
 import SwiftUI
 
-// No need to define CatPost again, just use it
 struct FormView: View {
     @Binding var showForm: Bool
     var imageUI: UIImage?
@@ -32,12 +31,11 @@ struct FormView: View {
                 }
 
                 Button(action: {
-                    // Create a new CatPost using the existing struct from CatPost.swift
+                    // Create a new CatPost using the updated initializer
                     let newPost = CatPost(
                         name: catName,
                         breed: breed,
                         age: age,
-                        comments: [comments],
                         imageData: imageUI?.jpegData(compressionQuality: 0.8),
                         username: "YourUsername" // Adjust this according to your actual logic
                     )
