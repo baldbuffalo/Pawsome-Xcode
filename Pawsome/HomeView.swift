@@ -37,13 +37,14 @@ struct HomeView: View {
             }
 
             NavigationView {
-                // Display action sheet for the "Post" tab
-                Button(action: {
+                VStack {
+                    // The content of the Post tab can go here if needed
+                    Spacer()
+                }
+                .navigationTitle("Post")
+                .onAppear {
+                    // Show the action sheet when the Post tab is selected
                     showActionSheet = true
-                }) {
-                    Text("Post")
-                        .font(.headline)
-                        .padding()
                 }
                 .actionSheet(isPresented: $showActionSheet) {
                     ActionSheet(
@@ -52,17 +53,14 @@ struct HomeView: View {
                         buttons: [
                             .default(Text("Take Photo")) {
                                 mediaType = .photo
-                                // Handle media selection in ScanView.swift
                                 openScanView()
                             },
                             .default(Text("Take Video")) {
                                 mediaType = .video
-                                // Handle media selection in ScanView.swift
                                 openScanView()
                             },
                             .default(Text("Select from Library")) {
                                 mediaType = .library
-                                // Handle media selection in ScanView.swift
                                 openScanView()
                             },
                             .cancel()
