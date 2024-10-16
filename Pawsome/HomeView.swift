@@ -7,6 +7,7 @@ struct HomeView: View {
 
     @State private var catPosts: [CatPost] = [] // Array to hold cat posts
     @State private var selectedImage: UIImage? = nil
+    @State private var showForm: Bool = false // State to control form visibility
 
     var body: some View {
         TabView {
@@ -20,21 +21,27 @@ struct HomeView: View {
                 .onAppear {
                     loadPosts() // Load posts when the view appears
                 }
+                .sheet(isPresented: $showForm) {
+                    FormView(showForm: $showForm, imageUI: selectedImage) { newPost in
+                        catPosts.append(newPost) // Add new post to the list
+                        savePosts() // Save updated posts to UserDefaults
+                    }
+                }
             }
             .tabItem {
                 Label("Home", systemImage: "house")
             }
 
-            // Directly navigate to ScanView when the Post tab is clicked
             NavigationView {
-                ScanView(capturedImage: $selectedImage) // Removed catPosts binding
+                ScanView(capturedImage: $selectedImage) {
+                    showForm = true // Show form when an image is captured
+                }
             }
             .tabItem {
                 Label("Post", systemImage: "camera")
             }
 
             NavigationView {
-                // Pass the profileImage binding to ProfileView
                 ProfileView(isLoggedIn: $isLoggedIn, currentUsername: currentUsername, profileImage: $profileImage)
                     .navigationTitle("Profile")
             }
@@ -80,6 +87,12 @@ struct HomeView: View {
         if let data = UserDefaults.standard.data(forKey: "catPosts"),
            let decodedPosts = try? JSONDecoder().decode([CatPost].self, from: data) {
             catPosts = decodedPosts
+        }
+    }
+
+    private func savePosts() {
+        if let encoded = try? JSONEncoder().encode(catPosts) {
+            UserDefaults.standard.set(encoded, forKey: "catPosts")
         }
     }
 }

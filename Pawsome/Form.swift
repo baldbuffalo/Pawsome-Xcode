@@ -1,13 +1,9 @@
 import SwiftUI
 
-// Assuming CatPost is defined in CatPost.swift
-// Replace with your actual CatPost model import if necessary
-// import your_module_name
-
 struct FormView: View {
-    @Binding var showForm: Bool // Binding to control the visibility of the form
-    var imageUI: UIImage? // Captured image passed from ScanView
-    var onPostCreated: (CatPost) -> Void // Closure to handle post creation
+    @Binding var showForm: Bool
+    var imageUI: UIImage?
+    var onPostCreated: (CatPost) -> Void
 
     @State private var catName: String = ""
     @State private var breed: String = ""
@@ -35,18 +31,18 @@ struct FormView: View {
                 }
 
                 Button(action: {
-                    let newPost = CatPost(catName: catName, breed: breed, age: age, comments: comments, image: imageUI) // Create a new CatPost
-                    onPostCreated(newPost) // Call the closure with the new post
-                    showForm = false // Dismiss the form
+                    let newPost = CatPost(catName: catName, breed: breed, age: age, comments: comments, image: imageUI)
+                    onPostCreated(newPost)
+                    showForm = false
                 }) {
                     Text("Post")
                         .frame(maxWidth: .infinity)
                 }
-                .disabled(catName.isEmpty || breed.isEmpty || age.isEmpty) // Disable if fields are empty
+                .disabled(catName.isEmpty || breed.isEmpty || age.isEmpty)
             }
             .navigationTitle("Create Post")
             .navigationBarItems(trailing: Button("Cancel") {
-                showForm = false // Dismiss the form
+                showForm = false
             })
         }
     }
