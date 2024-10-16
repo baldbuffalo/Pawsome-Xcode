@@ -16,7 +16,13 @@ struct ScanView: View {
     @State private var mediaType: String = "photo" // Tracks whether the user selected photo or video
 
     var body: some View {
-        VStack {
+        VStack(spacing: 20) {
+            // Title
+            Text("Capture or Select Media")
+                .font(.largeTitle)
+                .fontWeight(.bold)
+                .padding(.top)
+            
             // Display the selected image or video
             if let image = capturedImage {
                 Image(uiImage: image)
@@ -24,72 +30,125 @@ struct ScanView: View {
                     .scaledToFit()
                     .frame(height: 300)
                     .cornerRadius(12)
+                    .shadow(radius: 8)
+                    .padding(.horizontal)
             } else if let videoURL = selectedVideoURL {
                 VideoPlayer(player: AVPlayer(url: videoURL))
                     .frame(height: 300)
                     .cornerRadius(12)
+                    .shadow(radius: 8)
+                    .padding(.horizontal)
                     .onAppear {
                         AVPlayer(url: videoURL).play() // Autoplay the video
                     }
+            } else {
+                // Placeholder when no media is selected
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.gray.opacity(0.2))
+                    .frame(height: 300)
+                    .overlay(
+                        Text("No media selected")
+                            .foregroundColor(.gray)
+                    )
+                    .padding(.horizontal)
             }
-            
+
             // Buttons to select from library or take photo/video
-            HStack {
-                Button("Take Photo") {
-                    sourceType = .camera
-                    mediaType = "photo"
-                    isImagePickerPresented = true
-                }
-                .padding()
-
-                Button("Take Video") {
-                    sourceType = .camera
-                    mediaType = "video"
-                    isVideoPickerPresented = true
-                }
-                .padding()
-            }
-
-            // PhotosPicker button to select media from the photo library
-            PhotosPicker(selection: $selectedItem, matching: .any(of: [.images, .videos])) {
-                Text("Select from Library")
-            }
-            .padding()
-            // Updated onChange to use the new iOS 17+ format
-            .onChange(of: selectedItem) {
-                Task {
-                    guard let selectedItem = selectedItem else { return }
-                    
-                    // Load the asset's uniform type identifier (UTI)
-                    if let uti = try? await selectedItem.loadTransferable(type: String.self),
-                       let mediaType = UTType(uti) {
-                        
-                        // Handle selected image
-                        if mediaType.conforms(to: .image) {
-                            if let data = try? await selectedItem.loadTransferable(type: Data.self) {
-                                capturedImage = UIImage(data: data)
-                                selectedVideoURL = nil // Clear video if image is selected
-                                onImageCaptured() // Trigger closure when an image is captured
-                            }
+            VStack(spacing: 15) {
+                HStack(spacing: 20) {
+                    // Take photo button
+                    Button(action: {
+                        sourceType = .camera
+                        mediaType = "photo"
+                        isImagePickerPresented = true
+                    }) {
+                        HStack {
+                            Image(systemName: "camera.fill")
+                            Text("Take Photo")
                         }
-                        
-                        // Handle selected video
-                        else if mediaType.conforms(to: .movie) {
-                            if let data = try? await selectedItem.loadTransferable(type: Data.self) {
-                                let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("tempVideo.mov")
-                                try? data.write(to: tempURL)
-                                selectedVideoURL = tempURL
-                                capturedImage = nil // Clear image if video is selected
-                            }
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(CustomButtonStyle())
+
+                    // Take video button
+                    Button(action: {
+                        sourceType = .camera
+                        mediaType = "video"
+                        isVideoPickerPresented = true
+                    }) {
+                        HStack {
+                            Image(systemName: "video.fill")
+                            Text("Take Video")
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(CustomButtonStyle())
+                }
+
+                // PhotosPicker button to select media from the library
+                PhotosPicker(selection: $selectedItem, matching: .any(of: [.images, .videos])) {
+                    HStack {
+                        Image(systemName: "photo.on.rectangle.angled")
+                        Text("Select from Library")
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(CustomButtonStyle())
+                .padding(.bottom)
+            }
+
+            Spacer() // To push content to the top
+
+        }
+        .padding()
+        // Sheet for image/video picker
+        .sheet(isPresented: $isImagePickerPresented) {
+            ImagePicker(sourceType: sourceType, mediaType: mediaType == "photo" ? .photo : .video, selectedImage: $capturedImage, selectedVideoURL: $selectedVideoURL, onImageCaptured: onImageCaptured)
+        }
+        // Handling PhotosPicker changes
+        .onChange(of: selectedItem) {
+            Task {
+                guard let selectedItem = selectedItem else { return }
+                
+                // Load the asset's uniform type identifier (UTI)
+                if let uti = try? await selectedItem.loadTransferable(type: String.self),
+                   let mediaType = UTType(uti) {
+                    
+                    // Handle selected image
+                    if mediaType.conforms(to: .image) {
+                        if let data = try? await selectedItem.loadTransferable(type: Data.self) {
+                            capturedImage = UIImage(data: data)
+                            selectedVideoURL = nil // Clear video if image is selected
+                            onImageCaptured() // Trigger closure when an image is captured
+                        }
+                    }
+                    
+                    // Handle selected video
+                    else if mediaType.conforms(to: .movie) {
+                        if let data = try? await selectedItem.loadTransferable(type: Data.self) {
+                            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("tempVideo.mov")
+                            try? data.write(to: tempURL)
+                            selectedVideoURL = tempURL
+                            capturedImage = nil // Clear image if video is selected
                         }
                     }
                 }
             }
         }
-        .padding()
-        .sheet(isPresented: $isImagePickerPresented) {
-            ImagePicker(sourceType: sourceType, mediaType: mediaType == "photo" ? .photo : .video, selectedImage: $capturedImage, selectedVideoURL: $selectedVideoURL, onImageCaptured: onImageCaptured)
-        }
+    }
+}
+
+// Custom button style for better visual appeal
+struct CustomButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .padding()
+            .background(Color.blue)
+            .foregroundColor(.white)
+            .cornerRadius(10)
+            .shadow(radius: configuration.isPressed ? 2 : 8)
+            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+            .animation(.easeOut(duration: 0.2), value: configuration.isPressed)
     }
 }
 
