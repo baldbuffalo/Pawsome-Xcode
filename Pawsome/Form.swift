@@ -27,6 +27,7 @@ struct FormView: View {
                     TextField("Cat Name", text: $catName)
                     TextField("Breed", text: $breed)
                     TextField("Age", text: $age)
+                        .keyboardType(.numberPad) // Set the keyboard type to number pad
                     TextField("Comments", text: $comments)
                 }
 
@@ -51,6 +52,10 @@ struct FormView: View {
             .navigationBarItems(trailing: Button("Cancel") {
                 showForm = false // Dismiss the form
             })
+            .onTapGesture {
+                // Dismiss the keyboard when tapping outside the text fields
+                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+            }
         }
     }
 }
