@@ -17,13 +17,14 @@ struct FormView: View {
     @State private var isPostCreated: Bool = false // State to track if the post has been created
     @State private var newPost: CatPost? // Store the new post data
     @State private var likeCount: Int = 0 // State to track the number of likes
+    @State private var player: AVPlayer? // Player for video
 
     var body: some View {
         ScrollView { // Make the entire view scrollable
             VStack {
                 if isPostCreated, let post = newPost {
                     Section(header: Text("Your Post")) {
-                        if let image = post.imageData.flatMap(UIImage.init(data:)) {
+                        if let imageData = post.imageData, let image = UIImage(data: imageData) {
                             Image(uiImage: image)
                                 .resizable()
                                 .scaledToFit()
@@ -32,11 +33,12 @@ struct FormView: View {
                         }
 
                         if let videoURL = videoURL {
-                            VideoPlayer(player: AVPlayer(url: videoURL))
+                            VideoPlayer(player: player)
                                 .frame(height: 300)
                                 .cornerRadius(12)
-                                .onAppear() {
-                                    AVPlayer(url: videoURL).play()
+                                .onAppear {
+                                    player = AVPlayer(url: videoURL)
+                                    player?.play()
                                 }
                         }
 
@@ -86,7 +88,8 @@ struct FormView: View {
                                 .frame(height: 300)
                                 .cornerRadius(12)
                                 .onAppear() {
-                                    AVPlayer(url: videoURL).play()
+                                    player = AVPlayer(url: videoURL)
+                                    player?.play()
                                 }
                         }
                     }
