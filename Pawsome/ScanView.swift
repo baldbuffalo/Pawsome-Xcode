@@ -14,59 +14,14 @@ struct ScanView: View {
     @State private var sourceType: UIImagePickerController.SourceType = .camera
     @State private var mediaType: ImagePicker.MediaType = .photo
     @State private var showActionSheet: Bool = false // Controls the display of the action sheet
-    @State private var isLoading: Bool = false // Loading state for feedback
 
     var body: some View {
         VStack(spacing: 20) {
-            // Title
-            Text("Capture or Select Media")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-                .padding(.top)
-
-            // Display the selected image or video
-            if let image = capturedImage {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: 300)
-                    .cornerRadius(12)
-                    .shadow(radius: 8)
-                    .padding(.horizontal)
-            } else if let videoURL = selectedVideoURL {
-                VideoPlayer(player: AVPlayer(url: videoURL))
-                    .frame(height: 300)
-                    .cornerRadius(12)
-                    .shadow(radius: 8)
-                    .padding(.horizontal)
-                    .onAppear {
-                        AVPlayer(url: videoURL).play() // Autoplay the video
-                    }
-            } else {
-                // Placeholder when no media is selected
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.gray.opacity(0.2))
-                    .frame(height: 300)
-                    .overlay(
-                        Text("No media selected")
-                            .foregroundColor(.gray)
-                    )
-                    .padding(.horizontal)
-            }
-
-            // Button to open the action sheet
+            // Button to show the action sheet
             Button(action: {
-                showActionSheet = true
+                showActionSheet = true // Show action sheet when button is tapped
             }) {
-                HStack {
-                    Image(systemName: "camera")
-                    Text("Open Camera")
-                }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color.blue)
-                .foregroundColor(.white)
-                .cornerRadius(10)
+                Text("Select Media")
             }
             .actionSheet(isPresented: $showActionSheet) {
                 ActionSheet(
@@ -76,16 +31,17 @@ struct ScanView: View {
                         .default(Text("Take Photo")) {
                             sourceType = .camera
                             mediaType = .photo
-                            isImagePickerPresented = true
+                            isImagePickerPresented = true // Open image picker for photo
                         },
                         .default(Text("Take Video")) {
                             sourceType = .camera
                             mediaType = .video
-                            isImagePickerPresented = true
+                            isImagePickerPresented = true // Open image picker for video
                         },
                         .default(Text("Select from Library")) {
                             sourceType = .photoLibrary
-                            isImagePickerPresented = true
+                            mediaType = .photo
+                            isImagePickerPresented = true // Open image picker for library
                         },
                         .cancel()
                     ]
@@ -137,8 +93,6 @@ struct ScanView: View {
         if let uti = try? await item.loadTransferable(type: String.self),
            let mediaType = UTType(uti) {
 
-            isLoading = true // Start loading feedback
-
             // Handle selected image
             if mediaType.conforms(to: .image) {
                 if let data = try? await item.loadTransferable(type: Data.self) {
@@ -157,8 +111,6 @@ struct ScanView: View {
                     capturedImage = nil // Clear image if video is selected
                 }
             }
-
-            isLoading = false // End loading feedback
         }
     }
 }
