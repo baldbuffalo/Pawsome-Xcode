@@ -8,6 +8,8 @@ struct HomeView: View {
     @State private var catPosts: [CatPost] = []
     @State private var selectedImage: UIImage? = nil
     @State private var showForm: Bool = false
+    @State private var showActionSheet: Bool = false // Controls the action sheet display
+    @State private var mediaType: MediaType? // Enum for media type selection
 
     var body: some View {
         TabView {
@@ -35,9 +37,38 @@ struct HomeView: View {
             }
 
             NavigationView {
-                ScanView(capturedImage: $selectedImage, onImageCaptured: {
-                    showForm = true
-                }, username: currentUsername) // Make sure ScanView takes these parameters
+                // Display action sheet for the "Post" tab
+                Button(action: {
+                    showActionSheet = true
+                }) {
+                    Text("Post")
+                        .font(.headline)
+                        .padding()
+                }
+                .actionSheet(isPresented: $showActionSheet) {
+                    ActionSheet(
+                        title: Text("Select Media"),
+                        message: Text("Choose your media type"),
+                        buttons: [
+                            .default(Text("Take Photo")) {
+                                mediaType = .photo
+                                // Handle media selection in ScanView.swift
+                                openScanView()
+                            },
+                            .default(Text("Take Video")) {
+                                mediaType = .video
+                                // Handle media selection in ScanView.swift
+                                openScanView()
+                            },
+                            .default(Text("Select from Library")) {
+                                mediaType = .library
+                                // Handle media selection in ScanView.swift
+                                openScanView()
+                            },
+                            .cancel()
+                        ]
+                    )
+                }
             }
             .tabItem {
                 Label("Post", systemImage: "camera")
@@ -52,6 +83,11 @@ struct HomeView: View {
             }
         }
         .tabViewStyle(DefaultTabViewStyle())
+    }
+
+    private func openScanView() {
+        // Logic to open ScanView with the selected media type
+        // This could involve presenting a new view or updating a state that ScanView observes.
     }
 
     private var headerView: some View {
@@ -97,4 +133,11 @@ struct HomeView: View {
             UserDefaults.standard.set(encoded, forKey: "catPosts")
         }
     }
+}
+
+// Enum to define the media type
+enum MediaType {
+    case photo
+    case video
+    case library
 }
