@@ -8,8 +8,9 @@ struct HomeView: View {
     @State private var catPosts: [CatPost] = []
     @State private var selectedImage: UIImage? = nil
     @State private var showForm: Bool = false
-    @State private var showActionSheet: Bool = false // Controls the action sheet display
+    @State private var showActionSheet: Bool = false
     @State private var mediaType: MediaType? // Enum for media type selection
+    @State private var isImagePickerPresented: Bool = false
 
     var body: some View {
         TabView {
@@ -36,16 +37,14 @@ struct HomeView: View {
                 Label("Home", systemImage: "house")
             }
 
+            // Updated NavigationView for Post
             NavigationView {
                 VStack {
-                    // The content of the Post tab can go here if needed
-                    Spacer()
+                    Button("Open Camera") {
+                        showActionSheet = true
+                    }
                 }
                 .navigationTitle("Post")
-                .onAppear {
-                    // Show the action sheet when the Post tab is selected
-                    showActionSheet = true
-                }
                 .actionSheet(isPresented: $showActionSheet) {
                     ActionSheet(
                         title: Text("Select Media"),
@@ -59,7 +58,7 @@ struct HomeView: View {
                                 mediaType = .video
                                 openScanView()
                             },
-                            .default(Text("Select from Library")) {
+                            .default(Text("Choose Photo from Library")) {
                                 mediaType = .library
                                 openScanView()
                             },
@@ -81,11 +80,14 @@ struct HomeView: View {
             }
         }
         .tabViewStyle(DefaultTabViewStyle())
+        .sheet(isPresented: $isImagePickerPresented) {
+            // Present the ScanView with selected media type
+            ScanView(capturedImage: $selectedImage, onImageCaptured: { }, username: currentUsername) // Adjust this call as needed
+        }
     }
 
     private func openScanView() {
-        // Logic to open ScanView with the selected media type
-        // This could involve presenting a new view or updating a state that ScanView observes.
+        isImagePickerPresented = true
     }
 
     private var headerView: some View {

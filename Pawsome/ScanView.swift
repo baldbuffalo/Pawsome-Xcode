@@ -11,9 +11,8 @@ struct ScanView: View {
     @State private var selectedItem: PhotosPickerItem? = nil
     @State private var selectedVideoURL: URL? = nil
     @State private var isImagePickerPresented: Bool = false
-    @State private var isVideoPickerPresented: Bool = false
     @State private var sourceType: UIImagePickerController.SourceType = .camera
-    @State private var mediaType: ImagePicker.MediaType = .photo // Change this to use ImagePicker.MediaType
+    @State private var mediaType: ImagePicker.MediaType = .photo
     @State private var showActionSheet: Bool = false // Controls the display of the action sheet
     @State private var isLoading: Bool = false // Loading state for feedback
 
@@ -55,17 +54,20 @@ struct ScanView: View {
                     .padding(.horizontal)
             }
 
-            // Button to show the action sheet (Post Button)
+            // Button to open the action sheet
             Button(action: {
                 showActionSheet = true
             }) {
                 HStack {
-                    Image(systemName: "plus.circle.fill")
-                    Text("Post")
+                    Image(systemName: "camera")
+                    Text("Open Camera")
                 }
                 .frame(maxWidth: .infinity)
+                .padding()
+                .background(Color.blue)
+                .foregroundColor(.white)
+                .cornerRadius(10)
             }
-            .buttonStyle(CustomButtonStyle())
             .actionSheet(isPresented: $showActionSheet) {
                 ActionSheet(
                     title: Text("Choose Media Option"),
@@ -73,12 +75,12 @@ struct ScanView: View {
                     buttons: [
                         .default(Text("Take Photo")) {
                             sourceType = .camera
-                            mediaType = .photo // Use ImagePicker.MediaType
+                            mediaType = .photo
                             isImagePickerPresented = true
                         },
                         .default(Text("Take Video")) {
                             sourceType = .camera
-                            mediaType = .video // Use ImagePicker.MediaType
+                            mediaType = .video
                             isImagePickerPresented = true
                         },
                         .default(Text("Select from Library")) {
@@ -90,15 +92,34 @@ struct ScanView: View {
                 )
             }
 
+            // Button to show the post action
+            Button(action: {
+                // Handle the post action here
+            }) {
+                HStack {
+                    Image(systemName: "plus.circle.fill")
+                    Text("Post")
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(CustomButtonStyle())
+
             Spacer() // To push content to the top
         }
         .padding()
         // Sheet for image/video picker
         .sheet(isPresented: $isImagePickerPresented) {
-            ImagePicker(sourceType: sourceType, mediaType: mediaType, selectedImage: $capturedImage, selectedVideoURL: $selectedVideoURL, onImageCaptured: {
-                onImageCaptured()
-                isImagePickerPresented = false // Dismiss the picker after capturing
-            })
+            ImagePicker(
+                sourceType: sourceType,
+                mediaType: mediaType,
+                selectedImage: $capturedImage,
+                selectedVideoURL: $selectedVideoURL,
+                onImageCaptured: {
+                    // Trigger the closure to notify when an image is captured
+                    onImageCaptured()
+                    isImagePickerPresented = false // Dismiss the picker after capturing
+                }
+            )
         }
         // Handling PhotosPicker changes
         .onChange(of: selectedItem) { newItem, _ in // Updated onChange
@@ -156,7 +177,7 @@ struct CustomButtonStyle: ButtonStyle {
     }
 }
 
-// ImagePicker remains unchanged
+// ImagePicker struct remains unchanged
 struct ImagePicker: UIViewControllerRepresentable {
     var sourceType: UIImagePickerController.SourceType
     var mediaType: MediaType
@@ -207,7 +228,7 @@ struct ImagePicker: UIViewControllerRepresentable {
                 parent.selectedImage = nil // Clear image if video is selected
             }
 
-            parent.onImageCaptured()
+            parent.onImageCaptured() // Trigger the closure
             picker.dismiss(animated: true)
         }
 
