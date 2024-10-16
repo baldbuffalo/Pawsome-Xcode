@@ -35,18 +35,11 @@ struct HomeView: View {
                 Label("Home", systemImage: "house")
             }
 
-            // Post tab item that opens ScanView when the button is tapped
+            // Post tab item that opens ScanView when the tab is selected
             NavigationStack {
-                Button("Open Scan View") {
-                    isImagePickerPresented = true // Open ScanView when this button is tapped
-                }
-                .navigationTitle("Post")
-                .sheet(isPresented: $isImagePickerPresented) {
-                    // Present the ScanView
-                    ScanView(capturedImage: $selectedImage, onImageCaptured: {
-                        showForm = true // Show the form after capturing the image
-                    }, username: currentUsername)
-                }
+                ScanView(capturedImage: $selectedImage, onImageCaptured: {
+                    showForm = true // Show the form after capturing the image
+                }, username: currentUsername) // Remove mediaType as it's handled within ScanView
             }
             .tabItem {
                 Label("Post", systemImage: "camera")
