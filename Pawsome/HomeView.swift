@@ -14,7 +14,7 @@ struct HomeView: View {
 
     var body: some View {
         TabView {
-            NavigationView {
+            NavigationStack {
                 VStack(spacing: 0) {
                     headerView
                     postListView
@@ -37,8 +37,8 @@ struct HomeView: View {
                 Label("Home", systemImage: "house")
             }
 
-            // Updated NavigationView for Post
-            NavigationView {
+            // Updated NavigationStack for Post
+            NavigationStack {
                 VStack {
                     Button("Open Camera") {
                         showActionSheet = true
@@ -71,7 +71,7 @@ struct HomeView: View {
                 Label("Post", systemImage: "camera")
             }
 
-            NavigationView {
+            NavigationStack {
                 ProfileView(isLoggedIn: $isLoggedIn, currentUsername: currentUsername, profileImage: $profileImage)
                     .navigationTitle("Profile")
             }
@@ -82,7 +82,9 @@ struct HomeView: View {
         .tabViewStyle(DefaultTabViewStyle())
         .sheet(isPresented: $isImagePickerPresented) {
             // Present the ScanView with selected media type
-            ScanView(capturedImage: $selectedImage, onImageCaptured: { }, username: currentUsername) // Adjust this call as needed
+            ScanView(capturedImage: $selectedImage, onImageCaptured: {
+                showForm = true // Show the form after capturing the image
+            }, username: currentUsername)
         }
     }
 

@@ -1,155 +1,194 @@
 import SwiftUI
-import UIKit
-
-// ImagePicker struct for accessing the camera and photo library
-struct ImagePicker: UIViewControllerRepresentable {
-    @Binding var image: UIImage?
-    @Environment(\.presentationMode) var presentationMode
-    var sourceType: UIImagePickerController.SourceType
-
-    class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
-        var parent: ImagePicker
-
-        init(parent: ImagePicker) {
-            self.parent = parent
-        }
-
-        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-            if let uiImage = info[.originalImage] as? UIImage {
-                parent.image = uiImage
-            }
-            parent.presentationMode.wrappedValue.dismiss()
-        }
-
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            parent.presentationMode.wrappedValue.dismiss()
-        }
-    }
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(parent: self)
-    }
-
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = UIImagePickerController()
-        picker.delegate = context.coordinator
-        picker.sourceType = sourceType
-        return picker
-    }
-
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
-}
-
-// VideoPicker struct for recording videos
-struct VideoPicker: UIViewControllerRepresentable {
-    @Binding var videoURL: URL?
-    @Environment(\.presentationMode) var presentationMode
-
-    class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
-        var parent: VideoPicker
-
-        init(parent: VideoPicker) {
-            self.parent = parent
-        }
-
-        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-            if let url = info[.mediaURL] as? URL {
-                parent.videoURL = url // Store the video URL
-            }
-            parent.presentationMode.wrappedValue.dismiss()
-        }
-
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            parent.presentationMode.wrappedValue.dismiss()
-        }
-    }
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(parent: self)
-    }
-
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = UIImagePickerController()
-        picker.delegate = context.coordinator
-        picker.sourceType = .camera
-        picker.mediaTypes = ["public.movie"] // Only videos
-        picker.cameraCaptureMode = .video
-        return picker
-    }
-
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
-}
+import PhotosUI
+import AVKit
+import UniformTypeIdentifiers
 
 struct ScanView: View {
-    @State private var showCameraOptions = false
-    @State private var showImagePicker = false
-    @State private var showVideoPicker = false
-    @State private var selectedImage: UIImage?
-    @State private var videoURL: URL?
-    @State private var navigateToForm = false
+    @Binding var capturedImage: UIImage? // Binding to pass the captured image back to HomeView
+    var onImageCaptured: () -> Void // Closure to trigger when the image is captured
+    var username: String // Username to be passed
+
+    @State private var selectedItem: PhotosPickerItem? = nil
+    @State private var selectedVideoURL: URL? = nil
+    @State private var isImagePickerPresented: Bool = false
+    @State private var sourceType: UIImagePickerController.SourceType = .camera
+    @State private var mediaType: ImagePicker.MediaType = .photo
+    @State private var showCameraOptions: Bool = false // State to show the camera options
 
     var body: some View {
-        NavigationStack {
-            VStack {
-                if let selectedImage = selectedImage {
-                    Image(uiImage: selectedImage)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 300)
-                        .onTapGesture {
-                            navigateToForm = true // Navigate to FormView when image is tapped
-                        }
-                } else {
-                    Text("No Image Selected")
-                        .font(.headline)
+        VStack(spacing: 20) {
+            // Button to open camera options
+            Button(action: {
+                showCameraOptions.toggle() // Show camera options when button is tapped
+            }) {
+                HStack {
+                    Image(systemName: "camera")
+                    Text("Open Camera")
                 }
-
-                // Button to open camera options (Image Picker or Video Picker)
-                Button(action: {
-                    showCameraOptions.toggle() // Show the popup when the button is tapped
-                }) {
-                    HStack {
-                        Image(systemName: "camera")
-                        Text("Open Camera Options")
-                    }
-                }
-                .buttonStyle(BorderlessButtonStyle())
-                .actionSheet(isPresented: $showCameraOptions) {
-                    ActionSheet(
-                        title: Text("Choose an Option"),
-                        buttons: [
-                            .default(Text("Take Photo")) {
-                                showImagePicker = true
-                            },
-                            .default(Text("Record Video")) {
-                                showVideoPicker = true
-                            },
-                            .default(Text("Choose from Library")) {
-                                showImagePicker = true
-                            },
-                            .cancel()
-                        ]
-                    )
-                }
-
-                Spacer()
             }
+            .buttonStyle(CustomButtonStyle())
+            .actionSheet(isPresented: $showCameraOptions) {
+                ActionSheet(
+                    title: Text("Choose an option"),
+                    buttons: [
+                        .default(Text("Take Photo")) {
+                            sourceType = .camera
+                            mediaType = .photo
+                            isImagePickerPresented = true // Launch image picker for photo
+                        },
+                        .default(Text("Record Video")) {
+                            sourceType = .camera
+                            mediaType = .video
+                            isImagePickerPresented = true // Launch image picker for video
+                        },
+                        .default(Text("Choose from Library")) {
+                            sourceType = .photoLibrary
+                            mediaType = .photo
+                            isImagePickerPresented = true // Launch image picker for library
+                        },
+                        .cancel()
+                    ]
+                )
+            }
+
+            // Button to show the post action
+            Button(action: {
+                // Handle the post action here
+            }) {
+                HStack {
+                    Image(systemName: "plus.circle.fill")
+                    Text("Post")
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(CustomButtonStyle())
+
+            Spacer() // To push content to the top
+        }
+        .padding()
+        // Sheet for image/video picker
+        .sheet(isPresented: $isImagePickerPresented) {
+            ImagePicker(
+                sourceType: sourceType,
+                mediaType: mediaType,
+                selectedImage: $capturedImage,
+                selectedVideoURL: $selectedVideoURL,
+                onImageCaptured: {
+                    // Trigger the closure to notify when an image is captured
+                    onImageCaptured()
+                    isImagePickerPresented = false // Dismiss the picker after capturing
+                }
+            )
+        }
+        // Handling PhotosPicker changes
+        .onChange(of: selectedItem) { newItem, _ in // Updated onChange
+            Task {
+                await loadMedia(from: newItem)
+            }
+        }
+    }
+
+    // Centralized media loading logic
+    private func loadMedia(from item: PhotosPickerItem?) async {
+        guard let item = item else { return }
+
+        // Load the asset's uniform type identifier (UTI)
+        if let uti = try? await item.loadTransferable(type: String.self),
+           let mediaType = UTType(uti) {
+
+            // Handle selected image
+            if mediaType.conforms(to: .image) {
+                if let data = try? await item.loadTransferable(type: Data.self) {
+                    capturedImage = UIImage(data: data)
+                    selectedVideoURL = nil // Clear video if image is selected
+                    onImageCaptured() // Trigger closure when an image is captured
+                }
+            }
+
+            // Handle selected video
+            else if mediaType.conforms(to: .movie) {
+                if let data = try? await item.loadTransferable(type: Data.self) {
+                    let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("tempVideo.mov")
+                    try? data.write(to: tempURL)
+                    selectedVideoURL = tempURL
+                    capturedImage = nil // Clear image if video is selected
+                }
+            }
+        }
+    }
+}
+
+// Custom button style for better visual appeal
+struct CustomButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
             .padding()
-            // Present ImagePicker when the user selects "Take Photo" or "Choose from Library"
-            .sheet(isPresented: $showImagePicker) {
-                ImagePicker(image: $selectedImage, sourceType: .photoLibrary) // You can change the source type based on the action
+            .background(Color.blue)
+            .foregroundColor(.white)
+            .cornerRadius(10)
+            .shadow(radius: configuration.isPressed ? 2 : 8)
+            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+            .animation(.easeOut(duration: 0.2), value: configuration.isPressed)
+    }
+}
+
+// ImagePicker struct remains unchanged
+struct ImagePicker: UIViewControllerRepresentable {
+    var sourceType: UIImagePickerController.SourceType
+    var mediaType: MediaType
+    @Binding var selectedImage: UIImage?
+    @Binding var selectedVideoURL: URL?
+    var onImageCaptured: () -> Void
+
+    enum MediaType {
+        case photo
+        case video
+    }
+
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.sourceType = sourceType
+        picker.delegate = context.coordinator
+
+        // Set media type (photo or video)
+        switch mediaType {
+        case .photo:
+            picker.mediaTypes = ["public.image"]
+        case .video:
+            picker.mediaTypes = ["public.movie"]
+        }
+
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let parent: ImagePicker
+
+        init(_ parent: ImagePicker) {
+            self.parent = parent
+        }
+
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+            if let image = info[.originalImage] as? UIImage {
+                parent.selectedImage = image
+                parent.selectedVideoURL = nil // Clear video if image is selected
+            } else if let videoURL = info[.mediaURL] as? URL {
+                parent.selectedVideoURL = videoURL
+                parent.selectedImage = nil // Clear image if video is selected
             }
-            // Present VideoPicker when the user selects "Record Video"
-            .sheet(isPresented: $showVideoPicker) {
-                VideoPicker(videoURL: $videoURL) // Pass videoURL binding to handle the recorded video
-            }
-            // Navigation to FormView using a navigation destination
-            .navigationDestination(isPresented: $navigateToForm) {
-                FormView(showForm: $navigateToForm, imageUI: selectedImage, videoURL: videoURL, username: "YourUsername", onPostCreated: { post in
-                    // Handle the created post here
-                    print("Post created: \(post)")
-                })
-            }
+
+            parent.onImageCaptured() // Trigger the closure
+            picker.dismiss(animated: true)
+        }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            picker.dismiss(animated: true)
         }
     }
 }
