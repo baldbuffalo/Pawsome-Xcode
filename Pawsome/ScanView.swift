@@ -4,15 +4,15 @@ import AVKit
 import UniformTypeIdentifiers
 
 struct ScanView: View {
-    // Use @Binding to pass the selected image to another view (Form.swift)
-    @Binding var capturedImage: UIImage?
+    @Binding var capturedImage: UIImage? // Binding to pass captured image back to HomeView
+    var onImageCaptured: () -> Void // Closure to trigger when image is captured
+    var username: String // Username to be passed
 
     @State private var selectedItem: PhotosPickerItem? = nil
     @State private var selectedVideoURL: URL? = nil
 
     var body: some View {
         VStack {
-            // Display the selected image or video
             if let image = capturedImage {
                 Image(uiImage: image)
                     .resizable()
@@ -20,7 +20,6 @@ struct ScanView: View {
                     .frame(height: 300)
                     .cornerRadius(12)
             } else if let videoURL = selectedVideoURL {
-                // Display the video player when a video is selected
                 VideoPlayer(player: AVPlayer(url: videoURL))
                     .frame(height: 300)
                     .cornerRadius(12)
@@ -29,7 +28,6 @@ struct ScanView: View {
                     }
             }
 
-            // PhotosPicker button to select media
             PhotosPicker(selection: $selectedItem, matching: .any(of: [.images, .videos])) {
                 Text("Select a photo or video")
             }
@@ -41,21 +39,18 @@ struct ScanView: View {
                     if let uti = try? await selectedItem.loadTransferable(type: String.self),
                        let mediaType = UTType(uti) {
                         
-                        // Handle selected image
                         if mediaType.conforms(to: .image) {
                             if let data = try? await selectedItem.loadTransferable(type: Data.self) {
                                 capturedImage = UIImage(data: data)
-                                selectedVideoURL = nil // Clear video if image is selected
+                                selectedVideoURL = nil
+                                onImageCaptured() // Trigger closure when an image is captured
                             }
-                        }
-                        
-                        // Handle selected video
-                        else if mediaType.conforms(to: .movie) {
+                        } else if mediaType.conforms(to: .movie) {
                             if let data = try? await selectedItem.loadTransferable(type: Data.self) {
                                 let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("tempVideo.mov")
                                 try? data.write(to: tempURL)
                                 selectedVideoURL = tempURL
-                                capturedImage = nil // Clear image if video is selected
+                                capturedImage = nil
                             }
                         }
                     }
