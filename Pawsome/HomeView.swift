@@ -35,24 +35,25 @@ struct HomeView: View {
                 Label("Home", systemImage: "house")
             }
 
-            // Post tab item
+            // Post tab item that directly opens ScanView
             NavigationStack {
+                // Directly present ScanView when this tab is selected
                 VStack {
-                    Button(action: openScanView) {
-                        Text("Post a Cat")
-                            .font(.headline)
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(Color.blue)
-                            .foregroundColor(.white)
-                            .cornerRadius(8)
-                    }
-                    .padding()
+                    EmptyView() // This can be removed if you want a clean tab without a view
                 }
                 .navigationTitle("Post")
+                .onAppear {
+                    isImagePickerPresented = true // Open ScanView when this tab is active
+                }
             }
             .tabItem {
                 Label("Post", systemImage: "camera")
+            }
+            .sheet(isPresented: $isImagePickerPresented) {
+                // Present the ScanView
+                ScanView(capturedImage: $selectedImage, onImageCaptured: {
+                    showForm = true // Show the form after capturing the image
+                }, username: currentUsername)
             }
 
             NavigationStack {
@@ -64,16 +65,6 @@ struct HomeView: View {
             }
         }
         .tabViewStyle(DefaultTabViewStyle())
-        .sheet(isPresented: $isImagePickerPresented) {
-            // Present the ScanView with selected media type
-            ScanView(capturedImage: $selectedImage, onImageCaptured: {
-                showForm = true // Show the form after capturing the image
-            }, username: currentUsername)
-        }
-    }
-
-    private func openScanView() {
-        isImagePickerPresented = true
     }
 
     private var headerView: some View {
