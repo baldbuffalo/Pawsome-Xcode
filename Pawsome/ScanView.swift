@@ -32,18 +32,18 @@ struct ScanView: View {
                         .frame(height: 300)
                 }
 
-                // Navigation will now use the new approach with navigationDestination
+                // Navigation to FormView when video or image is available
                 if navigateToFormView {
                     EmptyView() // Placeholder for conditional navigation
                         .navigationDestination(isPresented: $navigateToFormView) {
                             FormView(
                                 showForm: .constant(true),
-                                imageUI: capturedImage,
-                                videoURL: capturedVideoURL,
+                                imageUI: nil, // Passing nil as we are only dealing with video here
+                                videoURL: capturedVideoURL, // Pass the captured video URL to FormView
                                 username: username
                             ) { newPost in
                                 // Handle the post creation logic here
-                                print("New post created with image: \(newPost)")
+                                print("New post created with video: \(newPost)")
                             }
                         }
                 }
@@ -70,7 +70,7 @@ struct ScanView: View {
             // Show ImagePicker when triggered by action sheet
             .sheet(isPresented: $showImagePicker, onDismiss: {
                 // After dismissing the ImagePicker, navigate to the FormView
-                if capturedImage != nil || capturedVideoURL != nil {
+                if capturedVideoURL != nil {
                     navigateToFormView = true
                 }
             }) {
