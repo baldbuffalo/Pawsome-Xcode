@@ -36,37 +36,6 @@ struct HomeView: View {
             .tabItem {
                 Label("Home", systemImage: "house")
             }
-
-            // Updated NavigationStack for Post
-            NavigationStack {
-                VStack {
-                    Button("Open Camera") {
-                        showActionSheet = true
-                    }
-                }
-                .navigationTitle("Post")
-                .actionSheet(isPresented: $showActionSheet) {
-                    ActionSheet(
-                        title: Text("Select Media"),
-                        message: Text("Choose your media type"),
-                        buttons: [
-                            .default(Text("Take Photo")) {
-                                mediaType = .photo
-                                openScanView()
-                            },
-                            .default(Text("Take Video")) {
-                                mediaType = .video
-                                openScanView()
-                            },
-                            .default(Text("Choose Photo from Library")) {
-                                mediaType = .library
-                                openScanView()
-                            },
-                            .cancel()
-                        ]
-                    )
-                }
-            }
             .tabItem {
                 Label("Post", systemImage: "camera")
             }
