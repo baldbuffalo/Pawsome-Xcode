@@ -13,57 +13,24 @@ struct ScanView: View {
     @State private var isImagePickerPresented: Bool = false
     @State private var sourceType: UIImagePickerController.SourceType = .camera
     @State private var mediaType: ImagePicker.MediaType = .photo
-    @State private var showCameraOptions: Bool = false // State to show the camera options
 
     var body: some View {
         VStack(spacing: 20) {
-            // Button to open camera options
+            // Button to take photo directly
             Button(action: {
-                showCameraOptions.toggle() // Show camera options when button is tapped
+                sourceType = .camera
+                mediaType = .photo
+                isImagePickerPresented = true // Directly launch image picker for photo
             }) {
                 HStack {
                     Image(systemName: "camera")
-                    Text("Open Camera")
+                    Text("Take Photo")
                 }
             }
             .buttonStyle(CustomButtonStyle())
-            .actionSheet(isPresented: $showCameraOptions) {
-                ActionSheet(
-                    title: Text("Choose an option"),
-                    buttons: [
-                        .default(Text("Take Photo")) {
-                            sourceType = .camera
-                            mediaType = .photo
-                            isImagePickerPresented = true // Launch image picker for photo
-                        },
-                        .default(Text("Record Video")) {
-                            sourceType = .camera
-                            mediaType = .video
-                            isImagePickerPresented = true // Launch image picker for video
-                        },
-                        .default(Text("Choose from Library")) {
-                            sourceType = .photoLibrary
-                            mediaType = .photo
-                            isImagePickerPresented = true // Launch image picker for library
-                        },
-                        .cancel()
-                    ]
-                )
-            }
 
-            // Button to show the post action
-            Button(action: {
-                // Handle the post action here
-            }) {
-                HStack {
-                    Image(systemName: "plus.circle.fill")
-                    Text("Post")
-                }
-                .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(CustomButtonStyle())
-
-            Spacer() // To push content to the top
+            // Spacer to push content to the top
+            Spacer()
         }
         .padding()
         // Sheet for image/video picker
