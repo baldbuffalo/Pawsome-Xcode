@@ -14,18 +14,23 @@ struct ScanView: View {
                 matching: .any(of: [.images, .videos]),
                 photoLibrary: .shared()
             ) {
-                Text("Select Image or Video") // Correct closure with no parameters
+                Text("Select Image or Video")
             }
             .onChange(of: selectedItem) { newItem in
                 Task {
-                    // Retrieve selected asset
-                    if let newItem = newItem {
-                        // Check the media type and load data accordingly
-                        if newItem.mediaType == .image {
+                    // Check if newItem is not nil
+                    guard let newItem = newItem else { return }
+                    
+                    // Load the asset's uniform type identifier (UTI)
+                    if let uti = try? await newItem.loadTransferable(type: String.self),
+                       let mediaType = UTType(uti) {
+                        if mediaType == .image {
+                            // Load image data
                             if let data = try? await newItem.loadTransferable(type: Data.self) {
                                 selectedImage = UIImage(data: data)
                             }
-                        } else if newItem.mediaType == .video {
+                        } else if mediaType == .video {
+                            // Load video data
                             if let data = try? await newItem.loadTransferable(type: Data.self) {
                                 let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("tempVideo.mov")
                                 try? data.write(to: tempURL)
