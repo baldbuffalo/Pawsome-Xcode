@@ -27,7 +27,7 @@ struct HomeView: View {
 
             // Directly navigate to ScanView when the Post tab is clicked
             NavigationView {
-                ScanView(capturedImage: $selectedImage, catPosts: $catPosts) // Pass catPosts binding
+                ScanView(capturedImage: $selectedImage) // Removed catPosts binding
             }
             .tabItem {
                 Label("Post", systemImage: "camera")

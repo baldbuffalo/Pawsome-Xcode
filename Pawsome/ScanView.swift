@@ -9,7 +9,6 @@ enum NavigationDestination: Hashable {
 // Main view for scanning
 struct ScanView: View {
     @Binding var capturedImage: UIImage? // Binding to capture image
-    @Binding var catPosts: [CatPost] // Binding to an array of CatPost
     @State private var showImagePicker: Bool = false // State to show image picker
     @State private var imagePickerSourceType: UIImagePickerController.SourceType = .camera // Source type for ImagePicker
     @State private var showActionSheet: Bool = false // State to show action sheet
@@ -46,9 +45,8 @@ struct ScanView: View {
             // Show ImagePicker when triggered by action sheet
             .sheet(isPresented: $showImagePicker) {
                 ImagePicker(capturedImage: $capturedImage, sourceType: imagePickerSourceType, onImagePicked: {
-                    // Directly navigate to the FormView after image is picked
+                    // Directly navigate to FormView after image is picked
                     if capturedImage != nil {
-                        // Trigger navigation to FormView
                         showActionSheet = false // Dismiss action sheet
                     }
                 })
@@ -59,7 +57,7 @@ struct ScanView: View {
                 set: { if !$0 { capturedImage = nil } }
             )) {
                 if let capturedImage = capturedImage {
-                    FormView(showForm: .constant(true), catPosts: $catPosts, imageUI: capturedImage)
+                    FormView(showForm: .constant(true), imageUI: capturedImage) // Removed catPosts
                 }
             }
         }

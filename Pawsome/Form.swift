@@ -1,15 +1,18 @@
 import SwiftUI
 
+// Assuming CatPost is defined in CatPost.swift
+// Replace with your actual CatPost model import if necessary
+// import your_module_name
+
 struct FormView: View {
-    @Binding var showForm: Bool
-    @Binding var catPosts: [CatPost] // Binding to the array of cat posts
+    @Binding var showForm: Bool // Binding to control the visibility of the form
     var imageUI: UIImage? // Captured image passed from ScanView
+    var onPostCreated: (CatPost) -> Void // Closure to handle post creation
 
     @State private var catName: String = ""
     @State private var breed: String = ""
     @State private var age: String = ""
     @State private var comments: String = ""
-    @State private var username: String = "YourUsername" // Placeholder for the logged-in username
 
     var body: some View {
         NavigationView {
@@ -29,59 +32,22 @@ struct FormView: View {
                     TextField("Breed", text: $breed)
                     TextField("Age", text: $age)
                     TextField("Comments", text: $comments)
-                    
-                    // Display the username and make it read-only
-                    TextField("Username", text: $username)
-                        .disabled(true) // Assuming the username is fetched from the logged-in account
                 }
 
                 Button(action: {
-                    savePost() // Save the post
+                    let newPost = CatPost(catName: catName, breed: breed, age: age, comments: comments, image: imageUI) // Create a new CatPost
+                    onPostCreated(newPost) // Call the closure with the new post
+                    showForm = false // Dismiss the form
                 }) {
-                    Text("Save Post")
+                    Text("Post")
                         .frame(maxWidth: .infinity)
                 }
                 .disabled(catName.isEmpty || breed.isEmpty || age.isEmpty) // Disable if fields are empty
             }
             .navigationTitle("Create Post")
             .navigationBarItems(trailing: Button("Cancel") {
-                showForm = false
+                showForm = false // Dismiss the form
             })
-        }
-    }
-
-    private func savePost() {
-        guard let image = imageUI, !catName.isEmpty, !breed.isEmpty, !age.isEmpty else { return }
-
-        // Convert the UIImage to Data
-        let imageData = image.jpegData(compressionQuality: 1.0) // Convert UIImage to Data
-
-        // Create a new CatPost instance
-        let newPost = CatPost(
-            id: UUID(),
-            name: catName,
-            breed: breed,
-            age: age,
-            imageData: imageData, // Store image data
-            username: username,
-            creationTime: Date(), // Set the creation time to now
-            likes: 0,
-            comments: [comments] // Save comments if needed
-        )
-
-        // Save the new post to the catPosts array
-        catPosts.append(newPost)
-
-        // Save posts to UserDefaults or any persistent storage
-        savePosts() // Implement this function to persist posts
-
-        // Dismiss the form after saving
-        showForm = false
-    }
-
-    private func savePosts() {
-        if let encodedData = try? JSONEncoder().encode(catPosts) {
-            UserDefaults.standard.set(encodedData, forKey: "catPosts")
         }
     }
 }
