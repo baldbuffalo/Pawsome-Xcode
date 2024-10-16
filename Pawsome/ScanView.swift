@@ -2,21 +2,23 @@ import SwiftUI
 import AVKit
 import PhotosUI
 
-// Define the MediaType enum globally
-enum MediaType: String, CaseIterable {
-    case library // For selecting from the photo library
-    case photo   // For capturing a photo using the camera
-    case video   // For capturing a video using the camera
+// Define a struct to namespace the MediaType enum
+struct MediaPicker {
+    enum MediaType: String, CaseIterable {
+        case library // For selecting from the photo library
+        case photo   // For capturing a photo using the camera
+        case video   // For capturing a video using the camera
 
-    // Providing a display name for the picker
-    var displayName: String {
-        switch self {
-        case .library:
-            return "Photo Library"
-        case .photo:
-            return "Camera (Photo)"
-        case .video:
-            return "Camera (Video)"
+        // Providing a display name for the picker
+        var displayName: String {
+            switch self {
+            case .library:
+                return "Photo Library"
+            case .photo:
+                return "Camera (Photo)"
+            case .video:
+                return "Camera (Video)"
+            }
         }
     }
 }
@@ -27,13 +29,13 @@ struct ScanView: View {
     var username: String
 
     @State private var isImagePickerPresented: Bool = false
-    @State private var mediaType: MediaType = .photo // Default media type
+    @State private var mediaType: MediaPicker.MediaType = .photo // Default media type
 
     var body: some View {
         VStack {
             // Picker to select media type
             Picker("Select Media Type", selection: $mediaType) {
-                ForEach(MediaType.allCases, id: \.self) { type in
+                ForEach(MediaPicker.MediaType.allCases, id: \.self) { type in
                     Text(type.displayName).tag(type)
                 }
             }
@@ -48,14 +50,15 @@ struct ScanView: View {
                              selectedImage: $capturedImage,
                              onImageCaptured: {
                                  onImageCaptured()
-                             }, mediaType: mediaType)
+                             },
+                             mediaType: mediaType) // Pass the mediaType here
             }
         }
         .navigationTitle("Scan View")
     }
 
     // Function to determine the source type based on MediaType
-    private func sourceTypeForMediaType(_ mediaType: MediaType) -> UIImagePickerController.SourceType {
+    private func sourceTypeForMediaType(_ mediaType: MediaPicker.MediaType) -> UIImagePickerController.SourceType {
         switch mediaType {
         case .library:
             return .photoLibrary
@@ -65,12 +68,12 @@ struct ScanView: View {
     }
 }
 
-// ImagePicker struct remains the same
+// ImagePicker struct
 struct ImagePicker: UIViewControllerRepresentable {
     var sourceType: UIImagePickerController.SourceType
     @Binding var selectedImage: UIImage?
     var onImageCaptured: () -> Void
-    var mediaType: MediaType
+    var mediaType: MediaPicker.MediaType // Use the namespaced enum
 
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
