@@ -16,6 +16,10 @@
     <key>NSPhotoLibraryUsageDescription</key>
     <string>This app requires access to your photo library to display and select images of cats.</string>
     
+    <!-- Microphone Access -->
+    <key>NSMicrophoneUsageDescription</key>
+    <string>This app requires access to the microphone to capture audio for videos.</string>
+    
     <!-- URL Schemes -->
     <key>CFBundleURLTypes</key>
     <array>
