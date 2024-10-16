@@ -13,39 +13,46 @@ struct ScanView: View {
     @State private var isImagePickerPresented: Bool = false
     @State private var sourceType: UIImagePickerController.SourceType = .camera
     @State private var mediaType: ImagePicker.MediaType = .photo
-    @State private var showActionSheet: Bool = false // Controls the display of the action sheet
 
     var body: some View {
         VStack(spacing: 20) {
-            // Button to show the action sheet
-            Button(action: {
-                showActionSheet = true // Show action sheet when button is tapped
-            }) {
-                Text("Select Media")
-            }
-            .actionSheet(isPresented: $showActionSheet) {
-                ActionSheet(
-                    title: Text("Choose Media Option"),
-                    message: Text("Select an option to proceed"),
-                    buttons: [
-                        .default(Text("Take Photo")) {
-                            sourceType = .camera
-                            mediaType = .photo
-                            isImagePickerPresented = true // Open image picker for photo
-                        },
-                        .default(Text("Take Video")) {
-                            sourceType = .camera
-                            mediaType = .video
-                            isImagePickerPresented = true // Open image picker for video
-                        },
-                        .default(Text("Select from Library")) {
-                            sourceType = .photoLibrary
-                            mediaType = .photo
-                            isImagePickerPresented = true // Open image picker for library
-                        },
-                        .cancel()
-                    ]
-                )
+            // Buttons to choose media directly
+            HStack {
+                Button(action: {
+                    sourceType = .camera
+                    mediaType = .photo
+                    isImagePickerPresented = true // Open image picker for photo
+                }) {
+                    HStack {
+                        Image(systemName: "camera")
+                        Text("Take Photo")
+                    }
+                }
+                .buttonStyle(CustomButtonStyle())
+                
+                Button(action: {
+                    sourceType = .camera
+                    mediaType = .video
+                    isImagePickerPresented = true // Open image picker for video
+                }) {
+                    HStack {
+                        Image(systemName: "video")
+                        Text("Take Video")
+                    }
+                }
+                .buttonStyle(CustomButtonStyle())
+                
+                Button(action: {
+                    sourceType = .photoLibrary
+                    mediaType = .photo
+                    isImagePickerPresented = true // Open image picker for library
+                }) {
+                    HStack {
+                        Image(systemName: "photo")
+                        Text("Select from Library")
+                    }
+                }
+                .buttonStyle(CustomButtonStyle())
             }
 
             // Button to show the post action
