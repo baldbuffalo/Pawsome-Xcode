@@ -6,10 +6,10 @@ enum NavigationDestination: Hashable {
     case form
 }
 
+// Main view for scanning
 struct ScanView: View {
     @Binding var capturedImage: UIImage? // Binding to capture image
     @Binding var catPosts: [CatPost] // Binding to an array of CatPost
-    @State private var selectedDestination: NavigationDestination? // State to track navigation
     @State private var showImagePicker: Bool = false // State to show image picker
     @State private var imagePickerSourceType: UIImagePickerController.SourceType = .camera // Source type for ImagePicker
     @State private var showActionSheet: Bool = false // State to show action sheet
@@ -45,18 +45,21 @@ struct ScanView: View {
             }
             // Show ImagePicker when triggered by action sheet
             .sheet(isPresented: $showImagePicker) {
-                // ImagePicker scoped inside ScanView
                 ImagePicker(capturedImage: $capturedImage, sourceType: imagePickerSourceType, onImagePicked: {
-                    selectedDestination = .form // Trigger navigation to FormView after picking the image
+                    // Directly navigate to the FormView after image is picked
+                    if capturedImage != nil {
+                        // Trigger navigation to FormView
+                        showActionSheet = false // Dismiss action sheet
+                    }
                 })
             }
-            // Handle navigation based on selectedDestination
-            .navigationDestination(for: NavigationDestination.self) { destination in
-                switch destination {
-                case .form:
-                    if let capturedImage = capturedImage { // Ensure image is present before navigation
-                        FormView(showForm: .constant(true), catPosts: $catPosts, imageUI: capturedImage)
-                    }
+            // Handle navigation to FormView
+            .navigationDestination(isPresented: Binding<Bool>(
+                get: { capturedImage != nil },
+                set: { if !$0 { capturedImage = nil } }
+            )) {
+                if let capturedImage = capturedImage {
+                    FormView(showForm: .constant(true), catPosts: $catPosts, imageUI: capturedImage)
                 }
             }
         }
@@ -92,12 +95,14 @@ struct ImagePicker: UIViewControllerRepresentable {
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
             if let image = info[.originalImage] as? UIImage {
                 parent.capturedImage = image // Set the captured image
+                print("Image captured successfully!") // Debug message
                 parent.onImagePicked() // Call the closure to trigger navigation
             }
             picker.dismiss(animated: true)
         }
 
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            print("Image picking canceled") // Debug message
             picker.dismiss(animated: true)
         }
     }
