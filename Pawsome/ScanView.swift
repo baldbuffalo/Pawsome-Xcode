@@ -2,14 +2,12 @@ import SwiftUI
 import AVKit
 import PhotosUI
 
-// Define a struct to namespace the MediaType enum
 struct MediaPicker {
     enum MediaType: String, CaseIterable {
         case library // For selecting from the photo library
         case photo   // For capturing a photo using the camera
         case video   // For capturing a video using the camera
 
-        // Providing a display name for the picker
         var displayName: String {
             switch self {
             case .library:
@@ -29,21 +27,30 @@ struct ScanView: View {
     var username: String
 
     @State private var isImagePickerPresented: Bool = false
-    @State private var mediaType: MediaPicker.MediaType = .photo // Default media type
+    @State private var mediaType: MediaPicker.MediaType = .photo
+    @State private var showMediaTypeActionSheet: Bool = false
 
     var body: some View {
         VStack {
-            // Picker to select media type
-            Picker("Select Media Type", selection: $mediaType) {
-                ForEach(MediaPicker.MediaType.allCases, id: \.self) { type in
-                    Text(type.displayName).tag(type)
-                }
+            Button("Select Media Type") {
+                showMediaTypeActionSheet = true // Show the action sheet
             }
-            .pickerStyle(SegmentedPickerStyle())
-            .padding()
-
-            Button("Select Media") {
-                isImagePickerPresented = true
+            .actionSheet(isPresented: $showMediaTypeActionSheet) {
+                ActionSheet(title: Text("Select Media Type"), buttons: [
+                    .default(Text(MediaPicker.MediaType.photo.displayName)) {
+                        mediaType = .photo
+                        isImagePickerPresented = true
+                    },
+                    .default(Text(MediaPicker.MediaType.video.displayName)) {
+                        mediaType = .video
+                        isImagePickerPresented = true
+                    },
+                    .default(Text(MediaPicker.MediaType.library.displayName)) {
+                        mediaType = .library
+                        isImagePickerPresented = true
+                    },
+                    .cancel()
+                ])
             }
             .sheet(isPresented: $isImagePickerPresented) {
                 ImagePicker(sourceType: sourceTypeForMediaType(mediaType),
@@ -51,43 +58,39 @@ struct ScanView: View {
                              onImageCaptured: {
                                  onImageCaptured()
                              },
-                             mediaType: mediaType) // Pass the mediaType here
+                             mediaType: mediaType)
             }
         }
         .navigationTitle("Scan View")
     }
 
-    // Function to determine the source type based on MediaType
     private func sourceTypeForMediaType(_ mediaType: MediaPicker.MediaType) -> UIImagePickerController.SourceType {
         switch mediaType {
         case .library:
             return .photoLibrary
         case .photo, .video:
-            return .camera // Both photo and video use the camera
+            return .camera
         }
     }
 }
 
-// ImagePicker struct
 struct ImagePicker: UIViewControllerRepresentable {
     var sourceType: UIImagePickerController.SourceType
     @Binding var selectedImage: UIImage?
     var onImageCaptured: () -> Void
-    var mediaType: MediaPicker.MediaType // Use the namespaced enum
+    var mediaType: MediaPicker.MediaType
 
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
         picker.sourceType = sourceType
         picker.delegate = context.coordinator
 
-        // Set media types based on mediaType
         switch mediaType {
         case .photo:
             picker.mediaTypes = ["public.image"]
         case .video:
             picker.mediaTypes = ["public.movie"]
         case .library:
-            // Handle both images and videos if needed
             picker.mediaTypes = ["public.image", "public.movie"]
         }
 

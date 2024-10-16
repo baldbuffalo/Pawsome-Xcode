@@ -35,25 +35,21 @@ struct HomeView: View {
                 Label("Home", systemImage: "house")
             }
 
-            // Post tab item that directly opens ScanView
+            // Post tab item that opens ScanView when the button is tapped
             NavigationStack {
-                // Directly present ScanView when this tab is selected
-                VStack {
-                    EmptyView() // This can be removed if you want a clean tab without a view
+                Button("Open Scan View") {
+                    isImagePickerPresented = true // Open ScanView when this button is tapped
                 }
                 .navigationTitle("Post")
-                .onAppear {
-                    isImagePickerPresented = true // Open ScanView when this tab is active
+                .sheet(isPresented: $isImagePickerPresented) {
+                    // Present the ScanView
+                    ScanView(capturedImage: $selectedImage, onImageCaptured: {
+                        showForm = true // Show the form after capturing the image
+                    }, username: currentUsername)
                 }
             }
             .tabItem {
                 Label("Post", systemImage: "camera")
-            }
-            .sheet(isPresented: $isImagePickerPresented) {
-                // Present the ScanView
-                ScanView(capturedImage: $selectedImage, onImageCaptured: {
-                    showForm = true // Show the form after capturing the image
-                }, username: currentUsername)
             }
 
             NavigationStack {
@@ -110,11 +106,4 @@ struct HomeView: View {
             UserDefaults.standard.set(encoded, forKey: "catPosts")
         }
     }
-}
-
-// Enum to define the media type
-enum MediaType {
-    case photo
-    case video
-    case library
 }
