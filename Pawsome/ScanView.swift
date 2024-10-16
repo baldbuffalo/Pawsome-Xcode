@@ -13,46 +13,42 @@ struct ScanView: View {
     @State private var isImagePickerPresented: Bool = false
     @State private var sourceType: UIImagePickerController.SourceType = .camera
     @State private var mediaType: ImagePicker.MediaType = .photo
+    @State private var showCameraOptions: Bool = false // State to show the camera options
 
     var body: some View {
         VStack(spacing: 20) {
-            // Buttons to choose media directly
-            HStack {
-                Button(action: {
-                    sourceType = .camera
-                    mediaType = .photo
-                    isImagePickerPresented = true // Open image picker for photo
-                }) {
-                    HStack {
-                        Image(systemName: "camera")
-                        Text("Take Photo")
-                    }
+            // Button to open camera options
+            Button(action: {
+                showCameraOptions.toggle() // Show camera options when button is tapped
+            }) {
+                HStack {
+                    Image(systemName: "camera")
+                    Text("Open Camera")
                 }
-                .buttonStyle(CustomButtonStyle())
-                
-                Button(action: {
-                    sourceType = .camera
-                    mediaType = .video
-                    isImagePickerPresented = true // Open image picker for video
-                }) {
-                    HStack {
-                        Image(systemName: "video")
-                        Text("Take Video")
-                    }
-                }
-                .buttonStyle(CustomButtonStyle())
-                
-                Button(action: {
-                    sourceType = .photoLibrary
-                    mediaType = .photo
-                    isImagePickerPresented = true // Open image picker for library
-                }) {
-                    HStack {
-                        Image(systemName: "photo")
-                        Text("Select from Library")
-                    }
-                }
-                .buttonStyle(CustomButtonStyle())
+            }
+            .buttonStyle(CustomButtonStyle())
+            .actionSheet(isPresented: $showCameraOptions) {
+                ActionSheet(
+                    title: Text("Choose an option"),
+                    buttons: [
+                        .default(Text("Take Photo")) {
+                            sourceType = .camera
+                            mediaType = .photo
+                            isImagePickerPresented = true // Launch image picker for photo
+                        },
+                        .default(Text("Record Video")) {
+                            sourceType = .camera
+                            mediaType = .video
+                            isImagePickerPresented = true // Launch image picker for video
+                        },
+                        .default(Text("Choose from Library")) {
+                            sourceType = .photoLibrary
+                            mediaType = .photo
+                            isImagePickerPresented = true // Launch image picker for library
+                        },
+                        .cancel()
+                    ]
+                )
             }
 
             // Button to show the post action
