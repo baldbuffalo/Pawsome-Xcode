@@ -43,7 +43,9 @@ struct ScanView: View {
                     ]
                 )
             }
+            // Show ImagePicker when triggered by action sheet
             .sheet(isPresented: $showImagePicker) {
+                // ImagePicker scoped inside ScanView
                 ImagePicker(capturedImage: $capturedImage, sourceType: imagePickerSourceType, onImagePicked: {
                     selectedDestination = .form // Trigger navigation to FormView after picking the image
                 })
@@ -52,7 +54,9 @@ struct ScanView: View {
             .navigationDestination(for: NavigationDestination.self) { destination in
                 switch destination {
                 case .form:
-                    FormView(showForm: .constant(true), catPosts: $catPosts, imageUI: capturedImage)
+                    if let capturedImage = capturedImage { // Ensure image is present before navigation
+                        FormView(showForm: .constant(true), catPosts: $catPosts, imageUI: capturedImage)
+                    }
                 }
             }
         }
