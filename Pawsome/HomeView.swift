@@ -1,13 +1,13 @@
 import SwiftUI
 
 struct HomeView: View {
-    @Binding var isLoggedIn: Bool // Binding to track login status
-    @Binding var currentUsername: String // Binding to accept username
-    @Binding var profileImage: Image? // Binding for the profile image
+    @Binding var isLoggedIn: Bool
+    @Binding var currentUsername: String
+    @Binding var profileImage: Image?
 
-    @State private var catPosts: [CatPost] = [] // Array to hold cat posts
+    @State private var catPosts: [CatPost] = []
     @State private var selectedImage: UIImage? = nil
-    @State private var showForm: Bool = false // State to control form visibility
+    @State private var showForm: Bool = false
 
     var body: some View {
         TabView {
@@ -15,18 +15,17 @@ struct HomeView: View {
                 VStack(spacing: 0) {
                     headerView
                     postListView
-                    Spacer() // Pushes the bottom bar to the bottom
+                    Spacer()
                 }
                 .navigationTitle("Pawsome")
                 .onAppear {
-                    loadPosts() // Load posts when the view appears
+                    loadPosts()
                 }
                 .sheet(isPresented: $showForm) {
                     if let selectedImage = selectedImage {
-                        // Pass the currentUsername to FormView
                         FormView(showForm: $showForm, imageUI: selectedImage, username: currentUsername) { newPost in
-                            catPosts.append(newPost) // Add new post to the list
-                            savePosts() // Save updated posts to UserDefaults
+                            catPosts.append(newPost)
+                            savePosts()
                         }
                     }
                 }
@@ -36,10 +35,9 @@ struct HomeView: View {
             }
 
             NavigationView {
-                // Correctly passing parameters to ScanView
                 ScanView(capturedImage: $selectedImage, onImageCaptured: {
-                    showForm = true // Show form when an image is captured
-                }, username: currentUsername) // Adding username as a parameter
+                    showForm = true
+                }, username: currentUsername) // Make sure ScanView takes these parameters
             }
             .tabItem {
                 Label("Post", systemImage: "camera")
@@ -61,7 +59,7 @@ struct HomeView: View {
             Text("Welcome to Pawsome")
                 .font(.largeTitle)
                 .padding()
-            Text("Hello, \(currentUsername)") // Displaying the username
+            Text("Hello, \(currentUsername)")
                 .font(.subheadline)
                 .padding(.bottom)
         }
