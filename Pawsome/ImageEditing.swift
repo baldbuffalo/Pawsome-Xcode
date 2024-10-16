@@ -2,29 +2,71 @@ import SwiftUI
 
 struct ImageEditing: View {
     @Binding var capturedImage: UIImage? // Binding to the captured image
-    @Binding var catPosts: [CatPost] // Binding to CatPost array
     @Binding var hideTabBar: Bool // Binding to control tab bar visibility
+    @State private var isCropping: Bool = false // State to manage cropping
+    @State private var cropRect: CGRect = .zero // State for cropping rectangle
 
     var body: some View {
         VStack {
             if let image = capturedImage {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFit()
+                if isCropping {
+                    GeometryReader { geometry in
+                        ZStack {
+                            Image(uiImage: image)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: geometry.size.width, height: geometry.size.height)
+                                .clipped()
+                                .gesture(DragGesture(minimumDistance: 0)
+                                    .onChanged { value in
+                                        // Update the cropping rectangle based on drag gesture
+                                        let frame = geometry.frame(in: .global)
+                                        let size = CGSize(width: frame.size.width * 0.8, height: frame.size.height * 0.8)
+                                        let origin = CGPoint(x: value.startLocation.x - size.width / 2, y: value.startLocation.y - size.height / 2)
+                                        cropRect = CGRect(origin: origin, size: size)
+                                    }
+                                )
+                                .overlay(
+                                    Rectangle()
+                                        .path(in: cropRect)
+                                        .stroke(Color.red, lineWidth: 2)
+                                )
+
+                            VStack {
+                                Spacer()
+                                Button("Crop Image") {
+                                    cropImage()
+                                }
+                                .padding()
+                            }
+                        }
+                    }
                     .frame(height: 300)
+                } else {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 300)
+                        .padding()
+
+                    // Add editing options here (e.g., filters, cropping, etc.)
+                    Text("Editing Options")
+                        .font(.headline)
+                        .padding()
+
+                    // Button to open cropping interface
+                    Button("Crop Image") {
+                        isCropping = true // Show the crop view
+                    }
                     .padding()
 
-                // Add editing options here (e.g., filters, cropping, etc.)
-                Text("Editing Options")
-                    .font(.headline)
+                    // Example button to discard the editing
+                    Button("Done Editing") {
+                        capturedImage = nil // Reset the captured image
+                        hideTabBar = false // Show the tab bar again after editing
+                    }
                     .padding()
-
-                // Example button to save the edited image
-                Button("Save Image") {
-                    saveCatPost(with: image)
-                    hideTabBar = false // Show the tab bar again
                 }
-                .padding()
             } else {
                 Text("No Image Captured")
             }
@@ -32,22 +74,14 @@ struct ImageEditing: View {
         .navigationTitle("Edit Cat Image")
     }
 
-    private func saveCatPost(with image: UIImage) {
-        let newCatPost = CatPost(
-            id: UUID(),
-            name: "", // Collect more details if needed
-            breed: "",
-            age: "",
-            imageData: image.jpegData(compressionQuality: 1.0),
-            username: "",
-            creationTime: Date(),
-            likes: 0,
-            comments: []
-        )
+    private func cropImage() {
+        guard let cgImage = capturedImage?.cgImage else { return }
         
-        // Add the new post to the array
-        catPosts.append(newCatPost)
-        
-        // You can dismiss the view or reset the image binding here if necessary
+        // Crop the image based on the defined crop rectangle
+        let croppedCGImage = cgImage.cropping(to: cropRect)
+        if let croppedUIImage = croppedCGImage.map(UIImage.init) {
+            capturedImage = croppedUIImage // Update the captured image with the cropped version
+        }
+        isCropping = false // Exit cropping mode
     }
 }

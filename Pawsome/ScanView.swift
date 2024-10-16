@@ -1,17 +1,12 @@
 import SwiftUI
 import AVFoundation
 
-// Enum to represent navigation destinations
-enum NavigationDestination: Hashable {
-    case form
-}
-
-// Main view for scanning
 struct ScanView: View {
     @Binding var capturedImage: UIImage? // Binding to capture image
     @State private var showImagePicker: Bool = false // State to show image picker
     @State private var imagePickerSourceType: UIImagePickerController.SourceType = .camera // Source type for ImagePicker
     @State private var showActionSheet: Bool = false // State to show action sheet
+    var onImageCaptured: () -> Void // Closure to handle image capture
 
     var body: some View {
         NavigationStack {
@@ -45,10 +40,8 @@ struct ScanView: View {
             // Show ImagePicker when triggered by action sheet
             .sheet(isPresented: $showImagePicker) {
                 ImagePicker(capturedImage: $capturedImage, sourceType: imagePickerSourceType, onImagePicked: {
-                    // Directly navigate to FormView after image is picked
-                    if capturedImage != nil {
-                        showActionSheet = false // Dismiss action sheet
-                    }
+                    // Call the closure when an image is picked
+                    onImageCaptured()
                 })
             }
             // Handle navigation to FormView
@@ -57,11 +50,10 @@ struct ScanView: View {
                 set: { if !$0 { capturedImage = nil } }
             )) {
                 if let capturedImage = capturedImage {
-                    FormView(showForm: .constant(true), imageUI: capturedImage, onPostCreated: { newPost in
+                    FormView(showForm: .constant(true), imageUI: capturedImage) { newPost in
                         // Handle the post creation logic here
-                        // For example, you could save the post or update a list of posts
                         print("New post created with image: \(newPost)")
-                    })
+                    }
                 }
             }
         }
@@ -97,14 +89,12 @@ struct ImagePicker: UIViewControllerRepresentable {
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
             if let image = info[.originalImage] as? UIImage {
                 parent.capturedImage = image // Set the captured image
-                print("Image captured successfully!") // Debug message
                 parent.onImagePicked() // Call the closure to trigger navigation
             }
             picker.dismiss(animated: true)
         }
 
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            print("Image picking canceled") // Debug message
             picker.dismiss(animated: true)
         }
     }

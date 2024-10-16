@@ -22,9 +22,11 @@ struct HomeView: View {
                     loadPosts() // Load posts when the view appears
                 }
                 .sheet(isPresented: $showForm) {
-                    FormView(showForm: $showForm, imageUI: selectedImage) { newPost in
-                        catPosts.append(newPost) // Add new post to the list
-                        savePosts() // Save updated posts to UserDefaults
+                    if let selectedImage = selectedImage {
+                        FormView(showForm: $showForm, imageUI: selectedImage) { newPost in
+                            catPosts.append(newPost) // Add new post to the list
+                            savePosts() // Save updated posts to UserDefaults
+                        }
                     }
                 }
             }
