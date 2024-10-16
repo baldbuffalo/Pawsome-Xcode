@@ -57,7 +57,11 @@ struct ScanView: View {
                 set: { if !$0 { capturedImage = nil } }
             )) {
                 if let capturedImage = capturedImage {
-                    FormView(showForm: .constant(true), imageUI: capturedImage) // Removed catPosts
+                    FormView(showForm: .constant(true), imageUI: capturedImage, onPostCreated: { newPost in
+                        // Handle the post creation logic here
+                        // For example, you could save the post or update a list of posts
+                        print("New post created with image: \(newPost)")
+                    })
                 }
             }
         }
