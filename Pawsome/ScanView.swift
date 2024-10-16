@@ -42,6 +42,7 @@ struct ImagePicker: UIViewControllerRepresentable {
 
 // VideoPicker struct for recording videos
 struct VideoPicker: UIViewControllerRepresentable {
+    @Binding var videoURL: URL?
     @Environment(\.presentationMode) var presentationMode
 
     class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
@@ -52,7 +53,9 @@ struct VideoPicker: UIViewControllerRepresentable {
         }
 
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-            // Handle video selection or recording here
+            if let url = info[.mediaURL] as? URL {
+                parent.videoURL = url // Store the video URL
+            }
             parent.presentationMode.wrappedValue.dismiss()
         }
 
@@ -69,7 +72,7 @@ struct VideoPicker: UIViewControllerRepresentable {
         let picker = UIImagePickerController()
         picker.delegate = context.coordinator
         picker.sourceType = .camera
-        picker.mediaTypes = ["public.movie"]  // Only videos
+        picker.mediaTypes = ["public.movie"] // Only videos
         picker.cameraCaptureMode = .video
         return picker
     }
@@ -82,68 +85,71 @@ struct ScanView: View {
     @State private var showImagePicker = false
     @State private var showVideoPicker = false
     @State private var selectedImage: UIImage?
-    @State private var videoURL: URL? // Add this if you plan to use it later
+    @State private var videoURL: URL?
     @State private var navigateToForm = false
 
     var body: some View {
-        VStack {
-            if let selectedImage = selectedImage {
-                Image(uiImage: selectedImage)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: 300)
-                    .onTapGesture {
-                        navigateToForm = true // Navigate to FormView when image is tapped
-                    }
-            } else {
-                Text("No Image Selected")
-                    .font(.headline)
-            }
-
-            // Button to open camera options (Image Picker or Video Picker)
-            Button(action: {
-                showCameraOptions.toggle() // Show the popup when the button is tapped
-            }) {
-                HStack {
-                    Image(systemName: "camera")
-                    Text("Open Camera Options")
+        NavigationStack {
+            VStack {
+                if let selectedImage = selectedImage {
+                    Image(uiImage: selectedImage)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 300)
+                        .onTapGesture {
+                            navigateToForm = true // Navigate to FormView when image is tapped
+                        }
+                } else {
+                    Text("No Image Selected")
+                        .font(.headline)
                 }
-            }
-            .buttonStyle(BorderlessButtonStyle())
-            .actionSheet(isPresented: $showCameraOptions) {
-                ActionSheet(
-                    title: Text("Choose an Option"),
-                    buttons: [
-                        .default(Text("Take Photo")) {
-                            showImagePicker = true
-                        },
-                        .default(Text("Record Video")) {
-                            showVideoPicker = true
-                        },
-                        .default(Text("Choose from Library")) {
-                            showImagePicker = true
-                        },
-                        .cancel()
-                    ]
-                )
-            }
 
-            NavigationLink(destination: FormView(showForm: $navigateToForm, imageUI: selectedImage, videoURL: videoURL, username: "YourUsername", onPostCreated: { post in
-                // Handle the post created here
-            }), isActive: $navigateToForm) {
-                EmptyView() // Hidden navigation link to trigger navigation
-            }
+                // Button to open camera options (Image Picker or Video Picker)
+                Button(action: {
+                    showCameraOptions.toggle() // Show the popup when the button is tapped
+                }) {
+                    HStack {
+                        Image(systemName: "camera")
+                        Text("Open Camera Options")
+                    }
+                }
+                .buttonStyle(BorderlessButtonStyle())
+                .actionSheet(isPresented: $showCameraOptions) {
+                    ActionSheet(
+                        title: Text("Choose an Option"),
+                        buttons: [
+                            .default(Text("Take Photo")) {
+                                showImagePicker = true
+                            },
+                            .default(Text("Record Video")) {
+                                showVideoPicker = true
+                            },
+                            .default(Text("Choose from Library")) {
+                                showImagePicker = true
+                            },
+                            .cancel()
+                        ]
+                    )
+                }
 
-            Spacer()
-        }
-        .padding()
-        // Present ImagePicker when the user selects "Take Photo" or "Choose from Library"
-        .sheet(isPresented: $showImagePicker) {
-            ImagePicker(image: $selectedImage, sourceType: .photoLibrary) // You can change the source type based on the action
-        }
-        // Present VideoPicker when the user selects "Record Video"
-        .sheet(isPresented: $showVideoPicker) {
-            VideoPicker() // Implement handling for the recorded video as needed
+                Spacer()
+            }
+            .padding()
+            // Present ImagePicker when the user selects "Take Photo" or "Choose from Library"
+            .sheet(isPresented: $showImagePicker) {
+                ImagePicker(image: $selectedImage, sourceType: .photoLibrary) // You can change the source type based on the action
+            }
+            // Present VideoPicker when the user selects "Record Video"
+            .sheet(isPresented: $showVideoPicker) {
+                VideoPicker(videoURL: $videoURL) // Pass videoURL binding to handle the recorded video
+            }
+            // Navigation to FormView using a navigation destination
+            .navigationDestination(isPresented: $navigateToForm) {
+                FormView(showForm: $navigateToForm, imageUI: selectedImage, videoURL: videoURL, username: "YourUsername", onPostCreated: { post in
+                    // Handle the created post here
+                    print("Post created: \(post)")
+                })
+            }
         }
     }
 }
