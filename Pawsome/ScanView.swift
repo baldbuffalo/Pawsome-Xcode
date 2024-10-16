@@ -101,11 +101,9 @@ struct ScanView: View {
             })
         }
         // Handling PhotosPicker changes
-        .onChange(of: selectedItem) { newItem in
-            if let newItem = newItem {
-                Task {
-                    await loadMedia(from: newItem)
-                }
+        .onChange(of: selectedItem) { newItem, _ in // Updated onChange
+            Task {
+                await loadMedia(from: newItem)
             }
         }
     }
