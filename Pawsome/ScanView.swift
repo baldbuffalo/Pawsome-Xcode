@@ -7,6 +7,7 @@ struct ScanView: View {
     @State private var imagePickerSourceType: UIImagePickerController.SourceType = .camera // Source type for ImagePicker
     @State private var showActionSheet: Bool = false // State to show action sheet
     var onImageCaptured: () -> Void // Closure to handle image capture
+    var username: String // Add username parameter
 
     var body: some View {
         NavigationStack {
@@ -50,7 +51,7 @@ struct ScanView: View {
                 set: { if !$0 { capturedImage = nil } }
             )) {
                 if let capturedImage = capturedImage {
-                    FormView(showForm: .constant(true), imageUI: capturedImage) { newPost in
+                    FormView(showForm: .constant(true), imageUI: capturedImage, username: username) { newPost in
                         // Handle the post creation logic here
                         print("New post created with image: \(newPost)")
                     }
