@@ -1,6 +1,6 @@
 import SwiftUI
 import AVFoundation
-import AVKit // Import AVKit for VideoPlayer
+import AVKit
 
 struct ScanView: View {
     @Binding var capturedImage: UIImage? // Binding to capture image
@@ -9,6 +9,7 @@ struct ScanView: View {
     @State private var imagePickerSourceType: UIImagePickerController.SourceType = .camera // Source type for ImagePicker
     @State private var showActionSheet: Bool = false // State to show action sheet
     @State private var mediaType: String = "" // Keep track of whether it's photo or video
+    @State private var navigateToFormView: Bool = false // State for navigation
 
     var onImageCaptured: () -> Void // Closure to handle image capture
     var username: String // Add username parameter
@@ -29,6 +30,22 @@ struct ScanView: View {
                 if let videoURL = capturedVideoURL {
                     VideoView(videoURL: videoURL) // Display captured video
                         .frame(height: 300)
+                }
+
+                // Navigation will now use the new approach with navigationDestination
+                if navigateToFormView {
+                    EmptyView() // Placeholder for conditional navigation
+                        .navigationDestination(isPresented: $navigateToFormView) {
+                            FormView(
+                                showForm: .constant(true),
+                                imageUI: capturedImage,
+                                videoURL: capturedVideoURL,
+                                username: username
+                            ) { newPost in
+                                // Handle the post creation logic here
+                                print("New post created with image: \(newPost)")
+                            }
+                        }
                 }
             }
             .navigationTitle("Scan Cat")
@@ -51,25 +68,21 @@ struct ScanView: View {
                 )
             }
             // Show ImagePicker when triggered by action sheet
-            .sheet(isPresented: $showImagePicker) {
-                ImagePicker(capturedImage: $capturedImage, capturedVideoURL: $capturedVideoURL, sourceType: imagePickerSourceType, mediaType: mediaType, onImagePicked: {
-                    onImageCaptured()
-                })
-            }
-            // Handle navigation to FormView
-            .navigationDestination(isPresented: Binding<Bool>(
-                get: { capturedImage != nil || capturedVideoURL != nil },
-                set: { if !$0 { capturedImage = nil; capturedVideoURL = nil } }
-            )) {
-                if let capturedImage = capturedImage {
-                    FormView(showForm: .constant(true), imageUI: capturedImage, username: username) { newPost in
-                        // Handle the post creation logic here
-                        print("New post created with image: \(newPost)")
-                    }
-                } else if let capturedVideoURL = capturedVideoURL {
-                    // You may want to create a view to handle the video
-                    VideoView(videoURL: capturedVideoURL) // Create a separate view to handle video playback
+            .sheet(isPresented: $showImagePicker, onDismiss: {
+                // After dismissing the ImagePicker, navigate to the FormView
+                if capturedImage != nil || capturedVideoURL != nil {
+                    navigateToFormView = true
                 }
+            }) {
+                ImagePicker(
+                    capturedImage: $capturedImage,
+                    capturedVideoURL: $capturedVideoURL,
+                    sourceType: imagePickerSourceType,
+                    mediaType: mediaType,
+                    onImagePicked: {
+                        onImageCaptured()
+                    }
+                )
             }
         }
     }
