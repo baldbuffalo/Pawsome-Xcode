@@ -1,5 +1,6 @@
 import SwiftUI
 
+// No need to define CatPost again, just use it
 struct FormView: View {
     @Binding var showForm: Bool
     var imageUI: UIImage?
@@ -31,9 +32,17 @@ struct FormView: View {
                 }
 
                 Button(action: {
-                    let newPost = CatPost(catName: catName, breed: breed, age: age, comments: comments, image: imageUI)
-                    onPostCreated(newPost)
-                    showForm = false
+                    // Create a new CatPost using the existing struct from CatPost.swift
+                    let newPost = CatPost(
+                        name: catName,
+                        breed: breed,
+                        age: age,
+                        comments: [comments],
+                        imageData: imageUI?.jpegData(compressionQuality: 0.8),
+                        username: "YourUsername" // Adjust this according to your actual logic
+                    )
+                    onPostCreated(newPost) // Call the closure to pass the new post
+                    showForm = false // Dismiss the form
                 }) {
                     Text("Post")
                         .frame(maxWidth: .infinity)
@@ -42,7 +51,7 @@ struct FormView: View {
             }
             .navigationTitle("Create Post")
             .navigationBarItems(trailing: Button("Cancel") {
-                showForm = false
+                showForm = false // Dismiss the form
             })
         }
     }

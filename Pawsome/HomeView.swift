@@ -33,9 +33,9 @@ struct HomeView: View {
             }
 
             NavigationView {
-                ScanView(capturedImage: $selectedImage, onImageCaptured: {
+                ScanView(capturedImage: $selectedImage) { // Correctly passing the closure
                     showForm = true // Show form when an image is captured
-                })
+                }
             }
             .tabItem {
                 Label("Post", systemImage: "camera")
