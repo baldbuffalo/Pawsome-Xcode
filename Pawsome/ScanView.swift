@@ -7,8 +7,9 @@ struct ScanView: View {
     @State private var capturedVideoURL: URL? // State to capture video URL
     @State private var showImagePicker: Bool = false // State to show image picker
     @State private var imagePickerSourceType: UIImagePickerController.SourceType = .camera // Source type for ImagePicker
-    @State private var mediaTypes: [String] = ["public.image", "public.movie"] // Supported media types
     @State private var showActionSheet: Bool = false // State to show action sheet
+    @State private var mediaType: String = "" // Keep track of whether it's photo or video
+
     var onImageCaptured: () -> Void // Closure to handle image capture
     var username: String // Add username parameter
 
@@ -36,18 +37,13 @@ struct ScanView: View {
                     title: Text("Choose Capture Option"),
                     buttons: [
                         .default(Text("Take Photo")) {
+                            mediaType = "photo"
                             imagePickerSourceType = .camera
-                            mediaTypes = ["public.image"] // Set media types to only images
                             showImagePicker = true
                         },
                         .default(Text("Take Video")) {
+                            mediaType = "video"
                             imagePickerSourceType = .camera
-                            mediaTypes = ["public.movie"] // Set media types to only videos
-                            showImagePicker = true
-                        },
-                        .default(Text("Choose from Library")) {
-                            imagePickerSourceType = .photoLibrary
-                            mediaTypes = ["public.image", "public.movie"] // Allow both images and videos
                             showImagePicker = true
                         },
                         .cancel()
@@ -56,8 +52,7 @@ struct ScanView: View {
             }
             // Show ImagePicker when triggered by action sheet
             .sheet(isPresented: $showImagePicker) {
-                ImagePicker(capturedImage: $capturedImage, capturedVideoURL: $capturedVideoURL, sourceType: imagePickerSourceType, mediaTypes: mediaTypes, onImagePicked: {
-                    // Call the closure when an image or video is picked
+                ImagePicker(capturedImage: $capturedImage, capturedVideoURL: $capturedVideoURL, sourceType: imagePickerSourceType, mediaType: mediaType, onImagePicked: {
                     onImageCaptured()
                 })
             }
@@ -97,7 +92,7 @@ struct ImagePicker: UIViewControllerRepresentable {
     @Binding var capturedImage: UIImage?
     @Binding var capturedVideoURL: URL?
     var sourceType: UIImagePickerController.SourceType
-    var mediaTypes: [String] // Added mediaTypes to restrict what is shown
+    var mediaType: String // "photo" or "video"
     var onImagePicked: () -> Void
 
     func makeCoordinator() -> Coordinator {
@@ -108,8 +103,12 @@ struct ImagePicker: UIViewControllerRepresentable {
         let imagePicker = UIImagePickerController()
         imagePicker.delegate = context.coordinator
         imagePicker.sourceType = sourceType
-        imagePicker.mediaTypes = mediaTypes // Use the media types provided
-        imagePicker.videoQuality = .typeMedium // Set video quality
+        if mediaType == "photo" {
+            imagePicker.mediaTypes = ["public.image"] // Only allow images
+        } else if mediaType == "video" {
+            imagePicker.mediaTypes = ["public.movie"] // Only allow videos
+            imagePicker.videoQuality = .typeMedium // Set video quality
+        }
         return imagePicker
     }
 
@@ -125,11 +124,10 @@ struct ImagePicker: UIViewControllerRepresentable {
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
             if let image = info[.originalImage] as? UIImage {
                 parent.capturedImage = image // Set the captured image
-                parent.onImagePicked() // Call the closure to trigger navigation
             } else if let videoURL = info[.mediaURL] as? URL {
                 parent.capturedVideoURL = videoURL // Set the captured video URL
-                parent.onImagePicked() // Call the closure to trigger navigation
             }
+            parent.onImagePicked() // Call the closure to trigger navigation
             picker.dismiss(animated: true)
         }
 
