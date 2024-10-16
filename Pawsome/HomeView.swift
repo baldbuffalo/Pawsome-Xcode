@@ -8,8 +8,6 @@ struct HomeView: View {
     @State private var catPosts: [CatPost] = []
     @State private var selectedImage: UIImage? = nil
     @State private var showForm: Bool = false
-    @State private var showActionSheet: Bool = false
-    @State private var mediaType: MediaType? // Enum for media type selection
     @State private var isImagePickerPresented: Bool = false
 
     var body: some View {
@@ -35,6 +33,23 @@ struct HomeView: View {
             }
             .tabItem {
                 Label("Home", systemImage: "house")
+            }
+
+            // Post tab item
+            NavigationStack {
+                VStack {
+                    Button(action: openScanView) {
+                        Text("Post a Cat")
+                            .font(.headline)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(Color.blue)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                    }
+                    .padding()
+                }
+                .navigationTitle("Post")
             }
             .tabItem {
                 Label("Post", systemImage: "camera")
