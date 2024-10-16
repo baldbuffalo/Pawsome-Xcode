@@ -23,7 +23,8 @@ struct HomeView: View {
                 }
                 .sheet(isPresented: $showForm) {
                     if let selectedImage = selectedImage {
-                        FormView(showForm: $showForm, imageUI: selectedImage) { newPost in
+                        // Pass the currentUsername to FormView
+                        FormView(showForm: $showForm, imageUI: selectedImage, username: currentUsername) { newPost in
                             catPosts.append(newPost) // Add new post to the list
                             savePosts() // Save updated posts to UserDefaults
                         }
@@ -35,9 +36,10 @@ struct HomeView: View {
             }
 
             NavigationView {
-                ScanView(capturedImage: $selectedImage) { // Correctly passing the closure
+                // Correctly passing parameters to ScanView
+                ScanView(capturedImage: $selectedImage, onImageCaptured: {
                     showForm = true // Show form when an image is captured
-                }
+                }, username: currentUsername) // Adding username as a parameter
             }
             .tabItem {
                 Label("Post", systemImage: "camera")
