@@ -8,6 +8,7 @@ struct HomeView: View {
     @State private var catPosts: [CatPost] = []
     @State private var selectedImage: UIImage? = nil
     @State private var showForm: Bool = false
+    @State private var navigateToHome: Bool = false // New state variable
 
     var body: some View {
         TabView {
@@ -24,11 +25,16 @@ struct HomeView: View {
                 }
                 .sheet(isPresented: $showForm) {
                     if let selectedImage = selectedImage {
-                        FormView(showForm: $showForm, imageUI: selectedImage, username: currentUsername) { newPost in
+                        FormView(showForm: $showForm, navigateToHome: $navigateToHome, imageUI: selectedImage, username: currentUsername) { newPost in
                             catPosts.append(newPost)
                             savePosts()
                         }
                     }
+                }
+                .onChange(of: navigateToHome) {
+                    // Handle navigation to HomeView
+                    showForm = false // Dismiss the form
+                    navigateToHome = false // Reset the navigation state
                 }
             }
             .tabItem {
@@ -39,14 +45,14 @@ struct HomeView: View {
             NavigationStack {
                 ScanView(
                     capturedImage: $selectedImage,
-                    username: currentUsername, // Keep this as a String
+                    username: currentUsername,
                     onPostCreated: { post in
                         catPosts.append(post)
                         savePosts()
                     }
                 )
                 .onAppear {
-                    // You can handle additional logic here if needed
+                    // Additional logic if needed
                 }
             }
             .tabItem {
@@ -90,8 +96,8 @@ struct HomeView: View {
                     .font(.headline)
                 Text("Breed: \(post.breed)")
                 Text("Age: \(post.age)")
-                Text("Location: \(post.location)") // Display the location
-                Text("Description: \(post.description)") // Display the description
+                Text("Location: \(post.location)")
+                Text("Description: \(post.description)")
                 Text("Posted by: \(post.username)")
                 Text("Comments: \(post.comments.joined(separator: ", "))")
             }

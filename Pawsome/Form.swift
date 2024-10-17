@@ -2,6 +2,7 @@ import SwiftUI
 
 struct FormView: View {
     @Binding var showForm: Bool
+    @Binding var navigateToHome: Bool // Binding to control navigation
     var imageUI: UIImage?
     var videoURL: URL?
     var username: String
@@ -65,6 +66,7 @@ struct FormView: View {
                     )
                     onPostCreated(catPost)
                     showForm = false
+                    navigateToHome = true // Navigate to HomeView
                 }) {
                     Text("Post")
                         .foregroundColor(catName.isEmpty || breed.isEmpty || age.isEmpty || location.isEmpty || description.isEmpty ? .gray : .blue)
