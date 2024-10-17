@@ -121,7 +121,7 @@ struct FormView: View {
                         Text("Post")
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color.blue)
+                            .background(catName.isEmpty || breed.isEmpty || age.isEmpty || location.isEmpty || description.isEmpty ? Color.gray : Color.blue)
                             .foregroundColor(.white)
                             .cornerRadius(10)
                     }
