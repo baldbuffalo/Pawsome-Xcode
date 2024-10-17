@@ -7,11 +7,12 @@ struct CatPost: Identifiable, Codable {
     var age: String
     var imageData: Data? // Image data stored as Data
     var username: String // Username of the person who posted
-    var location: String // New property for location
-    var description: String // New property for description
+    var location: String // Property for location
+    var description: String // Property for description
     var creationTime: Date // Timestamp of when the post was created
     var likes: Int // Number of likes for the post
-    var comments: [String] // Comments should be an array
+    var commentText: String = "" // Initialize with an empty string
+    var showCommentInput: Bool = false // Track comment input visibility
 
     // Initializer for easy creation
     init(name: String, breed: String, age: String, imageData: Data?, username: String, location: String, description: String) {
@@ -24,6 +25,5 @@ struct CatPost: Identifiable, Codable {
         self.description = description // Initialize description
         self.creationTime = Date() // Set to current time
         self.likes = 0 // Initialize likes to zero
-        self.comments = [] // Initialize with an empty array
     }
 }
