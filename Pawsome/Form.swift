@@ -2,23 +2,22 @@ import SwiftUI
 
 struct FormView: View {
     @Binding var showForm: Bool
-    var imageUI: UIImage? // Optional UIImage for the captured image
-    var videoURL: URL? // Optional URL for the captured video
+    var imageUI: UIImage?
+    var videoURL: URL?
     var username: String
     var onPostCreated: (CatPost) -> Void
 
     @State private var catName: String = ""
     @State private var breed: String = ""
     @State private var age: String = ""
-    @State private var location: String = "" // New state for location
-    @State private var description: String = "" // New state for description
+    @State private var location: String = ""
+    @State private var description: String = ""
     @State private var comments: String = ""
 
     var body: some View {
-        ScrollView { // Wrap the content in a ScrollView
+        ScrollView {
             VStack {
                 if let image = imageUI {
-                    // Display the captured image if it exists
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFit()
@@ -29,7 +28,6 @@ struct FormView: View {
                 }
 
                 if let videoURL = videoURL {
-                    // Display video URL if it exists
                     Text("Video URL: \(videoURL.absoluteString)")
                         .padding()
                 }
@@ -46,11 +44,11 @@ struct FormView: View {
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .padding()
 
-                TextField("Location", text: $location) // New field for location
+                TextField("Location", text: $location)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .padding()
 
-                TextField("Description", text: $description) // New field for description
+                TextField("Description", text: $description)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .padding()
 
@@ -59,23 +57,22 @@ struct FormView: View {
                     .padding()
 
                 Button(action: {
-                    // Handle post creation
                     let catPost = CatPost(
-                        name: catName, // Cat name
-                        breed: breed, // Breed
-                        age: age, // Age
-                        imageData: imageUI?.pngData(), // Convert UIImage to Data
-                        username: username, // Username
-                        location: location, // Location
-                        description: description // Description
+                        name: catName,
+                        breed: breed,
+                        age: age,
+                        imageData: imageUI?.pngData(),
+                        username: username,
+                        location: location,
+                        description: description
                     )
                     onPostCreated(catPost)
-                    showForm = false // Dismiss the form
+                    showForm = false
                 }) {
                     Text("Post")
                         .foregroundColor(catName.isEmpty || breed.isEmpty || age.isEmpty || location.isEmpty || description.isEmpty ? .gray : .blue)
                 }
-                .disabled(catName.isEmpty || breed.isEmpty || age.isEmpty || location.isEmpty || description.isEmpty) // Disable button if any fields are empty
+                .disabled(catName.isEmpty || breed.isEmpty || age.isEmpty || location.isEmpty || description.isEmpty)
                 .padding()
             }
             .padding()
