@@ -84,10 +84,10 @@ struct FormView: View {
 
                     if let videoURL = videoURL {
                         Section(header: Text("Captured Video")) {
-                            VideoPlayer(player: AVPlayer(url: videoURL))
+                            VideoPlayer(player: player)
                                 .frame(height: 300)
                                 .cornerRadius(12)
-                                .onAppear() {
+                                .onAppear {
                                     player = AVPlayer(url: videoURL)
                                     player?.play()
                                 }
@@ -120,6 +120,10 @@ struct FormView: View {
                     }) {
                         Text("Post")
                             .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.blue)
+                            .foregroundColor(.white)
+                            .cornerRadius(10)
                     }
                     .disabled(catName.isEmpty || breed.isEmpty || age.isEmpty || location.isEmpty || description.isEmpty)
                 }

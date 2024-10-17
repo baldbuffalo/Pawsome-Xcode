@@ -8,10 +8,10 @@ struct HomeView: View {
     @State private var catPosts: [CatPost] = []
     @State private var selectedImage: UIImage? = nil
     @State private var showForm: Bool = false
-    @State private var isImagePickerPresented: Bool = false
 
     var body: some View {
         TabView {
+            // Home Tab
             NavigationStack {
                 VStack(spacing: 0) {
                     headerView
@@ -34,17 +34,27 @@ struct HomeView: View {
             .tabItem {
                 Label("Home", systemImage: "house")
             }
-
-            // Post tab item that opens ScanView when the tab is selected
+            
+            // Post Tab
             NavigationStack {
-                ScanView(capturedImage: $selectedImage, onImageCaptured: {
-                    showForm = true // Show the form after capturing the image
-                }, username: currentUsername) // Remove mediaType as it's handled within ScanView
+                ScanView(
+                    capturedImage: $selectedImage, // Binding to the captured image
+                    onImageCaptured: { // Closure that triggers when an image is captured
+                        showForm = true // Show the form after capturing the image
+                    },
+                    username: currentUsername, // Pass the username
+                    onPostCreated: { post in
+                        // Append the new post to the catPosts array
+                        catPosts.append(post)
+                        savePosts() // Save the new post to UserDefaults
+                    }
+                )
             }
             .tabItem {
                 Label("Post", systemImage: "camera")
             }
 
+            // Profile Tab
             NavigationStack {
                 ProfileView(isLoggedIn: $isLoggedIn, currentUsername: currentUsername, profileImage: $profileImage)
                     .navigationTitle("Profile")
