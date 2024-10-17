@@ -23,46 +23,53 @@ struct MediaPicker {
 
 struct ScanView: View {
     @Binding var capturedImage: UIImage?
-    var onImageCaptured: () -> Void
     var username: String
+    var onPostCreated: (CatPost) -> Void
 
     @State private var isImagePickerPresented: Bool = false
     @State private var mediaType: MediaPicker.MediaType = .photo
     @State private var showMediaTypeActionSheet: Bool = false
+    @State private var navigateToForm: Bool = false
 
     var body: some View {
-        VStack {
-            // Button to open the camera
-            Button("Open Camera") {
-                showMediaTypeActionSheet = true // Show the action sheet
+        NavigationStack {
+            VStack {
+                Button("Open Camera") {
+                    showMediaTypeActionSheet = true
+                }
+                .actionSheet(isPresented: $showMediaTypeActionSheet) {
+                    ActionSheet(title: Text("Select Media Type"), buttons: [
+                        .default(Text(MediaPicker.MediaType.photo.displayName)) {
+                            mediaType = .photo
+                            isImagePickerPresented = true
+                        },
+                        .default(Text(MediaPicker.MediaType.video.displayName)) {
+                            mediaType = .video
+                            isImagePickerPresented = true
+                        },
+                        .default(Text(MediaPicker.MediaType.library.displayName)) {
+                            mediaType = .library
+                            isImagePickerPresented = true
+                        },
+                        .cancel()
+                    ])
+                }
+                .sheet(isPresented: $isImagePickerPresented) {
+                    ImagePicker(sourceType: sourceTypeForMediaType(mediaType),
+                                 selectedImage: $capturedImage,
+                                 onImageCaptured: {
+                                     navigateToForm = true // Set to true to trigger navigation
+                                 },
+                                 mediaType: mediaType)
+                }
             }
-            .actionSheet(isPresented: $showMediaTypeActionSheet) {
-                ActionSheet(title: Text("Select Media Type"), buttons: [
-                    .default(Text(MediaPicker.MediaType.photo.displayName)) {
-                        mediaType = .photo
-                        isImagePickerPresented = true
-                    },
-                    .default(Text(MediaPicker.MediaType.video.displayName)) {
-                        mediaType = .video
-                        isImagePickerPresented = true
-                    },
-                    .default(Text(MediaPicker.MediaType.library.displayName)) {
-                        mediaType = .library
-                        isImagePickerPresented = true
-                    },
-                    .cancel()
-                ])
-            }
-            .sheet(isPresented: $isImagePickerPresented) {
-                ImagePicker(sourceType: sourceTypeForMediaType(mediaType),
-                             selectedImage: $capturedImage,
-                             onImageCaptured: {
-                                 onImageCaptured()
-                             },
-                             mediaType: mediaType)
+            .navigationTitle("Camera")
+            .navigationDestination(isPresented: $navigateToForm) {
+                FormView(showForm: $navigateToForm, username: username, onPostCreated: { catPost in
+                    onPostCreated(catPost)
+                })
             }
         }
-        .navigationTitle("Scan View")
     }
 
     private func sourceTypeForMediaType(_ mediaType: MediaPicker.MediaType) -> UIImagePickerController.SourceType {
@@ -116,7 +123,7 @@ struct ImagePicker: UIViewControllerRepresentable {
                 parent.selectedImage = image
             }
 
-            parent.onImageCaptured()
+            parent.onImageCaptured() // Trigger the action for navigation
             picker.dismiss(animated: true)
         }
 
