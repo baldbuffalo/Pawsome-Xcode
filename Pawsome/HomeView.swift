@@ -21,13 +21,13 @@ struct HomeView: View {
                 }
                 .navigationTitle("Pawsome")
                 .onAppear {
-                    loadPosts()
+                    loadPosts() // Load posts when the view appears
                 }
                 .sheet(isPresented: $showForm) {
                     if let selectedImage = selectedImage {
                         FormView(showForm: $showForm, navigateToHome: $navigateToHome, imageUI: selectedImage, username: currentUsername) { newPost in
                             catPosts.append(newPost)
-                            savePosts()
+                            savePosts() // Save posts after adding a new one
                         }
                     }
                 }
@@ -48,7 +48,7 @@ struct HomeView: View {
                     username: currentUsername,
                     onPostCreated: { post in
                         catPosts.append(post)
-                        savePosts()
+                        savePosts() // Save posts after creating a new post
                     }
                 )
                 .onAppear {
@@ -110,25 +110,25 @@ struct HomeView: View {
                     HStack {
                         // Like button
                         ZStack {
-                            // Invisible hitbox
+                            // Invisible hitbox in front of the like button
                             Rectangle()
                                 .fill(Color.clear) // Make the rectangle invisible
                                 .frame(height: 44) // Set a height for the hitbox
                                 .onTapGesture {
                                     if let index = catPosts.firstIndex(where: { $0.id == post.id }) {
-                                        if catPosts[index].likes > 0 { // If already liked, unlike
-                                            catPosts[index].likes -= 1 // Decrement likes
-                                        } else { // If not liked, like it
-                                            catPosts[index].likes += 1 // Increment likes
-                                        }
+                                        catPosts[index].likes = catPosts[index].likes > 0 ? 0 : 1 // Toggle like status
                                         savePosts() // Save updated posts
                                     }
                                 }
-
+                            
+                            // Like button content
                             HStack {
-                                Image(systemName: catPosts.first(where: { $0.id == post.id })?.likes ?? 0 > 0 ? "hand.thumbsup.fill" : "hand.thumbsup")
+                                Image(systemName: post.likes > 0 ? "hand.thumbsup.fill" : "hand.thumbsup")
                                 Text("Like (\(post.likes))") // Show current likes
                             }
+                            .padding() // Add padding to the button content
+                            .background(Color.white.opacity(0.5)) // Optional: background for the button
+                            .cornerRadius(8) // Optional: corner radius for button
                         }
                         .buttonStyle(BorderlessButtonStyle()) // To avoid row selection
                         
@@ -154,12 +154,19 @@ struct HomeView: View {
         }
     }
 
-    // Dummy functions for loading and saving posts
+    // Function to load posts from UserDefaults
     private func loadPosts() {
-        // Load posts from storage
+        if let data = UserDefaults.standard.data(forKey: "catPosts") {
+            if let decodedPosts = try? JSONDecoder().decode([CatPost].self, from: data) {
+                catPosts = decodedPosts // Load saved posts
+            }
+        }
     }
 
+    // Function to save posts to UserDefaults
     private func savePosts() {
-        // Save posts to storage
+        if let encodedPosts = try? JSONEncoder().encode(catPosts) {
+            UserDefaults.standard.set(encodedPosts, forKey: "catPosts") // Save posts
+        }
     }
 }
