@@ -3,7 +3,7 @@ import PhotosUI
 
 struct ProfileView: View {
     @Binding var isLoggedIn: Bool  // Logout binding
-    var currentUsername: String    // User's username
+    @Binding var currentUsername: String // Make currentUsername a Binding
     @Binding var profileImage: Image? // Profile image as a binding
     @State private var showImagePicker = false    // State to show image picker
     @State private var selectedItem: PhotosPickerItem? // State for selected item
@@ -48,6 +48,12 @@ struct ProfileView: View {
                 }
                 .offset(x: 40, y: -40) // Adjust position as needed
             }
+            
+            // Editable username field
+            TextField("Username", text: $currentUsername) // TextField for username
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .padding()
+                .padding(.top, 10)
             
             // Display the current username
             Text(currentUsername.isEmpty ? "No Username" : currentUsername)
@@ -104,11 +110,11 @@ struct ProfileView: View {
         .photosPicker(isPresented: $showImagePicker, selection: $selectedItem, matching: .images) // Image picker binding
         .onAppear {
             loadProfileImage() // Load profile image on appear
+            loadUsername() // Load username on appear
         }
-        .onChange(of: selectedItem) {
-            Task {
-                if let newItem = selectedItem {
-                    // Load the selected image asynchronously
+        .onChange(of: selectedItem) { newItem in
+            if let newItem = newItem {
+                Task {
                     if let data = try? await newItem.loadTransferable(type: Data.self),
                        let uiImage = UIImage(data: data) {
                         profileImage = Image(uiImage: uiImage) // Set the new profile image
@@ -116,6 +122,11 @@ struct ProfileView: View {
                     }
                 }
             }
+        }
+        
+        .onChange(of: currentUsername) { newValue in
+            // Save the updated username to UserDefaults
+            UserDefaults.standard.set(newValue, forKey: "currentUsername")
         }
     }
 
@@ -125,6 +136,13 @@ struct ProfileView: View {
             if let uiImage = UIImage(data: imageData) {
                 profileImage = Image(uiImage: uiImage) // Load the image
             }
+        }
+    }
+    
+    // Function to load the username from UserDefaults
+    private func loadUsername() {
+        if let savedUsername = UserDefaults.standard.string(forKey: "currentUsername") {
+            currentUsername = savedUsername // Load the saved username
         }
     }
 

@@ -39,7 +39,7 @@ struct HomeView: View {
             NavigationStack {
                 ScanView(
                     capturedImage: $selectedImage,
-                    username: currentUsername,
+                    username: currentUsername, // Keep this as a String
                     onPostCreated: { post in
                         catPosts.append(post)
                         savePosts()
@@ -55,7 +55,7 @@ struct HomeView: View {
 
             // Profile Tab
             NavigationStack {
-                ProfileView(isLoggedIn: $isLoggedIn, currentUsername: currentUsername, profileImage: $profileImage)
+                ProfileView(isLoggedIn: $isLoggedIn, currentUsername: $currentUsername, profileImage: $profileImage)
                     .navigationTitle("Profile")
             }
             .tabItem {
