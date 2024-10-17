@@ -39,16 +39,16 @@ struct HomeView: View {
             NavigationStack {
                 ScanView(
                     capturedImage: $selectedImage, // Binding to the captured image
-                    onImageCaptured: { // Closure that triggers when an image is captured
-                        showForm = true // Show the form after capturing the image
-                    },
-                    username: currentUsername, // Pass the username
+                    username: currentUsername, // Ensure this parameter exists in ScanView
                     onPostCreated: { post in
                         // Append the new post to the catPosts array
                         catPosts.append(post)
                         savePosts() // Save the new post to UserDefaults
                     }
                 )
+                .onAppear {
+                    // You can handle additional logic here if needed
+                }
             }
             .tabItem {
                 Label("Post", systemImage: "camera")
