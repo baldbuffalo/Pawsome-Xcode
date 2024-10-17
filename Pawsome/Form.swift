@@ -41,6 +41,7 @@ struct FormView: View {
                     .padding()
 
                 TextField("Age", text: $age)
+                    .keyboardType(.numberPad)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .padding()
 
@@ -49,10 +50,6 @@ struct FormView: View {
                     .padding()
 
                 TextField("Description", text: $description)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .padding()
-
-                TextField("Comments", text: $comments)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .padding()
 
@@ -76,6 +73,10 @@ struct FormView: View {
                 .padding()
             }
             .padding()
+        }
+        .onTapGesture {
+            // Dismiss the keyboard when tapping outside the text fields
+            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         }
     }
 }
