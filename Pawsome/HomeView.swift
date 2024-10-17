@@ -8,7 +8,7 @@ struct HomeView: View {
     @State private var catPosts: [CatPost] = []
     @State private var selectedImage: UIImage? = nil
     @State private var showForm: Bool = false
-    @State private var navigateToHome: Bool = false // New state variable
+    @State private var navigateToHome: Bool = false
 
     var body: some View {
         TabView {
@@ -21,26 +21,25 @@ struct HomeView: View {
                 }
                 .navigationTitle("Pawsome")
                 .onAppear {
-                    loadPosts()
+                    loadPosts() // Load posts when the view appears
                 }
                 .sheet(isPresented: $showForm) {
                     if let selectedImage = selectedImage {
                         FormView(showForm: $showForm, navigateToHome: $navigateToHome, imageUI: selectedImage, username: currentUsername) { newPost in
                             catPosts.append(newPost)
-                            savePosts()
+                            savePosts() // Save posts when a new one is added
                         }
                     }
                 }
                 .onChange(of: navigateToHome) {
-                    // Handle navigation to HomeView
-                    showForm = false // Dismiss the form
-                    navigateToHome = false // Reset the navigation state
+                    showForm = false
+                    navigateToHome = false
                 }
             }
             .tabItem {
                 Label("Home", systemImage: "house")
             }
-            
+
             // Post Tab
             NavigationStack {
                 ScanView(
@@ -99,55 +98,98 @@ struct HomeView: View {
                     Text("Age: \(post.age)")
                     Text("Location: \(post.location)")
                     Text("Description: \(post.description)")
-                    
+
                     // Like and Comment buttons
                     HStack {
                         // Like button
                         Button(action: {
                             if let index = catPosts.firstIndex(where: { $0.id == post.id }) {
-                                if catPosts[index].likes > 0 { // If already liked, unlike
-                                    catPosts[index].likes -= 1 // Decrement likes
-                                } else { // If not liked, like it
-                                    catPosts[index].likes += 1 // Increment likes
+                                if catPosts[index].likes > 0 { // Unlike
+                                    catPosts[index].likes -= 1
+                                } else { // Like
+                                    catPosts[index].likes += 1
                                 }
                                 savePosts() // Save updated posts
                             }
                         }) {
                             HStack {
                                 Image(systemName: catPosts.first(where: { $0.id == post.id })?.likes ?? 0 > 0 ? "hand.thumbsup.fill" : "hand.thumbsup")
-                                Text("Like (\(post.likes))") // Show current likes
+                                Text("Like (\(post.likes))")
                             }
                         }
-                        .buttonStyle(BorderlessButtonStyle()) // To avoid row selection
-                        
-                        Spacer() // Add space between buttons
+                        .buttonStyle(BorderlessButtonStyle())
+
+                        Spacer()
 
                         // Comment button
                         Button(action: {
-                            // Handle comment action here
-                            print("Comment button tapped for post: \(post.id)")
-                            // You can navigate to a comment view or present a comment input
+                            if let index = catPosts.firstIndex(where: { $0.id == post.id }) {
+                                catPosts[index].showCommentInput.toggle()
+                            }
                         }) {
                             HStack {
                                 Image(systemName: "message")
-                                Text("Comment") // Show comment button
+                                Text("Comment")
                             }
                         }
-                        .buttonStyle(BorderlessButtonStyle()) // To avoid row selection
+                        .buttonStyle(BorderlessButtonStyle())
                     }
                     .padding(.top, 5)
+
+                    // Show comments
+                    if post.comments.count > 0 {
+                        ForEach(post.comments, id: \.self) { comment in
+                            Text(comment)
+                                .font(.subheadline)
+                                .padding(.top, 2)
+                        }
+                    }
+
+                    // Comment input field
+                    if post.showCommentInput {
+                        HStack {
+                            TextField("Enter your comment", text: Binding(
+                                get: {
+                                    return ""
+                                },
+                                set: { newComment in
+                                    if let index = catPosts.firstIndex(where: { $0.id == post.id }) {
+                                        catPosts[index].comments.append(newComment)
+                                        catPosts[index].showCommentInput = false
+                                        savePosts() // Save updated posts with new comment
+                                    }
+                                }
+                            ))
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+
+                            Button(action: {
+                                if let index = catPosts.firstIndex(where: { $0.id == post.id }) {
+                                    catPosts[index].showCommentInput = false
+                                }
+                            }) {
+                                Text("Cancel")
+                                    .foregroundColor(.red)
+                            }
+                        }
+                    }
                 }
                 .padding(.vertical)
             }
         }
     }
 
-    // Dummy functions for loading and saving posts
+    // Load posts from storage (e.g., UserDefaults or a file)
     private func loadPosts() {
-        // Load posts from storage
+        if let data = UserDefaults.standard.data(forKey: "savedPosts"),
+           let savedPosts = try? JSONDecoder().decode([CatPost].self, from: data) {
+            catPosts = savedPosts
+        }
     }
 
+    // Save posts to storage
     private func savePosts() {
-        // Save posts to storage
+        if let data = try? JSONEncoder().encode(catPosts) {
+            UserDefaults.standard.set(data, forKey: "savedPosts")
+        }
     }
 }
