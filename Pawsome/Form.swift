@@ -4,7 +4,7 @@ struct FormView: View {
     @Binding var showForm: Bool
     @Binding var navigateToHome: Bool // Binding to control navigation
     var imageUI: UIImage?
-    var videoURL: URL?
+    var videoURL: URL? // Keeping this for future use, but won't be displayed
     var username: String
     var onPostCreated: (CatPost) -> Void
 
@@ -28,10 +28,13 @@ struct FormView: View {
                         .foregroundColor(.gray)
                 }
 
+                // Commented out the display of video URL
+                /*
                 if let videoURL = videoURL {
                     Text("Video URL: \(videoURL.absoluteString)")
                         .padding()
                 }
+                */
 
                 TextField("Cat Name", text: $catName)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -56,11 +59,11 @@ struct FormView: View {
 
                 Button(action: {
                     let catPost = CatPost(
+                        username: username, // Correct order for initialization
                         name: catName,
                         breed: breed,
                         age: age,
                         imageData: imageUI?.pngData(),
-                        username: username,
                         location: location,
                         description: description
                     )

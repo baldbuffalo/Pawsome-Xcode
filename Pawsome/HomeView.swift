@@ -38,7 +38,7 @@ struct HomeView: View {
             .tabItem {
                 Label("Home", systemImage: "house")
             }
-            
+
             NavigationStack {
                 ScanView(
                     capturedImage: $selectedImage,
@@ -103,18 +103,13 @@ struct HomeView: View {
                     Text("Description: \(post.description)")
                     
                     HStack {
-                        ZStack {
-                            Rectangle()
-                                .fill(Color.clear) // Make the rectangle invisible
-                                .frame(height: 44) // Set a height for the hitbox
-                                .onTapGesture {
-                                    if let index = catPosts.firstIndex(where: { $0.id == post.id }) {
-                                        catPosts[index].likes = catPosts[index].likes > 0 ? 0 : 1 // Toggle like status
-                                        savePosts() // Save updated posts
-                                    }
-                                }
-                            
-                            // Like button content
+                        // Like button
+                        Button(action: {
+                            if let index = catPosts.firstIndex(where: { $0.id == post.id }) {
+                                catPosts[index].likes = catPosts[index].likes > 0 ? 0 : 1 // Toggle like status
+                                savePosts() // Save updated posts
+                            }
+                        }) {
                             HStack {
                                 Image(systemName: post.likes > 0 ? "hand.thumbsup.fill" : "hand.thumbsup")
                                 Text("Like (\(post.likes))") // Show current likes
@@ -124,7 +119,7 @@ struct HomeView: View {
                             .cornerRadius(8) // Optional: corner radius for button
                         }
                         .buttonStyle(BorderlessButtonStyle()) // To avoid row selection
-                        
+
                         Spacer() // Add space between buttons
 
                         // Comment button
