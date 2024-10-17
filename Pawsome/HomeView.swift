@@ -25,8 +25,8 @@ struct HomeView: View {
                 .sheet(isPresented: $showForm) {
                     if let selectedImage = selectedImage {
                         FormView(showForm: $showForm, imageUI: selectedImage, username: currentUsername) { newPost in
-                            catPosts.append(newPost)
-                            savePosts()
+                            catPosts.append(newPost) // Add the new post to the list
+                            savePosts() // Save the new post to UserDefaults
                         }
                     }
                 }
@@ -34,21 +34,17 @@ struct HomeView: View {
             .tabItem {
                 Label("Home", systemImage: "house")
             }
-            
+
             // Post Tab
             NavigationStack {
                 ScanView(
                     capturedImage: $selectedImage, // Binding to the captured image
                     username: currentUsername, // Ensure this parameter exists in ScanView
                     onPostCreated: { post in
-                        // Append the new post to the catPosts array
                         catPosts.append(post)
                         savePosts() // Save the new post to UserDefaults
                     }
                 )
-                .onAppear {
-                    // You can handle additional logic here if needed
-                }
             }
             .tabItem {
                 Label("Post", systemImage: "camera")
@@ -85,6 +81,11 @@ struct HomeView: View {
                         .resizable()
                         .scaledToFit()
                         .frame(height: 200)
+                        .cornerRadius(12)
+                } else {
+                    Text("No image available")
+                        .frame(height: 200)
+                        .background(Color.gray.opacity(0.2))
                         .cornerRadius(12)
                 }
                 Text(post.name)
