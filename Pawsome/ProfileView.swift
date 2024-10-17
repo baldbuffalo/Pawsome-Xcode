@@ -123,7 +123,6 @@ struct ProfileView: View {
                 }
             }
         }
-        
         .onChange(of: currentUsername) { newValue in
             // Save the updated username to UserDefaults
             UserDefaults.standard.set(newValue, forKey: "currentUsername")

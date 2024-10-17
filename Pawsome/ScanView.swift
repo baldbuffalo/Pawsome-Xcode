@@ -23,7 +23,7 @@ struct MediaPicker {
 
 struct ScanView: View {
     @Binding var capturedImage: UIImage?
-    @State private var capturedVideoURL: URL? // New state variable for captured video
+    @State private var capturedVideoURL: URL? // State variable for captured video
     var username: String
     var onPostCreated: (CatPost) -> Void
 
@@ -31,6 +31,7 @@ struct ScanView: View {
     @State private var mediaType: MediaPicker.MediaType = .photo
     @State private var showMediaTypeActionSheet: Bool = false
     @State private var navigateToForm: Bool = false
+    @State private var navigateToHome: Bool = false // New state variable for navigation
 
     var body: some View {
         NavigationStack {
@@ -69,6 +70,7 @@ struct ScanView: View {
             .navigationDestination(isPresented: $navigateToForm) {
                 // Pass the captured image and video URL to FormView
                 FormView(showForm: $navigateToForm,
+                         navigateToHome: $navigateToHome, // Pass the navigateToHome binding first
                          imageUI: capturedImage,
                          videoURL: capturedVideoURL,
                          username: username,

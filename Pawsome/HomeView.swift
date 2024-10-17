@@ -83,21 +83,41 @@ struct HomeView: View {
     }
 
     private var postListView: some View {
-        List(catPosts) { post in
-            VStack(alignment: .leading) {
-                if let imageData = post.imageData, let image = UIImage(data: imageData) {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 200)
-                        .cornerRadius(12)
+        List {
+            ForEach(catPosts) { post in
+                VStack(alignment: .leading) {
+                    if let imageData = post.imageData, let image = UIImage(data: imageData) {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 200)
+                            .cornerRadius(12)
+                    }
+                    Text(post.name)
+                        .font(.headline)
+                    Text("Breed: \(post.breed)")
+                    Text("Age: \(post.age)")
+                    Text("Location: \(post.location)")
+                    Text("Description: \(post.description)")
+                    
+                    // Like button
+                    HStack {
+                        Button(action: {
+                            if let index = catPosts.firstIndex(where: { $0.id == post.id }) {
+                                catPosts[index].likes += 1 // Increment likes
+                                savePosts() // Save updated posts
+                            }
+                        }) {
+                            HStack {
+                                Image(systemName: "hand.thumbsup")
+                                Text("Like (\(post.likes))") // Show current likes
+                            }
+                        }
+                        .buttonStyle(BorderlessButtonStyle()) // To avoid row selection
+                    }
+                    .padding(.top, 5)
                 }
-                Text(post.name)
-                    .font(.headline)
-                Text("Breed: \(post.breed)")
-                Text("Age: \(post.age)")
-                Text("Location: \(post.location)")
-                Text("Description: \(post.description)")
+                .padding(.vertical)
             }
         }
     }
