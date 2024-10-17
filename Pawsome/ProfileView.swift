@@ -112,17 +112,14 @@ struct ProfileView: View {
         .padding()
         .navigationTitle("Profile Settings") // Optional: Add a navigation title
         .navigationBarTitleDisplayMode(.inline) // Optional: Adjust title display mode
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: {
-                    // Save the username when the button is tapped
-                    UserDefaults.standard.set(currentUsername, forKey: "currentUsername")
-                }) {
-                    Text("Save")
-                }
-                .disabled(currentUsername.isEmpty) // Disable if username is empty
-            }
-        }
+        .navigationBarItems(trailing: Button(action: {
+            saveUsername()
+            isUsernameFocused = false // Dismiss the keyboard
+        }) {
+            Text("Save")
+                .font(.headline)
+                .foregroundColor(.blue)
+        })
         .photosPicker(isPresented: $showImagePicker, selection: $selectedItem, matching: .images) // Image picker binding
         .onAppear {
             loadProfileImage() // Load profile image on appear
@@ -144,6 +141,12 @@ struct ProfileView: View {
             // Save the updated username to UserDefaults
             UserDefaults.standard.set(newValue, forKey: "currentUsername")
         }
+    }
+
+    // Function to save the username and dismiss the keyboard
+    private func saveUsername() {
+        // Save the updated username to UserDefaults
+        UserDefaults.standard.set(currentUsername, forKey: "currentUsername")
     }
 
     // Function to load the profile image from UserDefaults
