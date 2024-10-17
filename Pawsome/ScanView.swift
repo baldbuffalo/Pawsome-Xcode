@@ -32,8 +32,8 @@ struct ScanView: View {
 
     var body: some View {
         VStack {
-            // Button to select media type
-            Button("Select Media Type") {
+            // Button to open the camera
+            Button("Open Camera") {
                 showMediaTypeActionSheet = true // Show the action sheet
             }
             .actionSheet(isPresented: $showMediaTypeActionSheet) {
@@ -61,13 +61,6 @@ struct ScanView: View {
                              },
                              mediaType: mediaType)
             }
-
-            // Button to use photo directly
-            Button("Use Photo") {
-                mediaType = .photo
-                isImagePickerPresented = true // Open image picker directly for photo
-            }
-            .padding()
         }
         .navigationTitle("Scan View")
     }
