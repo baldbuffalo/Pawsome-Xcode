@@ -25,8 +25,8 @@ struct HomeView: View {
                 .sheet(isPresented: $showForm) {
                     if let selectedImage = selectedImage {
                         FormView(showForm: $showForm, imageUI: selectedImage, username: currentUsername) { newPost in
-                            catPosts.append(newPost) // Add the new post to the list
-                            savePosts() // Save the new post to UserDefaults
+                            catPosts.append(newPost)
+                            savePosts()
                         }
                     }
                 }
@@ -34,17 +34,20 @@ struct HomeView: View {
             .tabItem {
                 Label("Home", systemImage: "house")
             }
-
+            
             // Post Tab
             NavigationStack {
                 ScanView(
-                    capturedImage: $selectedImage, // Binding to the captured image
-                    username: currentUsername, // Ensure this parameter exists in ScanView
+                    capturedImage: $selectedImage,
+                    username: currentUsername,
                     onPostCreated: { post in
                         catPosts.append(post)
-                        savePosts() // Save the new post to UserDefaults
+                        savePosts()
                     }
                 )
+                .onAppear {
+                    // You can handle additional logic here if needed
+                }
             }
             .tabItem {
                 Label("Post", systemImage: "camera")
@@ -82,16 +85,13 @@ struct HomeView: View {
                         .scaledToFit()
                         .frame(height: 200)
                         .cornerRadius(12)
-                } else {
-                    Text("No image available")
-                        .frame(height: 200)
-                        .background(Color.gray.opacity(0.2))
-                        .cornerRadius(12)
                 }
                 Text(post.name)
                     .font(.headline)
                 Text("Breed: \(post.breed)")
                 Text("Age: \(post.age)")
+                Text("Location: \(post.location)") // Display the location
+                Text("Description: \(post.description)") // Display the description
                 Text("Posted by: \(post.username)")
                 Text("Comments: \(post.comments.joined(separator: ", "))")
             }
