@@ -63,9 +63,9 @@ struct FormView: View {
                         name: catName,
                         breed: breed,
                         age: age,
-                        imageData: imageUI?.pngData(),
                         location: location,
-                        description: description
+                        description: description,
+                        imageData: imageUI?.pngData() // Move this to the end
                     )
                     onPostCreated(catPost)
                     showForm = false

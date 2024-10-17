@@ -112,6 +112,17 @@ struct ProfileView: View {
         .padding()
         .navigationTitle("Profile Settings") // Optional: Add a navigation title
         .navigationBarTitleDisplayMode(.inline) // Optional: Adjust title display mode
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: {
+                    // Save the username when the button is tapped
+                    UserDefaults.standard.set(currentUsername, forKey: "currentUsername")
+                }) {
+                    Text("Save")
+                }
+                .disabled(currentUsername.isEmpty) // Disable if username is empty
+            }
+        }
         .photosPicker(isPresented: $showImagePicker, selection: $selectedItem, matching: .images) // Image picker binding
         .onAppear {
             loadProfileImage() // Load profile image on appear
