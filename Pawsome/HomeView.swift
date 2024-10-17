@@ -98,8 +98,6 @@ struct HomeView: View {
                 Text("Age: \(post.age)")
                 Text("Location: \(post.location)")
                 Text("Description: \(post.description)")
-                Text("Posted by: \(post.username)")
-                Text("Comments: \(post.comments.joined(separator: ", "))")
             }
         }
     }
