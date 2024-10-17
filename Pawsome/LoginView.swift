@@ -38,6 +38,13 @@ struct LoginView: View {
                             // No profile image is provided by Apple, so set to nil or a default
                             profileImage = Image(systemName: "person.circle") // Default image or nil
                         }
+                        // Store join date if it doesn't exist
+                        if UserDefaults.standard.string(forKey: "joinDate") == nil {
+                            let dateFormatter = DateFormatter()
+                            dateFormatter.dateStyle = .medium
+                            let joinDate = dateFormatter.string(from: Date())
+                            UserDefaults.standard.set(joinDate, forKey: "joinDate") // Save join date
+                        }
                         UserDefaults.standard.set(true, forKey: "isLoggedIn")
                         isLoggedIn = true // Mark as logged in
                     case .failure(let error):
@@ -76,6 +83,13 @@ struct LoginView: View {
                             print("No profile image URL available from Google.")
                         }
                         
+                        // Store join date if it doesn't exist
+                        if UserDefaults.standard.string(forKey: "joinDate") == nil {
+                            let dateFormatter = DateFormatter()
+                            dateFormatter.dateStyle = .medium
+                            let joinDate = dateFormatter.string(from: Date())
+                            UserDefaults.standard.set(joinDate, forKey: "joinDate") // Save join date
+                        }
                         UserDefaults.standard.set(true, forKey: "isLoggedIn")
                         isLoggedIn = true // Mark as logged in
                     }

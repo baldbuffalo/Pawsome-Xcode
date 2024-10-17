@@ -12,7 +12,6 @@ struct HomeView: View {
 
     var body: some View {
         TabView {
-            // Home Tab
             NavigationStack {
                 VStack(spacing: 0) {
                     headerView
@@ -32,7 +31,6 @@ struct HomeView: View {
                     }
                 }
                 .onChange(of: navigateToHome) {
-                    // Handle navigation to HomeView
                     showForm = false // Dismiss the form
                     navigateToHome = false // Reset the navigation state
                 }
@@ -41,7 +39,6 @@ struct HomeView: View {
                 Label("Home", systemImage: "house")
             }
             
-            // Post Tab
             NavigationStack {
                 ScanView(
                     capturedImage: $selectedImage,
@@ -59,7 +56,6 @@ struct HomeView: View {
                 Label("Post", systemImage: "camera")
             }
 
-            // Profile Tab
             NavigationStack {
                 ProfileView(isLoggedIn: $isLoggedIn, currentUsername: $currentUsername, profileImage: $profileImage)
                     .navigationTitle("Profile")
@@ -106,11 +102,8 @@ struct HomeView: View {
                     Text("Location: \(post.location)")
                     Text("Description: \(post.description)")
                     
-                    // Like and Comment buttons
                     HStack {
-                        // Like button
                         ZStack {
-                            // Invisible hitbox in front of the like button
                             Rectangle()
                                 .fill(Color.clear) // Make the rectangle invisible
                                 .frame(height: 44) // Set a height for the hitbox
@@ -126,7 +119,7 @@ struct HomeView: View {
                                 Image(systemName: post.likes > 0 ? "hand.thumbsup.fill" : "hand.thumbsup")
                                 Text("Like (\(post.likes))") // Show current likes
                             }
-                            .padding() // Add padding to the button content
+                            .padding()
                             .background(Color.white.opacity(0.5)) // Optional: background for the button
                             .cornerRadius(8) // Optional: corner radius for button
                         }
@@ -136,9 +129,7 @@ struct HomeView: View {
 
                         // Comment button
                         Button(action: {
-                            // Handle comment action here
                             print("Comment button tapped for post: \(post.id)")
-                            // You can navigate to a comment view or present a comment input
                         }) {
                             HStack {
                                 Image(systemName: "message")

@@ -7,6 +7,8 @@ struct ProfileView: View {
     @Binding var profileImage: Image? // Profile image as a binding
     @State private var showImagePicker = false    // State to show image picker
     @State private var selectedItem: PhotosPickerItem? // State for selected item
+    @FocusState private var isUsernameFocused: Bool // State to track focus on the username TextField
+    @State private var joinDate: String = "" // State to hold join date
 
     var body: some View {
         VStack {
@@ -54,11 +56,14 @@ struct ProfileView: View {
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding()
                 .padding(.top, 10)
+                .focused($isUsernameFocused) // Bind focus state to the TextField
             
-            // Display the current username
-            Text(currentUsername.isEmpty ? "No Username" : currentUsername)
-                .font(.headline)
-                .padding(.top, 10)
+            // Display the current username if not in edit mode
+            if !isUsernameFocused {
+                Text(currentUsername.isEmpty ? "No Username" : currentUsername)
+                    .font(.headline)
+                    .padding(.top, 10)
+            }
             
             Divider()
                 .padding(.vertical)
@@ -81,7 +86,7 @@ struct ProfileView: View {
                 
                 HStack {
                     Image(systemName: "calendar")
-                    Text("Joined: January 1, 2024") // Placeholder for join date
+                    Text("Joined: \(joinDate)") // Display the join date
                 }
             }
             .padding(.horizontal)
@@ -111,6 +116,7 @@ struct ProfileView: View {
         .onAppear {
             loadProfileImage() // Load profile image on appear
             loadUsername() // Load username on appear
+            loadJoinDate() // Load join date on appear
         }
         .onChange(of: selectedItem) { newItem in
             if let newItem = newItem {
@@ -142,6 +148,15 @@ struct ProfileView: View {
     private func loadUsername() {
         if let savedUsername = UserDefaults.standard.string(forKey: "currentUsername") {
             currentUsername = savedUsername // Load the saved username
+        }
+    }
+
+    // Function to load the join date from UserDefaults
+    private func loadJoinDate() {
+        if let savedJoinDate = UserDefaults.standard.string(forKey: "joinDate") {
+            joinDate = savedJoinDate // Load the saved join date
+        } else {
+            joinDate = "Not available" // Default if not found
         }
     }
 
