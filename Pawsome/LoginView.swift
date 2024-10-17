@@ -98,7 +98,7 @@ struct LoginView: View {
             
             // Navigate to ProfileView if logged in
             if isLoggedIn {
-                NavigationLink(destination: ProfileView(isLoggedIn: $isLoggedIn, currentUsername: username, profileImage: $profileImage)) {
+                NavigationLink(destination: ProfileView(isLoggedIn: $isLoggedIn, currentUsername: $username, profileImage: $profileImage)) {
                     Text("Go to Profile")
                         .fontWeight(.semibold)
                         .foregroundColor(.blue)
