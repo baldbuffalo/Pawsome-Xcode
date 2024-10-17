@@ -100,17 +100,37 @@ struct HomeView: View {
                     Text("Location: \(post.location)")
                     Text("Description: \(post.description)")
                     
-                    // Like button
+                    // Like and Comment buttons
                     HStack {
+                        // Like button
                         Button(action: {
                             if let index = catPosts.firstIndex(where: { $0.id == post.id }) {
-                                catPosts[index].likes += 1 // Increment likes
+                                if catPosts[index].likes > 0 { // If already liked, unlike
+                                    catPosts[index].likes -= 1 // Decrement likes
+                                } else { // If not liked, like it
+                                    catPosts[index].likes += 1 // Increment likes
+                                }
                                 savePosts() // Save updated posts
                             }
                         }) {
                             HStack {
-                                Image(systemName: "hand.thumbsup")
+                                Image(systemName: catPosts.first(where: { $0.id == post.id })?.likes ?? 0 > 0 ? "hand.thumbsup.fill" : "hand.thumbsup")
                                 Text("Like (\(post.likes))") // Show current likes
+                            }
+                        }
+                        .buttonStyle(BorderlessButtonStyle()) // To avoid row selection
+                        
+                        Spacer() // Add space between buttons
+
+                        // Comment button
+                        Button(action: {
+                            // Handle comment action here
+                            print("Comment button tapped for post: \(post.id)")
+                            // You can navigate to a comment view or present a comment input
+                        }) {
+                            HStack {
+                                Image(systemName: "message")
+                                Text("Comment") // Show comment button
                             }
                         }
                         .buttonStyle(BorderlessButtonStyle()) // To avoid row selection
@@ -122,16 +142,12 @@ struct HomeView: View {
         }
     }
 
+    // Dummy functions for loading and saving posts
     private func loadPosts() {
-        if let data = UserDefaults.standard.data(forKey: "catPosts"),
-           let decodedPosts = try? JSONDecoder().decode([CatPost].self, from: data) {
-            catPosts = decodedPosts
-        }
+        // Load posts from storage
     }
 
     private func savePosts() {
-        if let encoded = try? JSONEncoder().encode(catPosts) {
-            UserDefaults.standard.set(encoded, forKey: "catPosts")
-        }
+        // Save posts to storage
     }
 }
