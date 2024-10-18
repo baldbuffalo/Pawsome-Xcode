@@ -13,11 +13,11 @@ struct FormView: View {
     @State private var age: String = ""
     @State private var location: String = ""
     @State private var description: String = ""
-    @State private var comments: String = ""
 
     var body: some View {
         ScrollView {
             VStack {
+                // Display the selected image or a placeholder message
                 if let image = imageUI {
                     Image(uiImage: image)
                         .resizable()
@@ -28,14 +28,7 @@ struct FormView: View {
                         .foregroundColor(.gray)
                 }
 
-                // Commented out the display of video URL
-                /*
-                if let videoURL = videoURL {
-                    Text("Video URL: \(videoURL.absoluteString)")
-                        .padding()
-                }
-                */
-
+                // Input fields for cat information
                 TextField("Cat Name", text: $catName)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .padding()
@@ -57,24 +50,28 @@ struct FormView: View {
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .padding()
 
+                // Button to create a post
                 Button(action: {
+                    // Create a new CatPost object
                     let catPost = CatPost(
-                        username: username, // Correct order for initialization
+                        username: username,
                         name: catName,
                         breed: breed,
                         age: age,
                         location: location,
                         description: description,
-                        imageData: imageUI?.pngData() // Move this to the end
+                        imageData: imageUI?.pngData()
                     )
+                    // Call the post creation handler
                     onPostCreated(catPost)
+                    // Dismiss the form and navigate to HomeView
                     showForm = false
-                    navigateToHome = true // Navigate to HomeView
+                    navigateToHome = true
                 }) {
                     Text("Post")
                         .foregroundColor(catName.isEmpty || breed.isEmpty || age.isEmpty || location.isEmpty || description.isEmpty ? .gray : .blue)
                 }
-                .disabled(catName.isEmpty || breed.isEmpty || age.isEmpty || location.isEmpty || description.isEmpty)
+                .disabled(catName.isEmpty || breed.isEmpty || age.isEmpty || location.isEmpty || description.isEmpty) // Disable button if fields are empty
                 .padding()
             }
             .padding()
