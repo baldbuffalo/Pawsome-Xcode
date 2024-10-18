@@ -5,17 +5,36 @@ struct ProfileView: View {
     @Binding var isLoggedIn: Bool  // Logout binding
     @Binding var currentUsername: String // Make currentUsername a Binding
     @Binding var profileImage: Image? // Profile image as a binding
+    
     @State private var showImagePicker = false    // State to show image picker
     @State private var selectedItem: PhotosPickerItem? // State for selected item
     @FocusState private var isUsernameFocused: Bool // State to track focus on the username TextField
     @State private var joinDate: String = "" // State to hold join date
+    @State private var isEditing = false // State to track editing mode
 
     var body: some View {
         VStack {
-            Text("Your Profile")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-                .padding()
+            HStack {
+                Text("Your Profile")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                    .padding()
+
+                Spacer() // Pushes the edit button to the right
+                
+                Button(action: {
+                    if isEditing {
+                        saveChanges()
+                    } else {
+                        isEditing.toggle()
+                    }
+                }) {
+                    Text(isEditing ? "Save" : "Edit") // Toggle button text between "Edit" and "Save"
+                        .fontWeight(.semibold)
+                        .foregroundColor(.blue) // Blue text color
+                }
+                .padding(.trailing) // Add padding to the right
+            }
             
             ZStack {
                 // Profile Picture: Display the profile image from login or default placeholder
@@ -34,25 +53,10 @@ struct ProfileView: View {
                         .clipShape(Circle()) // Circular default image
                         .padding(.top, 20)
                 }
-                
-                // Pencil icon button
-                Button(action: {
-                    showImagePicker.toggle()
-                }) {
-                    Image(systemName: "pencil.circle.fill")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 30, height: 30)
-                        .foregroundColor(.blue)
-                        .background(Color.white.opacity(0.7)) // Optional background
-                        .clipShape(Circle())
-                        .padding(5)
-                }
-                .offset(x: 40, y: -40) // Adjust position as needed
             }
             
             // Editable username field
-            TextField("Username", text: $currentUsername) // TextField for username
+            TextField("Username", text: $currentUsername)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding()
                 .padding(.top, 10)
@@ -122,23 +126,27 @@ struct ProfileView: View {
             // Save the updated username to UserDefaults
             UserDefaults.standard.set(newValue, forKey: "currentUsername")
         }
-        .contentShape(Rectangle()) // Allows the entire VStack to be tappable
-        .onTapGesture {
-            isUsernameFocused = false // Dismiss keyboard when tapping outside
-        }
         .onChange(of: selectedItem) { newItem in
+            // Check if the new item is non-nil
             if let newItem = newItem {
                 Task {
+                    // Attempt to load the selected image data
                     if let data = try? await newItem.loadTransferable(type: Data.self),
                        let uiImage = UIImage(data: data) {
                         profileImage = Image(uiImage: uiImage) // Set the new profile image
                         saveProfileImage(uiImage) // Save the new profile image
+                    } else {
+                        print("Failed to load image data") // Error handling
                     }
                 }
             }
         }
+        .contentShape(Rectangle()) // Allows the entire VStack to be tappable
+        .onTapGesture {
+            isUsernameFocused = false // Dismiss keyboard when tapping outside
+        }
     }
-
+    
     // Function to load the profile image from UserDefaults
     private func loadProfileImage() {
         if let imageData = UserDefaults.standard.data(forKey: "profileImage") {
@@ -169,5 +177,11 @@ struct ProfileView: View {
         if let imageData = image.pngData() {
             UserDefaults.standard.set(imageData, forKey: "profileImage") // Save the image data
         }
+    }
+
+    // Function to save changes when editing
+    private func saveChanges() {
+        // Here you could save any additional changes if needed
+        isEditing.toggle() // Toggle editing mode
     }
 }
