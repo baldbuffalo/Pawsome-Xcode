@@ -9,8 +9,6 @@ struct HomeView: View {
     @State private var selectedImage: UIImage? = nil
     @State private var showForm: Bool = false
     @State private var navigateToHome: Bool = false
-    @State private var showComments: Bool = false // State to control comment view visibility
-    @State private var selectedPost: CatPost? = nil // Track which post's comments are shown
 
     var body: some View {
         TabView {
@@ -22,9 +20,7 @@ struct HomeView: View {
                 }
                 .navigationTitle("Pawsome")
                 .onAppear {
-                    DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + 0.1) {
-                        loadPosts() // Load posts when the view appears, in background
-                    }
+                    loadPosts() // Load posts when the view appears
                 }
                 .sheet(isPresented: $showForm) {
                     if let selectedImage = selectedImage {
@@ -32,19 +28,6 @@ struct HomeView: View {
                             catPosts.append(newPost)
                             savePosts() // Save posts after adding a new one
                         }
-                    }
-                }
-                .sheet(isPresented: $showComments) {
-                    if let selectedPost = selectedPost {
-                        // Create a Binding to the selectedPost
-                        CommentsView(showComments: $showComments, post: Binding(
-                            get: { selectedPost },
-                            set: { newPost in
-                                if let index = catPosts.firstIndex(where: { $0.id == newPost.id }) {
-                                    catPosts[index] = newPost
-                                }
-                            }
-                        ))
                     }
                 }
                 .onChange(of: navigateToHome) {
@@ -58,6 +41,7 @@ struct HomeView: View {
                 Label("Home", systemImage: "house")
             }
 
+            // Scan and Profile view code remains unchanged
             NavigationStack {
                 ScanView(
                     capturedImage: $selectedImage,
@@ -141,11 +125,8 @@ struct HomeView: View {
 
                             Spacer()
 
-                            // Comment button
-                            Button(action: {
-                                selectedPost = post
-                                showComments = true // Show the comments view for this post
-                            }) {
+                            // NavigationLink for Comment button
+                            NavigationLink(destination: CommentsView(post: post)) {
                                 HStack {
                                     Image(systemName: "message")
                                     Text("Comment")
@@ -184,3 +165,4 @@ struct HomeView: View {
         }
     }
 }
+
