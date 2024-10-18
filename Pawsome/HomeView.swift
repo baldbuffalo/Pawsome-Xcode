@@ -8,7 +8,7 @@ struct HomeView: View {
     @State private var catPosts: [CatPost] = []
     @State private var selectedImage: UIImage? = nil
     @State private var showForm: Bool = false
-    @State private var navigateToHome: Bool = false // New state variable
+    @State private var navigateToHome: Bool = false
 
     var body: some View {
         TabView {
@@ -32,10 +32,11 @@ struct HomeView: View {
                         }
                     }
                 }
-                .onChange(of: navigateToHome) { value in
-                    guard value else { return }
-                    showForm = false // Dismiss the form
-                    navigateToHome = false // Reset the navigation state
+                .onChange(of: navigateToHome) { newValue in
+                    if newValue {
+                        showForm = false // Dismiss the form
+                        navigateToHome = false // Reset the navigation state
+                    }
                 }
             }
             .tabItem {
@@ -84,7 +85,7 @@ struct HomeView: View {
     private var postListView: some View {
         List {
             ForEach(catPosts) { post in
-                LazyVStack(alignment: .leading) { // Lazy loading for performance
+                LazyVStack(alignment: .leading) {
                     VStack(alignment: .leading) {
                         // Display the name of the person who posted
                         Text("Posted by: \(post.username)")
@@ -111,25 +112,23 @@ struct HomeView: View {
                             // Like button
                             Button(action: {
                                 if let index = catPosts.firstIndex(where: { $0.id == post.id }) {
-                                    // Update UI on the main thread
                                     DispatchQueue.main.async {
                                         catPosts[index].likes = catPosts[index].likes > 0 ? 0 : 1 // Toggle like status
                                     }
-                                    // Save posts in the background
                                     savePosts()
                                 }
                             }) {
                                 HStack {
                                     Image(systemName: post.likes > 0 ? "hand.thumbsup.fill" : "hand.thumbsup")
-                                    Text("Like (\(post.likes))") // Show current likes
+                                    Text("Like (\(post.likes))")
                                 }
                                 .padding()
-                                .background(Color.white.opacity(0.5)) // Optional: background for the button
-                                .cornerRadius(8) // Optional: corner radius for button
+                                .background(Color.white.opacity(0.5))
+                                .cornerRadius(8)
                             }
-                            .buttonStyle(BorderlessButtonStyle()) // To avoid row selection
+                            .buttonStyle(BorderlessButtonStyle())
 
-                            Spacer() // Add space between buttons
+                            Spacer()
 
                             // Comment button
                             Button(action: {
@@ -137,10 +136,10 @@ struct HomeView: View {
                             }) {
                                 HStack {
                                     Image(systemName: "message")
-                                    Text("Comment") // Show comment button
+                                    Text("Comment")
                                 }
                             }
-                            .buttonStyle(BorderlessButtonStyle()) // To avoid row selection
+                            .buttonStyle(BorderlessButtonStyle())
                         }
                         .padding(.top, 5)
                     }
@@ -150,20 +149,18 @@ struct HomeView: View {
         }
     }
 
-    // Function to load posts from UserDefaults
     private func loadPosts() {
         DispatchQueue.global(qos: .background).async {
             if let data = UserDefaults.standard.data(forKey: "catPosts") {
                 if let decodedPosts = try? JSONDecoder().decode([CatPost].self, from: data) {
                     DispatchQueue.main.async {
-                        catPosts = decodedPosts // Load saved posts
+                        catPosts = decodedPosts
                     }
                 }
             }
         }
     }
 
-    // Function to save posts to UserDefaults
     private func savePosts() {
         DispatchQueue.global(qos: .background).async {
             if let encodedPosts = try? JSONEncoder().encode(catPosts) {
