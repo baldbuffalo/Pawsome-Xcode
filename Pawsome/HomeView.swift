@@ -80,7 +80,7 @@ struct HomeView: View {
 
     private var postListView: some View {
         List {
-            ForEach(catPosts) { post in
+            ForEach($catPosts) { $post in // Use a binding to access and update each post
                 LazyVStack(alignment: .leading) {
                     VStack(alignment: .leading) {
                         // Show only the username
@@ -103,15 +103,15 @@ struct HomeView: View {
                         Text("Age: \(post.age)")
                         Text("Location: \(post.location)")
                         Text("Description: \(post.description)")
-                        
+
                         HStack {
                             Button(action: {
-                                if let index = catPosts.firstIndex(where: { $0.id == post.id }) {
-                                    DispatchQueue.main.async {
-                                        catPosts[index].likes = catPosts[index].likes > 0 ? 0 : 1 // Toggle like status
-                                    }
-                                    savePosts()
+                                if post.likes > 0 {
+                                    post.likes = 0 // Unlike
+                                } else {
+                                    post.likes = 1 // Like
                                 }
+                                savePosts()
                             }) {
                                 HStack {
                                     Image(systemName: post.likes > 0 ? "hand.thumbsup.fill" : "hand.thumbsup")
@@ -126,7 +126,7 @@ struct HomeView: View {
                             Spacer()
 
                             // NavigationLink for Comment button
-                            NavigationLink(destination: CommentsView(post: post)) {
+                            NavigationLink(destination: CommentsView(showComments: .constant(true), post: $post)) { // Pass a binding to the CommentsView
                                 HStack {
                                     Image(systemName: "message")
                                     Text("Comment")
@@ -165,4 +165,3 @@ struct HomeView: View {
         }
     }
 }
-
