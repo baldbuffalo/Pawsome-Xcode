@@ -20,7 +20,9 @@ struct HomeView: View {
                 }
                 .navigationTitle("Pawsome")
                 .onAppear {
-                    loadPosts() // Load posts when the view appears
+                    DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + 0.1) {
+                        loadPosts() // Load posts when the view appears, in background
+                    }
                 }
                 .sheet(isPresented: $showForm) {
                     if let selectedImage = selectedImage {
@@ -30,7 +32,8 @@ struct HomeView: View {
                         }
                     }
                 }
-                .onChange(of: navigateToHome) {
+                .onChange(of: navigateToHome) { value in
+                    guard value else { return }
                     showForm = false // Dismiss the form
                     navigateToHome = false // Reset the navigation state
                 }
@@ -81,74 +84,81 @@ struct HomeView: View {
     private var postListView: some View {
         List {
             ForEach(catPosts) { post in
-                VStack(alignment: .leading) {
-                    // Display the name of the person who posted
-                    Text("Posted by: \(post.username)")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                        .padding(.bottom, 2)
+                LazyVStack(alignment: .leading) { // Lazy loading for performance
+                    VStack(alignment: .leading) {
+                        // Display the name of the person who posted
+                        Text("Posted by: \(post.username)")
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                            .padding(.bottom, 2)
 
-                    if let imageData = post.imageData, let image = UIImage(data: imageData) {
-                        Image(uiImage: image)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(height: 200)
-                            .cornerRadius(12)
-                    }
-                    Text(post.name)
-                        .font(.headline)
-                    Text("Breed: \(post.breed)")
-                    Text("Age: \(post.age)")
-                    Text("Location: \(post.location)")
-                    Text("Description: \(post.description)")
-                    
-                    HStack {
-                        // Like button
-                        Button(action: {
-                            if let index = catPosts.firstIndex(where: { $0.id == post.id }) {
-                                // Update UI on the main thread
-                                DispatchQueue.main.async {
-                                    catPosts[index].likes = catPosts[index].likes > 0 ? 0 : 1 // Toggle like status
+                        if let imageData = post.imageData, let image = UIImage(data: imageData) {
+                            Image(uiImage: image)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(height: 200)
+                                .cornerRadius(12)
+                        }
+                        
+                        Text(post.name)
+                            .font(.headline)
+                        Text("Breed: \(post.breed)")
+                        Text("Age: \(post.age)")
+                        Text("Location: \(post.location)")
+                        Text("Description: \(post.description)")
+                        
+                        HStack {
+                            // Like button
+                            Button(action: {
+                                if let index = catPosts.firstIndex(where: { $0.id == post.id }) {
+                                    // Update UI on the main thread
+                                    DispatchQueue.main.async {
+                                        catPosts[index].likes = catPosts[index].likes > 0 ? 0 : 1 // Toggle like status
+                                    }
+                                    // Save posts in the background
+                                    savePosts()
                                 }
-                                // Save posts in the background
-                                savePosts()
+                            }) {
+                                HStack {
+                                    Image(systemName: post.likes > 0 ? "hand.thumbsup.fill" : "hand.thumbsup")
+                                    Text("Like (\(post.likes))") // Show current likes
+                                }
+                                .padding()
+                                .background(Color.white.opacity(0.5)) // Optional: background for the button
+                                .cornerRadius(8) // Optional: corner radius for button
                             }
-                        }) {
-                            HStack {
-                                Image(systemName: post.likes > 0 ? "hand.thumbsup.fill" : "hand.thumbsup")
-                                Text("Like (\(post.likes))") // Show current likes
-                            }
-                            .padding()
-                            .background(Color.white.opacity(0.5)) // Optional: background for the button
-                            .cornerRadius(8) // Optional: corner radius for button
-                        }
-                        .buttonStyle(BorderlessButtonStyle()) // To avoid row selection
+                            .buttonStyle(BorderlessButtonStyle()) // To avoid row selection
 
-                        Spacer() // Add space between buttons
+                            Spacer() // Add space between buttons
 
-                        // Comment button
-                        Button(action: {
-                            print("Comment button tapped for post: \(post.id)")
-                        }) {
-                            HStack {
-                                Image(systemName: "message")
-                                Text("Comment") // Show comment button
+                            // Comment button
+                            Button(action: {
+                                print("Comment button tapped for post: \(post.id)")
+                            }) {
+                                HStack {
+                                    Image(systemName: "message")
+                                    Text("Comment") // Show comment button
+                                }
                             }
+                            .buttonStyle(BorderlessButtonStyle()) // To avoid row selection
                         }
-                        .buttonStyle(BorderlessButtonStyle()) // To avoid row selection
+                        .padding(.top, 5)
                     }
-                    .padding(.top, 5)
+                    .padding(.vertical)
                 }
-                .padding(.vertical)
             }
         }
     }
 
     // Function to load posts from UserDefaults
     private func loadPosts() {
-        if let data = UserDefaults.standard.data(forKey: "catPosts") {
-            if let decodedPosts = try? JSONDecoder().decode([CatPost].self, from: data) {
-                catPosts = decodedPosts // Load saved posts
+        DispatchQueue.global(qos: .background).async {
+            if let data = UserDefaults.standard.data(forKey: "catPosts") {
+                if let decodedPosts = try? JSONDecoder().decode([CatPost].self, from: data) {
+                    DispatchQueue.main.async {
+                        catPosts = decodedPosts // Load saved posts
+                    }
+                }
             }
         }
     }
