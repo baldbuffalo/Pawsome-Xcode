@@ -29,9 +29,15 @@ struct ProfileView: View {
                         isEditing.toggle()
                     }
                 }) {
-                    Text(isEditing ? "Save" : "Edit") // Toggle button text between "Edit" and "Save"
-                        .fontWeight(.semibold)
-                        .foregroundColor(.blue) // Blue text color
+                    HStack {
+                        if isEditing {
+                            Image(systemName: "pencil") // Show pencil icon when saving
+                                .foregroundColor(.blue) // Set icon color to blue
+                        }
+                        Text(isEditing ? "Save" : "Edit") // Toggle button text between "Edit" and "Save"
+                            .fontWeight(.semibold)
+                            .foregroundColor(.blue) // Blue text color
+                    }
                 }
                 .padding(.trailing) // Add padding to the right
             }
