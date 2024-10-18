@@ -58,7 +58,7 @@ struct ProfileView: View {
                 .padding(.top, 10)
                 .focused($isUsernameFocused) // Bind focus state to the TextField
             
-            // Display the current username if not in edit mode
+            // Display the current username if not focused
             if !isUsernameFocused {
                 Text(currentUsername.isEmpty ? "No Username" : currentUsername)
                     .font(.headline)
@@ -112,19 +112,19 @@ struct ProfileView: View {
         .padding()
         .navigationTitle("Profile Settings") // Optional: Add a navigation title
         .navigationBarTitleDisplayMode(.inline) // Optional: Adjust title display mode
-        .navigationBarItems(trailing: Button(action: {
-            saveUsername()
-            isUsernameFocused = false // Dismiss the keyboard
-        }) {
-            Text("Save")
-                .font(.headline)
-                .foregroundColor(.blue)
-        })
         .photosPicker(isPresented: $showImagePicker, selection: $selectedItem, matching: .images) // Image picker binding
         .onAppear {
             loadProfileImage() // Load profile image on appear
             loadUsername() // Load username on appear
             loadJoinDate() // Load join date on appear
+        }
+        .onChange(of: currentUsername) { newValue in
+            // Save the updated username to UserDefaults
+            UserDefaults.standard.set(newValue, forKey: "currentUsername")
+        }
+        .contentShape(Rectangle()) // Allows the entire VStack to be tappable
+        .onTapGesture {
+            isUsernameFocused = false // Dismiss keyboard when tapping outside
         }
         .onChange(of: selectedItem) { newItem in
             if let newItem = newItem {
@@ -137,16 +137,6 @@ struct ProfileView: View {
                 }
             }
         }
-        .onChange(of: currentUsername) { newValue in
-            // Save the updated username to UserDefaults
-            UserDefaults.standard.set(newValue, forKey: "currentUsername")
-        }
-    }
-
-    // Function to save the username and dismiss the keyboard
-    private func saveUsername() {
-        // Save the updated username to UserDefaults
-        UserDefaults.standard.set(currentUsername, forKey: "currentUsername")
     }
 
     // Function to load the profile image from UserDefaults

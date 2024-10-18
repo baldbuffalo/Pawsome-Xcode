@@ -9,8 +9,8 @@ struct HomeView: View {
     @State private var selectedImage: UIImage? = nil
     @State private var showForm: Bool = false
     @State private var navigateToHome: Bool = false
-    @State private var showComments: Bool = false // State to control comment view visibility
-    @State private var selectedPost: CatPost? = nil // Track which post's comments are shown
+    @State private var showComments: Bool = false
+    @State private var selectedPost: CatPost? = nil
 
     var body: some View {
         TabView {
@@ -21,22 +21,17 @@ struct HomeView: View {
                     Spacer()
                 }
                 .navigationTitle("Pawsome")
-                .onAppear {
-                    DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + 0.1) {
-                        loadPosts() // Load posts when the view appears, in background
-                    }
-                }
+                .onAppear(perform: loadPosts)
                 .sheet(isPresented: $showForm) {
                     if let selectedImage = selectedImage {
                         FormView(showForm: $showForm, navigateToHome: $navigateToHome, imageUI: selectedImage, username: currentUsername) { newPost in
                             catPosts.append(newPost)
-                            savePosts() // Save posts after adding a new one
+                            savePosts()
                         }
                     }
                 }
                 .sheet(isPresented: $showComments) {
                     if let selectedPost = selectedPost {
-                        // Create a Binding to the selectedPost
                         CommentsView(showComments: $showComments, post: Binding(
                             get: { selectedPost },
                             set: { newPost in
@@ -48,12 +43,12 @@ struct HomeView: View {
                     }
                 }
                 .onChange(of: navigateToHome) {
-                    if navigateToHome {
-                        showForm = false // Dismiss the form
-                        navigateToHome = false // Reset the navigation state
-                    }
-                }
-            }
+                                    if navigateToHome {
+                                        showForm = false // Dismiss the form
+                                        navigateToHome = false // Reset the navigation state
+                                    }
+                                }
+                            }
             .tabItem {
                 Label("Home", systemImage: "house")
             }
@@ -64,7 +59,7 @@ struct HomeView: View {
                     username: currentUsername,
                     onPostCreated: { post in
                         catPosts.append(post)
-                        savePosts() // Save posts after creating a new post
+                        savePosts()
                     }
                 )
             }
@@ -91,6 +86,16 @@ struct HomeView: View {
             Text("Hello, \(currentUsername)")
                 .font(.subheadline)
                 .padding(.bottom)
+
+            // Display the profile image if available
+            if let profileImage = profileImage {
+                profileImage
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 60, height: 60)
+                    .clipShape(Circle())
+                    .padding(.bottom)
+            }
         }
     }
 
@@ -119,44 +124,51 @@ struct HomeView: View {
                         Text("Location: \(post.location)")
                         Text("Description: \(post.description)")
                         
-                        HStack {
-                            Button(action: {
-                                if let index = catPosts.firstIndex(where: { $0.id == post.id }) {
-                                    DispatchQueue.main.async {
-                                        catPosts[index].likes = catPosts[index].likes > 0 ? 0 : 1 // Toggle like status
-                                    }
-                                    savePosts()
-                                }
-                            }) {
-                                HStack {
-                                    Image(systemName: post.likes > 0 ? "hand.thumbsup.fill" : "hand.thumbsup")
-                                    Text("Like (\(post.likes))")
-                                }
-                                .padding()
-                                .background(Color.white.opacity(0.5))
-                                .cornerRadius(8)
-                            }
-                            .buttonStyle(BorderlessButtonStyle())
-
-                            Spacer()
-
-                            // Comment button
-                            Button(action: {
-                                selectedPost = post
-                                showComments = true // Show the comments view for this post
-                            }) {
-                                HStack {
-                                    Image(systemName: "message")
-                                    Text("Comment")
-                                }
-                            }
-                            .buttonStyle(BorderlessButtonStyle())
-                        }
-                        .padding(.top, 5)
+                        postActionButtons(for: post)
                     }
                     .padding(.vertical)
                 }
             }
+        }
+    }
+
+    private func postActionButtons(for post: CatPost) -> some View {
+        HStack {
+            Button(action: {
+                toggleLike(for: post)
+            }) {
+                HStack {
+                    Image(systemName: post.likes > 0 ? "hand.thumbsup.fill" : "hand.thumbsup")
+                    Text("Like (\(post.likes))")
+                }
+                .padding()
+                .background(Color.white.opacity(0.5))
+                .cornerRadius(8)
+            }
+            .buttonStyle(BorderlessButtonStyle())
+
+            Spacer()
+
+            Button(action: {
+                selectedPost = post
+                showComments = true
+            }) {
+                HStack {
+                    Image(systemName: "message")
+                    Text("Comment")
+                }
+            }
+            .buttonStyle(BorderlessButtonStyle())
+        }
+        .padding(.top, 5)
+    }
+
+    private func toggleLike(for post: CatPost) {
+        if let index = catPosts.firstIndex(where: { $0.id == post.id }) {
+            DispatchQueue.main.async {
+                catPosts[index].likes = catPosts[index].likes > 0 ? 0 : 1
+            }
+            savePosts()
         }
     }
 
