@@ -32,11 +32,11 @@ struct ProfileView: View {
                 }) {
                     Text(isEditing ? "Save" : "Edit") // Change button title based on editing state
                         .font(.headline)
-                        .padding()
-                        .background(isEditing ? Color.green : Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(10)
+                        .foregroundColor(.blue) // Change text color to blue
+                        .padding(.vertical, 10) // Adjust vertical padding
+                        .padding(.horizontal, 20) // Adjust horizontal padding for spacing
                 }
+                .buttonStyle(PlainButtonStyle()) // Remove background and border
             }
             .padding(.top)
 
