@@ -9,6 +9,8 @@ struct HomeView: View {
     @State private var selectedImage: UIImage? = nil
     @State private var showForm: Bool = false
     @State private var navigateToHome: Bool = false
+    @State private var showComments: Bool = false // Binding for comments view visibility
+    @State private var selectedPost: CatPost? // Store the currently selected post for comments
 
     var body: some View {
         TabView {
@@ -65,6 +67,15 @@ struct HomeView: View {
             }
         }
         .tabViewStyle(DefaultTabViewStyle())
+        .navigationViewStyle(StackNavigationViewStyle())
+        .fullScreenCover(isPresented: $showComments) { // Use full screen cover for comments
+            if let post = selectedPost {
+                CommentsView(showComments: $showComments, post: Binding<CatPost>(
+                    get: { post },
+                    set: { selectedPost = $0 } // Set the post back to selectedPost when updated
+                ))
+            }
+        }
     }
 
     private var headerView: some View {
@@ -126,7 +137,10 @@ struct HomeView: View {
                             Spacer()
 
                             // NavigationLink for Comment button
-                            NavigationLink(destination: CommentsView(showComments: .constant(true), post: $post)) { // Pass a binding to the CommentsView
+                            Button(action: {
+                                selectedPost = post // Set the selected post for comments
+                                showComments = true // Show the comments view
+                            }) {
                                 HStack {
                                     Image(systemName: "message")
                                     Text("Comment")
