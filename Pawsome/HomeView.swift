@@ -32,8 +32,8 @@ struct HomeView: View {
                         }
                     }
                 }
-                .onChange(of: navigateToHome) { newValue in
-                    if newValue {
+                .onChange(of: navigateToHome) {
+                    if navigateToHome {
                         showForm = false // Dismiss the form
                         navigateToHome = false // Reset the navigation state
                     }
