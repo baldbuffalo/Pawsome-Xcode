@@ -34,11 +34,19 @@ struct HomeView: View {
                         }
                     }
                 }
-                .sheet(isPresented: $showComments, content: {
+                .sheet(isPresented: $showComments) {
                     if let selectedPost = selectedPost {
-                        CommentsView(showComments: $showComments, post: selectedPost)
+                        // Create a Binding to the selectedPost
+                        CommentsView(showComments: $showComments, post: Binding(
+                            get: { selectedPost },
+                            set: { newPost in
+                                if let index = catPosts.firstIndex(where: { $0.id == newPost.id }) {
+                                    catPosts[index] = newPost
+                                }
+                            }
+                        ))
                     }
-                })
+                }
                 .onChange(of: navigateToHome) {
                     if navigateToHome {
                         showForm = false // Dismiss the form
