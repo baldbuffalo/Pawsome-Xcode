@@ -106,8 +106,12 @@ struct HomeView: View {
                         // Like button
                         Button(action: {
                             if let index = catPosts.firstIndex(where: { $0.id == post.id }) {
-                                catPosts[index].likes = catPosts[index].likes > 0 ? 0 : 1 // Toggle like status
-                                savePosts() // Save updated posts
+                                // Update UI on the main thread
+                                DispatchQueue.main.async {
+                                    catPosts[index].likes = catPosts[index].likes > 0 ? 0 : 1 // Toggle like status
+                                }
+                                // Save posts in the background
+                                savePosts()
                             }
                         }) {
                             HStack {
@@ -151,8 +155,13 @@ struct HomeView: View {
 
     // Function to save posts to UserDefaults
     private func savePosts() {
-        if let encodedPosts = try? JSONEncoder().encode(catPosts) {
-            UserDefaults.standard.set(encodedPosts, forKey: "catPosts") // Save posts
+        DispatchQueue.global(qos: .background).async {
+            if let encodedPosts = try? JSONEncoder().encode(catPosts) {
+                UserDefaults.standard.set(encodedPosts, forKey: "catPosts")
+                DispatchQueue.main.async {
+                    print("Posts saved successfully")
+                }
+            }
         }
     }
 }
