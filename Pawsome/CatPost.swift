@@ -10,7 +10,7 @@ struct CatPost: Identifiable, Codable {
     var description: String
     var imageData: Data?
     var likes: Int
-    var commentsCount: Int // To track the number of comments
+    var comments: [String] // Array to store comments
 
     // Initializer for convenience
     init(username: String, name: String, breed: String, age: String, location: String, description: String, imageData: Data?) {
@@ -23,6 +23,6 @@ struct CatPost: Identifiable, Codable {
         self.description = description
         self.imageData = imageData
         self.likes = 0
-        self.commentsCount = 0 // Initialize comments count
+        self.comments = [] // Initialize comments as an empty array
     }
 }

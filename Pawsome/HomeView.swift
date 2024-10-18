@@ -9,6 +9,8 @@ struct HomeView: View {
     @State private var selectedImage: UIImage? = nil
     @State private var showForm: Bool = false
     @State private var navigateToHome: Bool = false
+    @State private var showComments: Bool = false // State to control comment view visibility
+    @State private var selectedPost: CatPost? = nil // Track which post's comments are shown
 
     var body: some View {
         TabView {
@@ -32,6 +34,11 @@ struct HomeView: View {
                         }
                     }
                 }
+                .sheet(isPresented: $showComments, content: {
+                    if let selectedPost = selectedPost {
+                        CommentsView(showComments: $showComments, post: selectedPost)
+                    }
+                })
                 .onChange(of: navigateToHome) {
                     if navigateToHome {
                         showForm = false // Dismiss the form
@@ -52,9 +59,6 @@ struct HomeView: View {
                         savePosts() // Save posts after creating a new post
                     }
                 )
-                .onAppear {
-                    // Additional logic if needed
-                }
             }
             .tabItem {
                 Label("Post", systemImage: "camera")
@@ -87,7 +91,6 @@ struct HomeView: View {
             ForEach(catPosts) { post in
                 LazyVStack(alignment: .leading) {
                     VStack(alignment: .leading) {
-                        // Display the name of the person who posted
                         Text("Posted by: \(post.username)")
                             .font(.subheadline)
                             .foregroundColor(.gray)
@@ -100,7 +103,7 @@ struct HomeView: View {
                                 .frame(height: 200)
                                 .cornerRadius(12)
                         }
-                        
+
                         Text(post.name)
                             .font(.headline)
                         Text("Breed: \(post.breed)")
@@ -109,7 +112,6 @@ struct HomeView: View {
                         Text("Description: \(post.description)")
                         
                         HStack {
-                            // Like button
                             Button(action: {
                                 if let index = catPosts.firstIndex(where: { $0.id == post.id }) {
                                     DispatchQueue.main.async {
@@ -132,7 +134,8 @@ struct HomeView: View {
 
                             // Comment button
                             Button(action: {
-                                print("Comment button tapped for post: \(post.id)")
+                                selectedPost = post
+                                showComments = true // Show the comments view for this post
                             }) {
                                 HStack {
                                     Image(systemName: "message")
