@@ -9,11 +9,10 @@ struct HomeView: View {
     @State private var selectedImage: UIImage? = nil
     @State private var showForm: Bool = false
     @State private var navigateToHome: Bool = false
-    @State private var selectedPost: CatPost? // Store the currently selected post for comments
 
     var body: some View {
-        TabView {
-            NavigationStack {
+        NavigationStack {
+            TabView {
                 VStack(spacing: 0) {
                     headerView
                     postListView
@@ -31,12 +30,8 @@ struct HomeView: View {
                         }
                     }
                 }
-                .onChange(of: navigateToHome) {
-                    if navigateToHome {
-                        showForm = false // Dismiss the form
-                        navigateToHome = false // Reset the navigation state
-                    }
-                }
+
+                // Ensure this destination is declared before the NavigationLink
                 .navigationDestination(for: CatPost.self) { post in
                     CommentsView(showComments: .constant(true), post: Binding(
                         get: { post },
@@ -47,35 +42,15 @@ struct HomeView: View {
                         }
                     ))
                 }
-            }
-            .tabItem {
-                Label("Home", systemImage: "house")
-            }
 
-            NavigationStack {
-                ScanView(
-                    capturedImage: $selectedImage,
-                    username: currentUsername,
-                    onPostCreated: { post in
-                        catPosts.append(post)
-                        savePosts() // Save posts after creating a new post
-                    }
-                )
-            }
-            .tabItem {
-                Label("Post", systemImage: "camera")
-            }
+                .tabItem {
+                    Label("Home", systemImage: "house")
+                }
 
-            NavigationStack {
-                ProfileView(isLoggedIn: $isLoggedIn, currentUsername: $currentUsername, profileImage: $profileImage)
-                    .navigationTitle("Profile")
-            }
-            .tabItem {
-                Label("Profile", systemImage: "person")
+                // Other tab views...
             }
         }
-        .tabViewStyle(DefaultTabViewStyle())
-        .navigationViewStyle(StackNavigationViewStyle())
+        .navigationViewStyle(StackNavigationViewStyle()) // Optional, depending on your UI
     }
 
     private var headerView: some View {
@@ -91,10 +66,9 @@ struct HomeView: View {
 
     private var postListView: some View {
         List {
-            ForEach($catPosts) { $post in // Use a binding to access and update each post
+            ForEach($catPosts) { $post in
                 LazyVStack(alignment: .leading) {
                     VStack(alignment: .leading) {
-                        // Show only the username
                         Text("Posted by: \(post.username)")
                             .font(.subheadline)
                             .foregroundColor(.gray)
