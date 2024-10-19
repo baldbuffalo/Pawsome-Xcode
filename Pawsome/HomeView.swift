@@ -11,62 +11,70 @@ struct HomeView: View {
     @State private var navigateToHome: Bool = false
     @State private var selectedPost: CatPost? // Store the currently selected post for comments
     @State private var isTabBarHidden: Bool = false // State to control tab bar visibility
+    @State private var isTabViewHidden: Bool = false // State to control TabView visibility
 
     var body: some View {
-        TabView {
-            NavigationStack {
-                VStack(spacing: 0) {
-                    headerView
-                    postListView
-                    Spacer()
-                }
-                .navigationTitle("Pawsome")
-                .onAppear {
-                    loadPosts() // Load posts when the view appears
-                }
-                .sheet(isPresented: $showForm) {
-                    if let selectedImage = selectedImage {
-                        FormView(showForm: $showForm, navigateToHome: $navigateToHome, imageUI: selectedImage, username: currentUsername) { newPost in
-                            catPosts.append(newPost)
-                            savePosts() // Save posts after adding a new one
+        Group {
+            if !isTabViewHidden {
+                TabView {
+                    NavigationStack {
+                        VStack(spacing: 0) {
+                            headerView
+                            postListView
+                            Spacer()
+                        }
+                        .navigationTitle("Pawsome")
+                        .onAppear {
+                            loadPosts() // Load posts when the view appears
+                        }
+                        .sheet(isPresented: $showForm) {
+                            if let selectedImage = selectedImage {
+                                FormView(showForm: $showForm, navigateToHome: $navigateToHome, imageUI: selectedImage, username: currentUsername) { newPost in
+                                    catPosts.append(newPost)
+                                    savePosts() // Save posts after adding a new one
+                                }
+                            }
+                        }
+                        .onChange(of: navigateToHome) {
+                            if navigateToHome {
+                                showForm = false // Dismiss the form
+                                navigateToHome = false // Reset the navigation state
+                            }
                         }
                     }
-                }
-                .onChange(of: navigateToHome) {
-                    if navigateToHome {
-                        showForm = false // Dismiss the form
-                        navigateToHome = false // Reset the navigation state
+                    .tabItem {
+                        Label("Home", systemImage: "house")
+                    }
+
+                    NavigationStack {
+                        ScanView(
+                            capturedImage: $selectedImage,
+                            username: currentUsername,
+                            onPostCreated: { post in
+                                catPosts.append(post)
+                                savePosts() // Save posts after creating a new post
+                            }
+                        )
+                    }
+                    .tabItem {
+                        Label("Post", systemImage: "camera")
+                    }
+
+                    NavigationStack {
+                        ProfileView(isLoggedIn: $isLoggedIn, currentUsername: $currentUsername, profileImage: $profileImage)
+                            .navigationTitle("Profile")
+                    }
+                    .tabItem {
+                        Label("Profile", systemImage: "person")
                     }
                 }
-            }
-            .tabItem {
-                Label("Home", systemImage: "house")
-            }
-
-            NavigationStack {
-                ScanView(
-                    capturedImage: $selectedImage,
-                    username: currentUsername,
-                    onPostCreated: { post in
-                        catPosts.append(post)
-                        savePosts() // Save posts after creating a new post
-                    }
-                )
-            }
-            .tabItem {
-                Label("Post", systemImage: "camera")
-            }
-
-            NavigationStack {
-                ProfileView(isLoggedIn: $isLoggedIn, currentUsername: $currentUsername, profileImage: $profileImage)
-                    .navigationTitle("Profile")
-            }
-            .tabItem {
-                Label("Profile", systemImage: "person")
+                .tabViewStyle(DefaultTabViewStyle())
+                .navigationViewStyle(StackNavigationViewStyle())
+            } else {
+                // Optional: Display a view or message when the TabView is hidden
+                Color.clear // Or replace this with any placeholder view
             }
         }
-        .tabViewStyle(DefaultTabViewStyle())
-        .navigationViewStyle(StackNavigationViewStyle())
     }
 
     private var headerView: some View {
@@ -137,10 +145,10 @@ struct HomeView: View {
                                 }
                             ))
                             .onAppear {
-                                isTabBarHidden = true // Hide tab items when CommentsView appears
+                                isTabViewHidden = true // Hide TabView when CommentsView appears
                             }
                             .onDisappear {
-                                isTabBarHidden = false // Show tab items again when CommentsView disappears
+                                isTabViewHidden = false // Show TabView again when CommentsView disappears
                             }) {
                                 HStack {
                                     Image(systemName: "message")
