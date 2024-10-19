@@ -10,7 +10,6 @@ struct HomeView: View {
     @State private var showForm: Bool = false
     @State private var navigateToHome: Bool = false
     @State private var selectedPost: CatPost? // Store the currently selected post for comments
-    @State private var isTabBarHidden: Bool = false // State to control tab bar visibility
     @State private var isTabViewHidden: Bool = false // State to control TabView visibility
 
     var body: some View {
@@ -70,9 +69,6 @@ struct HomeView: View {
                 }
                 .tabViewStyle(DefaultTabViewStyle())
                 .navigationViewStyle(StackNavigationViewStyle())
-            } else {
-                // Optional: Display a view or message when the TabView is hidden
-                Color.clear // Or replace this with any placeholder view
             }
         }
     }
