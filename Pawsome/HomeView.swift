@@ -4,12 +4,11 @@ struct HomeView: View {
     @Binding var isLoggedIn: Bool
     @Binding var currentUsername: String
     @Binding var profileImage: Image?
-
     @State private var catPosts: [CatPost] = []
     @State private var selectedImage: UIImage? = nil
     @State private var showForm: Bool = false
     @State private var navigateToHome: Bool = false
-    @State private var selectedPost: CatPost? // Store the currently selected post for comments
+    @State private var isTabBarHidden: Bool = false // State to manage tab bar visibility
 
     var body: some View {
         TabView {
@@ -37,6 +36,7 @@ struct HomeView: View {
                         navigateToHome = false // Reset the navigation state
                     }
                 }
+                .navigationBarHidden(isTabBarHidden) // Hide tab bar based on state
             }
             .tabItem {
                 Label("Home", systemImage: "house")
@@ -127,14 +127,20 @@ struct HomeView: View {
                             Spacer()
 
                             // NavigationLink to CommentsView
-                            NavigationLink(destination: CommentsView(showComments: .constant(true), post: Binding(
+                            NavigationLink(destination: CommentsView(showComments: $isTabBarHidden, post: Binding(
                                 get: { post },
                                 set: { newPost in
                                     if let index = catPosts.firstIndex(where: { $0.id == newPost.id }) {
                                         catPosts[index] = newPost // Update the post in catPosts
                                     }
                                 }
-                            ))) {
+                            ).onAppear {
+                                // Hide the tab bar when navigating to CommentsView
+                                isTabBarHidden = true
+                            }.onDisappear {
+                                // Show the tab bar when returning to HomeView
+                                isTabBarHidden = false
+                            })) {
                                 HStack {
                                     Image(systemName: "message")
                                     Text("Comment")
