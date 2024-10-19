@@ -4,11 +4,13 @@ struct HomeView: View {
     @Binding var isLoggedIn: Bool
     @Binding var currentUsername: String
     @Binding var profileImage: Image?
+    
     @State private var catPosts: [CatPost] = []
     @State private var selectedImage: UIImage? = nil
     @State private var showForm: Bool = false
     @State private var navigateToHome: Bool = false
-    @State private var isTabBarHidden: Bool = false // State to manage tab bar visibility
+    @State private var selectedPost: CatPost? // Store the currently selected post for comments
+    @State private var isTabBarHidden: Bool = false // State for tab bar visibility
 
     var body: some View {
         TabView {
@@ -36,12 +38,22 @@ struct HomeView: View {
                         navigateToHome = false // Reset the navigation state
                     }
                 }
-                .navigationBarHidden(isTabBarHidden) // Hide tab bar based on state
+                .toolbar {
+                    // Set the tab bar visibility based on isTabBarHidden
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button(action: {
+                            isTabBarHidden.toggle() // Toggle visibility if needed
+                        }) {
+                            Text("Toggle Tab Bar")
+                        }
+                    }
+                }
+                .navigationBarHidden(isTabBarHidden) // Hide the tab bar based on the state
             }
             .tabItem {
                 Label("Home", systemImage: "house")
             }
-
+            
             NavigationStack {
                 ScanView(
                     capturedImage: $selectedImage,
@@ -81,7 +93,7 @@ struct HomeView: View {
 
     private var postListView: some View {
         List {
-            ForEach($catPosts) { $post in // Use a binding to access and update each post
+            ForEach(catPosts) { post in // Use a binding to access and update each post
                 LazyVStack(alignment: .leading) {
                     VStack(alignment: .leading) {
                         // Show only the username
@@ -127,17 +139,19 @@ struct HomeView: View {
                             Spacer()
 
                             // NavigationLink to CommentsView
-                            NavigationLink(destination: CommentsView(showComments: $isTabBarHidden, post: Binding(
+                            NavigationLink(destination: CommentsView(showComments: .constant(true), post: Binding(
                                 get: { post },
                                 set: { newPost in
                                     if let index = catPosts.firstIndex(where: { $0.id == newPost.id }) {
                                         catPosts[index] = newPost // Update the post in catPosts
                                     }
                                 }
-                            ).onAppear {
+                            )
+                            .onAppear {
                                 // Hide the tab bar when navigating to CommentsView
                                 isTabBarHidden = true
-                            }.onDisappear {
+                            }
+                            .onDisappear {
                                 // Show the tab bar when returning to HomeView
                                 isTabBarHidden = false
                             })) {
