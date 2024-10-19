@@ -9,7 +9,7 @@ struct HomeView: View {
     @State private var selectedImage: UIImage? = nil
     @State private var showForm: Bool = false
     @State private var navigateToHome: Bool = false
-    @State private var showComments: Bool = false // Binding for comments view visibility
+    @State private var showComments: Bool = false
     @State private var selectedPost: CatPost? // Store the currently selected post for comments
 
     var body: some View {
@@ -69,10 +69,17 @@ struct HomeView: View {
         .tabViewStyle(DefaultTabViewStyle())
         .navigationViewStyle(StackNavigationViewStyle())
         .fullScreenCover(isPresented: $showComments) { // Use full screen cover for comments
-            if let post = selectedPost {
-                CommentsView(showComments: $showComments, post: Binding<CatPost>(
-                    get: { post },
-                    set: { selectedPost = $0 } // Set the post back to selectedPost when updated
+            if let selectedPost = selectedPost {
+                CommentsView(showComments: $showComments, post: Binding(
+                    get: {
+                        selectedPost // Get the current selected post
+                    },
+                    set: { newValue in
+                        if let index = catPosts.firstIndex(where: { $0.id == newValue.id }) {
+                            catPosts[index] = newValue // Update the post in catPosts
+                        }
+                        self.selectedPost = newValue // Also update selectedPost
+                    }
                 ))
             }
         }
@@ -117,11 +124,7 @@ struct HomeView: View {
 
                         HStack {
                             Button(action: {
-                                if post.likes > 0 {
-                                    post.likes = 0 // Unlike
-                                } else {
-                                    post.likes = 1 // Like
-                                }
+                                post.likes = (post.likes > 0) ? 0 : 1 // Toggle like/unlike
                                 savePosts()
                             }) {
                                 HStack {
