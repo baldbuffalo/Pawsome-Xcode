@@ -9,7 +9,6 @@ struct HomeView: View {
     @State private var selectedImage: UIImage? = nil
     @State private var showForm: Bool = false
     @State private var navigateToHome: Bool = false
-    @State private var showComments: Bool = false
     @State private var selectedPost: CatPost? // Store the currently selected post for comments
 
     var body: some View {
@@ -38,12 +37,21 @@ struct HomeView: View {
                         navigateToHome = false // Reset the navigation state
                     }
                 }
+                .navigationDestination(for: CatPost.self) { post in
+                    CommentsView(showComments: .constant(true), post: Binding(
+                        get: { post },
+                        set: { newPost in
+                            if let index = catPosts.firstIndex(where: { $0.id == newPost.id }) {
+                                catPosts[index] = newPost // Update the post in catPosts
+                            }
+                        }
+                    ))
+                }
             }
             .tabItem {
                 Label("Home", systemImage: "house")
             }
 
-            // Scan and Profile view code remains unchanged
             NavigationStack {
                 ScanView(
                     capturedImage: $selectedImage,
@@ -68,21 +76,6 @@ struct HomeView: View {
         }
         .tabViewStyle(DefaultTabViewStyle())
         .navigationViewStyle(StackNavigationViewStyle())
-        .fullScreenCover(isPresented: $showComments) { // Use full screen cover for comments
-            if let selectedPost = selectedPost {
-                CommentsView(showComments: $showComments, post: Binding(
-                    get: {
-                        selectedPost // Get the current selected post
-                    },
-                    set: { newValue in
-                        if let index = catPosts.firstIndex(where: { $0.id == newValue.id }) {
-                            catPosts[index] = newValue // Update the post in catPosts
-                        }
-                        self.selectedPost = newValue // Also update selectedPost
-                    }
-                ))
-            }
-        }
     }
 
     private var headerView: some View {
@@ -124,7 +117,11 @@ struct HomeView: View {
 
                         HStack {
                             Button(action: {
-                                post.likes = (post.likes > 0) ? 0 : 1 // Toggle like/unlike
+                                if post.likes > 0 {
+                                    post.likes = 0 // Unlike
+                                } else {
+                                    post.likes = 1 // Like
+                                }
                                 savePosts()
                             }) {
                                 HStack {
@@ -139,11 +136,8 @@ struct HomeView: View {
 
                             Spacer()
 
-                            // NavigationLink for Comment button
-                            Button(action: {
-                                selectedPost = post // Set the selected post for comments
-                                showComments = true // Show the comments view
-                            }) {
+                            // NavigationLink to CommentsView
+                            NavigationLink(value: post) {
                                 HStack {
                                     Image(systemName: "message")
                                     Text("Comment")

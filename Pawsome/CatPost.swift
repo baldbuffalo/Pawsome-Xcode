@@ -1,6 +1,6 @@
 import Foundation
 
-struct CatPost: Identifiable, Codable {
+struct CatPost: Identifiable, Codable, Hashable { // Conform to Hashable
     var id: UUID
     var username: String
     var name: String
@@ -24,5 +24,22 @@ struct CatPost: Identifiable, Codable {
         self.imageData = imageData
         self.likes = 0
         self.comments = [] // Initialize comments as an empty array
+    }
+
+    // Hashable conformance
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+        hasher.combine(username)
+        hasher.combine(name)
+        hasher.combine(breed)
+        hasher.combine(age)
+        hasher.combine(location)
+        hasher.combine(description)
+        hasher.combine(likes)
+        hasher.combine(comments) // Include comments for full hashability
+    }
+
+    static func ==(lhs: CatPost, rhs: CatPost) -> Bool {
+        return lhs.id == rhs.id // Compare based on unique ID
     }
 }
