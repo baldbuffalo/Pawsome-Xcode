@@ -143,15 +143,15 @@ struct ProfileView: View {
             loadUsername() // Load username on appear
             loadJoinDate() // Load join date on appear
         }
-        .onChange(of: currentUsername) {
+        .onChange(of: currentUsername) { oldValue, newValue in
             // Save the updated username to UserDefaults
-            UserDefaults.standard.set($0, forKey: "currentUsername")
+            UserDefaults.standard.set(newValue, forKey: "currentUsername")
         }
         .contentShape(Rectangle()) // Allows the entire VStack to be tappable
         .onTapGesture {
             isUsernameFocused = false // Dismiss keyboard when tapping outside
         }
-        .onChange(of: selectedItem) { newItem in
+        .onChange(of: selectedItem) { oldItem, newItem in
             if let newItem = newItem {
                 Task {
                     if let data = try? await newItem.loadTransferable(type: Data.self),
