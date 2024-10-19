@@ -143,9 +143,9 @@ struct ProfileView: View {
             loadUsername() // Load username on appear
             loadJoinDate() // Load join date on appear
         }
-        .onChange(of: currentUsername) { newValue in
+        .onChange(of: currentUsername) {
             // Save the updated username to UserDefaults
-            UserDefaults.standard.set(newValue, forKey: "currentUsername")
+            UserDefaults.standard.set($0, forKey: "currentUsername")
         }
         .contentShape(Rectangle()) // Allows the entire VStack to be tappable
         .onTapGesture {
