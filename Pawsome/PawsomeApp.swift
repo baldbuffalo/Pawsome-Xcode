@@ -8,7 +8,7 @@ struct PawsomeApp: App {
     @State private var profileImage: Image? = nil // Add @State for profileImage
 
     var sharedModelContainer: ModelContainer = {
-        let schema = Schema([Item.self])
+        let schema = Schema([CatPost.self]) // Ensure CatPost is included
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
         do {
