@@ -30,7 +30,7 @@ struct HomeView: View {
                             if let selectedImage = selectedImage {
                                 FormView(showForm: $showForm, navigateToHome: $navigateToHome, imageUI: selectedImage, username: currentUsername) { newPost in
                                     catPosts.append(newPost)
-                                    savePosts() // Save posts after adding a new one
+                                    savePostsToFile() // Save posts after adding a new one
                                 }
                             }
                         }
@@ -51,7 +51,7 @@ struct HomeView: View {
                             username: currentUsername,
                             onPostCreated: { post in
                                 catPosts.append(post)
-                                savePosts() // Save posts after creating a new post
+                                savePostsToFile() // Save posts after creating a new post
                             }
                         )
                     }
@@ -117,7 +117,7 @@ struct HomeView: View {
                                 } else {
                                     post.likes = 1 // Like
                                 }
-                                savePosts()
+                                savePostsToFile() // Save changes
                             }) {
                                 HStack {
                                     Image(systemName: post.likes > 0 ? "hand.thumbsup.fill" : "hand.thumbsup")
@@ -132,17 +132,14 @@ struct HomeView: View {
                             Spacer()
 
                             // NavigationLink to CommentsView
-                            NavigationLink(destination: CommentsView(showComments: Binding(
-                                get: { true }, // Always show comments when navigating
-                                set: { _ in } // Do nothing on set
-                            ), post: Binding(
+                            NavigationLink(destination: CommentsView(showComments: .constant(true), post: Binding(
                                 get: { post },
                                 set: { newPost in
                                     if let index = catPosts.firstIndex(where: { $0.id == newPost.id }) {
                                         catPosts[index] = newPost // Update the post in catPosts
                                     }
                                 }
-                            )) // Pass post binding
+                            ))
                             .onAppear {
                                 isTabViewHidden = true // Hide TabView when CommentsView appears
                             }
@@ -165,25 +162,26 @@ struct HomeView: View {
     }
 
     private func loadPosts() {
-        DispatchQueue.global(qos: .background).async {
-            if let data = UserDefaults.standard.data(forKey: "catPosts") {
-                if let decodedPosts = try? JSONDecoder().decode([CatPost].self, from: data) {
-                    DispatchQueue.main.async {
-                        catPosts = decodedPosts
-                    }
-                }
-            }
+        let fileURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("catPosts.json")
+        
+        do {
+            let data = try Data(contentsOf: fileURL)
+            catPosts = try JSONDecoder().decode([CatPost].self, from: data)
+            print("Posts loaded from file successfully")
+        } catch {
+            print("Error loading posts from file: \(error)")
         }
     }
 
-    private func savePosts() {
-        DispatchQueue.global(qos: .background).async {
-            if let encodedPosts = try? JSONEncoder().encode(catPosts) {
-                UserDefaults.standard.set(encodedPosts, forKey: "catPosts")
-                DispatchQueue.main.async {
-                    print("Posts saved successfully")
-                }
-            }
+    private func savePostsToFile() {
+        let fileURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("catPosts.json")
+        
+        do {
+            let data = try JSONEncoder().encode(catPosts)
+            try data.write(to: fileURL)
+            print("Posts saved to file successfully")
+        } catch {
+            print("Error saving posts to file: \(error)")
         }
     }
 }

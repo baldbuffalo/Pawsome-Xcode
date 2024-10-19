@@ -13,7 +13,7 @@ struct CatPost: Identifiable, Codable, Hashable {
     var comments: [String] // Array to store comments
 
     // Initializer for convenience
-    init(username: String, name: String, breed: String, age: String, location: String, description: String, imageData: Data? = nil) {
+    init(username: String, name: String, breed: String, age: String, location: String, description: String, imageData: Data?) {
         self.id = UUID()
         self.username = username
         self.name = name
@@ -36,7 +36,7 @@ struct CatPost: Identifiable, Codable, Hashable {
         hasher.combine(location)
         hasher.combine(description)
         hasher.combine(likes)
-        // Removed comments from hash function
+        hasher.combine(comments) // Include comments for full hashability
     }
 
     static func ==(lhs: CatPost, rhs: CatPost) -> Bool {
