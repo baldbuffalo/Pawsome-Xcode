@@ -9,10 +9,11 @@ struct HomeView: View {
     @State private var selectedImage: UIImage? = nil
     @State private var showForm: Bool = false
     @State private var navigateToHome: Bool = false
+    @State private var selectedPost: CatPost? // Store the currently selected post for comments
 
     var body: some View {
-        NavigationStack {
-            TabView {
+        TabView {
+            NavigationStack {
                 VStack(spacing: 0) {
                     headerView
                     postListView
@@ -30,27 +31,41 @@ struct HomeView: View {
                         }
                     }
                 }
-
-                // Ensure this destination is declared before the NavigationLink
-                .navigationDestination(for: CatPost.self) { post in
-                    CommentsView(showComments: .constant(true), post: Binding(
-                        get: { post },
-                        set: { newPost in
-                            if let index = catPosts.firstIndex(where: { $0.id == newPost.id }) {
-                                catPosts[index] = newPost // Update the post in catPosts
-                            }
-                        }
-                    ))
+                .onChange(of: navigateToHome) {
+                    if navigateToHome {
+                        showForm = false // Dismiss the form
+                        navigateToHome = false // Reset the navigation state
+                    }
                 }
+            }
+            .tabItem {
+                Label("Home", systemImage: "house")
+            }
 
-                .tabItem {
-                    Label("Home", systemImage: "house")
-                }
+            NavigationStack {
+                ScanView(
+                    capturedImage: $selectedImage,
+                    username: currentUsername,
+                    onPostCreated: { post in
+                        catPosts.append(post)
+                        savePosts() // Save posts after creating a new post
+                    }
+                )
+            }
+            .tabItem {
+                Label("Post", systemImage: "camera")
+            }
 
-                // Other tab views...
+            NavigationStack {
+                ProfileView(isLoggedIn: $isLoggedIn, currentUsername: $currentUsername, profileImage: $profileImage)
+                    .navigationTitle("Profile")
+            }
+            .tabItem {
+                Label("Profile", systemImage: "person")
             }
         }
-        .navigationViewStyle(StackNavigationViewStyle()) // Optional, depending on your UI
+        .tabViewStyle(DefaultTabViewStyle())
+        .navigationViewStyle(StackNavigationViewStyle())
     }
 
     private var headerView: some View {
@@ -66,9 +81,10 @@ struct HomeView: View {
 
     private var postListView: some View {
         List {
-            ForEach($catPosts) { $post in
+            ForEach($catPosts) { $post in // Use a binding to access and update each post
                 LazyVStack(alignment: .leading) {
                     VStack(alignment: .leading) {
+                        // Show only the username
                         Text("Posted by: \(post.username)")
                             .font(.subheadline)
                             .foregroundColor(.gray)
@@ -111,7 +127,14 @@ struct HomeView: View {
                             Spacer()
 
                             // NavigationLink to CommentsView
-                            NavigationLink(value: post) {
+                            NavigationLink(destination: CommentsView(showComments: .constant(true), post: Binding(
+                                get: { post },
+                                set: { newPost in
+                                    if let index = catPosts.firstIndex(where: { $0.id == newPost.id }) {
+                                        catPosts[index] = newPost // Update the post in catPosts
+                                    }
+                                }
+                            ))) {
                                 HStack {
                                     Image(systemName: "message")
                                     Text("Comment")
