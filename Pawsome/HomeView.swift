@@ -132,14 +132,17 @@ struct HomeView: View {
                             Spacer()
 
                             // NavigationLink to CommentsView
-                            NavigationLink(destination: CommentsView(showComments: .constant(true), post: Binding(
+                            NavigationLink(destination: CommentsView(showComments: Binding(
+                                get: { true }, // Always show comments when navigating
+                                set: { _ in } // Do nothing on set
+                            ), post: Binding(
                                 get: { post },
                                 set: { newPost in
                                     if let index = catPosts.firstIndex(where: { $0.id == newPost.id }) {
                                         catPosts[index] = newPost // Update the post in catPosts
                                     }
                                 }
-                            ))
+                            )) // Pass post binding
                             .onAppear {
                                 isTabViewHidden = true // Hide TabView when CommentsView appears
                             }

@@ -1,6 +1,6 @@
 import Foundation
 
-struct CatPost: Identifiable, Codable, Hashable { // Conform to Hashable
+struct CatPost: Identifiable, Codable, Hashable {
     var id: UUID
     var username: String
     var name: String
@@ -13,7 +13,7 @@ struct CatPost: Identifiable, Codable, Hashable { // Conform to Hashable
     var comments: [String] // Array to store comments
 
     // Initializer for convenience
-    init(username: String, name: String, breed: String, age: String, location: String, description: String, imageData: Data?) {
+    init(username: String, name: String, breed: String, age: String, location: String, description: String, imageData: Data? = nil) {
         self.id = UUID()
         self.username = username
         self.name = name
@@ -36,7 +36,7 @@ struct CatPost: Identifiable, Codable, Hashable { // Conform to Hashable
         hasher.combine(location)
         hasher.combine(description)
         hasher.combine(likes)
-        hasher.combine(comments) // Include comments for full hashability
+        // Removed comments from hash function
     }
 
     static func ==(lhs: CatPost, rhs: CatPost) -> Bool {

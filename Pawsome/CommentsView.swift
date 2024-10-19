@@ -3,20 +3,22 @@ import SwiftUI
 struct CommentsView: View {
     @Binding var showComments: Bool
     @Binding var post: CatPost // Use Binding to update the post with new comments
-    
+
     @State private var newComment: String = ""
 
     var body: some View {
         NavigationStack {
             VStack {
-                List(post.comments, id: \.self) { comment in
-                    // Styling each comment to resemble Instagram's comments
-                    Text(comment)
-                        .padding(10) // Add padding for spacing
-                        .background(Color.white) // Background color
-                        .cornerRadius(10) // Rounded corners
-                        .shadow(radius: 1) // Subtle shadow for depth
-                        .listRowSeparator(.hidden) // Hide default row separators
+                List {
+                    ForEach(post.comments, id: \.self) { comment in
+                        // Styling each comment to resemble Instagram's comments
+                        Text(comment)
+                            .padding(10) // Add padding for spacing
+                            .background(Color.white) // Background color
+                            .cornerRadius(10) // Rounded corners
+                            .shadow(radius: 1) // Subtle shadow for depth
+                            .listRowSeparator(.hidden) // Hide default row separators
+                    }
                 }
                 .listStyle(PlainListStyle()) // Use plain list style for minimal look
                 .padding(.top)
@@ -42,6 +44,7 @@ struct CommentsView: View {
                             .background(Color.clear) // Clear background for button
                             .cornerRadius(20) // Rounded corners
                     }
+                    .disabled(newComment.isEmpty) // Disable button if no text
                 }
                 .padding()
             }
