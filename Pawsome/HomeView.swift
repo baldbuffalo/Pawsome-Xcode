@@ -4,12 +4,13 @@ struct HomeView: View {
     @Binding var isLoggedIn: Bool
     @Binding var currentUsername: String
     @Binding var profileImage: Image?
-    
+
     @State private var catPosts: [CatPost] = []
     @State private var selectedImage: UIImage? = nil
     @State private var showForm: Bool = false
     @State private var navigateToHome: Bool = false
-    @State private var isTabBarHidden: Bool = false
+    @State private var selectedPost: CatPost? // Store the currently selected post for comments
+    @State private var isTabBarHidden: Bool = false // State to control tab bar visibility
 
     var body: some View {
         TabView {
@@ -31,21 +32,17 @@ struct HomeView: View {
                         }
                     }
                 }
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarLeading) {
-                        Button(action: {
-                            isTabBarHidden.toggle() // Toggle visibility if needed
-                        }) {
-                            Text("Toggle Tab Bar")
-                        }
+                .onChange(of: navigateToHome) {
+                    if navigateToHome {
+                        showForm = false // Dismiss the form
+                        navigateToHome = false // Reset the navigation state
                     }
                 }
-                .navigationBarHidden(isTabBarHidden) // Hide the tab bar based on the state
             }
             .tabItem {
                 Label("Home", systemImage: "house")
             }
-            
+
             NavigationStack {
                 ScanView(
                     capturedImage: $selectedImage,
@@ -85,9 +82,10 @@ struct HomeView: View {
 
     private var postListView: some View {
         List {
-            ForEach($catPosts) { $post in // Use $ to create a binding
+            ForEach($catPosts) { $post in // Use a binding to access and update each post
                 LazyVStack(alignment: .leading) {
                     VStack(alignment: .leading) {
+                        // Show only the username
                         Text("Posted by: \(post.username)")
                             .font(.subheadline)
                             .foregroundColor(.gray)
@@ -130,15 +128,20 @@ struct HomeView: View {
                             Spacer()
 
                             // NavigationLink to CommentsView
-                            NavigationLink(destination: CommentsView(showComments: .constant(true), post: $post) // Pass binding directly
-                                .onAppear {
-                                    // Hide the tab bar when navigating to CommentsView
-                                    isTabBarHidden = true
+                            NavigationLink(destination: CommentsView(showComments: .constant(true), post: Binding(
+                                get: { post },
+                                set: { newPost in
+                                    if let index = catPosts.firstIndex(where: { $0.id == newPost.id }) {
+                                        catPosts[index] = newPost // Update the post in catPosts
+                                    }
                                 }
-                                .onDisappear {
-                                    // Show the tab bar when returning to HomeView
-                                    isTabBarHidden = false
-                                }) {
+                            ))
+                            .onAppear {
+                                isTabBarHidden = true // Hide tab items when CommentsView appears
+                            }
+                            .onDisappear {
+                                isTabBarHidden = false // Show tab items again when CommentsView disappears
+                            }) {
                                 HStack {
                                     Image(systemName: "message")
                                     Text("Comment")
