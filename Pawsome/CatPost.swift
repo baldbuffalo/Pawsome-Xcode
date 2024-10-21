@@ -2,45 +2,68 @@ import Foundation
 import CoreData
 import SwiftData
 
-@objc(CatPost) // Matches the entity name in your .xcdatamodeld file
+@objc(CatPost)
 public class CatPost: NSManagedObject, PersistentModel {
-    
-    // Required properties
     @NSManaged public var id: UUID
     @NSManaged public var username: String
     @NSManaged public var name: String
     @NSManaged public var breed: String
     @NSManaged public var age: String
     @NSManaged public var location: String
-    @NSManaged public var postDescription: String // Renamed to avoid using "description"
+    @NSManaged public var postDescription: String
     @NSManaged public var imageData: Data?
     @NSManaged public var likes: Int64
-    @NSManaged public var comments: [String]? // This should be a transformable type or a separate entity
+    @NSManaged public var comments: [String]?
 
-    // Required initializer for PersistentModel
+    // If the PersistentModel protocol requires a date property
+    @NSManaged public var creationDate: Date?
+    @NSManaged public var modificationDate: Date?
+
     required convenience init(context: NSManagedObjectContext) {
         let entity = NSEntityDescription.entity(forEntityName: "CatPost", in: context)!
         self.init(entity: entity, insertInto: context)
     }
 
-    // Additional method required for PersistentModel (if applicable)
-    public static func fetchRequest() -> NSFetchRequest<CatPost> {
-        return NSFetchRequest<CatPost>(entityName: "CatPost")
-    }
-    
-    // Initializer for convenience
     convenience init(context: NSManagedObjectContext, username: String, name: String, breed: String, age: String, location: String, postDescription: String, imageData: Data?) {
-        self.init(context: context) // Call the required initializer
-        
+        self.init(context: context)
         self.id = UUID()
         self.username = username
         self.name = name
         self.breed = breed
         self.age = age
         self.location = location
-        self.postDescription = postDescription // Updated to match the property
+        self.postDescription = postDescription
         self.imageData = imageData
         self.likes = 0
-        self.comments = [] // Initialize comments as an empty array
+        self.comments = [] // Initialize as an empty array
+        self.creationDate = Date() // Set the creation date
+        self.modificationDate = Date() // Set the modification date
+    }
+
+    public static func fetchRequest() -> NSFetchRequest<CatPost> {
+        return NSFetchRequest<CatPost>(entityName: "CatPost")
+    }
+
+    // Example of a required property/method
+    public var modelID: UUID {
+        return id
+    }
+
+    // If the protocol requires methods for saving or deleting
+    public func save() {
+        // Implement save functionality
+    }
+
+    public func delete() {
+        // Implement delete functionality
+    }
+}
+
+// Extension for additional functionality
+extension CatPost {
+    public static func defaultFetchRequest() -> NSFetchRequest<CatPost> {
+        let request = fetchRequest()
+        request.predicate = nil
+        return request
     }
 }
