@@ -5,10 +5,11 @@ import SwiftData
 struct PawsomeApp: App {
     @State private var isLoggedIn: Bool = false
     @State private var username: String = ""
-    @State private var profileImage: Image? = nil // Add @State for profileImage
+    @State private var profileImage: Image? = nil
 
     var sharedModelContainer: ModelContainer = {
-        let schema = Schema([CatPost.self]) // Use CatPost directly
+        // Use CatPost instead of UserPost
+        let schema = Schema([CatPost.self])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
         do {
