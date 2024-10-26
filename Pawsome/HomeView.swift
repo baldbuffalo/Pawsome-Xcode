@@ -12,6 +12,12 @@ struct HomeView: View {
     @State private var isTabViewHidden: Bool = false
 
     @Environment(\.managedObjectContext) private var viewContext
+    
+    // Fetch CatPosts from Core Data sorted by timestamp
+    @FetchRequest(
+        entity: CatPost.entity(),
+        sortDescriptors: [NSSortDescriptor(keyPath: \CatPost.timestamp, ascending: false)] // Sort by timestamp
+    ) var catPosts: FetchedResults<CatPost>
 
     var body: some View {
         Group {
@@ -27,7 +33,7 @@ struct HomeView: View {
                         .sheet(isPresented: $showForm) {
                             if let selectedImage = selectedImage {
                                 FormView(showForm: $showForm, navigateToHome: $navigateToHome, imageUI: selectedImage, videoURL: nil, username: currentUsername) { newPost in
-                                    // No need to add post-saving logic here
+                                    // Handle new post logic here, if necessary
                                 }
                             }
                         }
@@ -46,7 +52,8 @@ struct HomeView: View {
                             capturedImage: $selectedImage,
                             username: currentUsername,
                             onPostCreated: { post in
-                                // No need to add post-saving logic here
+                                // Save the new post to Core Data
+                                savePost(post) // Implement this function to save the post
                             }
                         )
                     }
@@ -82,12 +89,12 @@ struct HomeView: View {
         List {
             ForEach(catPosts, id: \.self) { post in
                 VStack(alignment: .leading) {
-                    Text("Posted by: \(post.username ?? "")")
+                    Text("Posted by: \(post.username ?? "")") // Uses Core Data property 'username'
                         .font(.subheadline)
                         .foregroundColor(.gray)
                         .padding(.bottom, 2)
 
-                    if let imageData = post.imageData, let image = UIImage(data: imageData) {
+                    if let imageData = post.imageData, let image = UIImage(data: imageData) { // Uses Core Data property 'imageData'
                         Image(uiImage: image)
                             .resizable()
                             .scaledToFit()
@@ -95,17 +102,27 @@ struct HomeView: View {
                             .cornerRadius(12)
                     }
 
-                    Text(post.name ?? "")
+                    Text(post.name ?? "") // Uses Core Data property 'name'
                         .font(.headline)
-                    Text("Breed: \(post.breed ?? "")")
-                    Text("Age: \(post.age ?? "")")
-                    Text("Location: \(post.location ?? "")")
-                    Text("Description: \(post.postDescription ?? "")")
+                    Text("Breed: \(post.breed ?? "")") // Uses Core Data property 'breed'
+                    
+                    // Uses Core Data property for age
+                    Text("Age: \(post.age ?? "Unknown")") // Uses Core Data property 'age'
+
+                    Text("Location: \(post.location ?? "")") // Uses Core Data property 'location'
+                    Text("Description: \(post.postDescription ?? "")") // Uses Core Data property 'postDescription'
+                    
+                    // Display the timestamp
+                    if let timestamp = post.timestamp { // Uses Core Data property 'timestamp'
+                        Text("Posted on: \(formattedDate(timestamp))")
+                            .font(.footnote)
+                            .foregroundColor(.gray)
+                    }
 
                     HStack {
                         Button(action: {
-                            post.likes = post.likes > 0 ? 0 : 1
-                            // Removed saveContext() call
+                            post.likes = post.likes > 0 ? 0 : 1 // Uses Core Data property 'likes'
+                            // Save context if necessary
                         }) {
                             HStack {
                                 Image(systemName: post.likes > 0 ? "hand.thumbsup.fill" : "hand.thumbsup")
@@ -134,5 +151,17 @@ struct HomeView: View {
                 .padding(.vertical)
             }
         }
+    }
+
+    private func formattedDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
+    }
+    
+    private func savePost(_ post: CatPost) {
+        // Implement your saving logic here
+        // Remember to save the context
     }
 }

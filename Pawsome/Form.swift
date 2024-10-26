@@ -24,6 +24,7 @@ struct FormView: View {
         let context = PersistenceController.shared.container.viewContext
         self._catPost = State(initialValue: CatPost(context: context))
         self.catPost.username = self.username
+        self.catPost.timestamp = Date() // Set the current date as the timestamp
     }
 
     var body: some View {
@@ -76,7 +77,8 @@ struct FormView: View {
                 .padding()
 
                 Button(action: {
-                    catPost.imageData = imageUI?.pngData()
+                    catPost.imageData = imageUI?.pngData() // Setting image data to Core Data property
+                    catPost.timestamp = Date() // Update the timestamp when posting
 
                     do {
                         try viewContext.save() // Save Core Data context

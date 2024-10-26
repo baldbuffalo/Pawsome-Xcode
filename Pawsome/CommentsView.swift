@@ -1,50 +1,59 @@
 import SwiftUI
+import CoreData
 
 struct CommentsView: View {
     @Binding var showComments: Bool
     @Binding var post: CatPost // Use Binding to update the post with new comments
 
+    @Environment(\.managedObjectContext) private var viewContext
     @State private var newComment: String = ""
 
     var body: some View {
         NavigationStack {
             VStack {
                 List {
-                    ForEach(post.comments, id: \.self) { comment in
-                        // Styling each comment to resemble Instagram's comments
-                        Text(comment)
-                            .padding(10) // Add padding for spacing
-                            .background(Color.white) // Background color
-                            .cornerRadius(10) // Rounded corners
-                            .shadow(radius: 1) // Subtle shadow for depth
-                            .listRowSeparator(.hidden) // Hide default row separators
+                    ForEach(post.commentsArray, id: \.self) { comment in
+                        Text(comment.text ?? "") // Display each comment's text
+                            .padding(10)
+                            .background(Color.white)
+                            .cornerRadius(10)
+                            .shadow(radius: 1)
+                            .listRowSeparator(.hidden)
                     }
                 }
-                .listStyle(PlainListStyle()) // Use plain list style for minimal look
+                .listStyle(PlainListStyle())
                 .padding(.top)
 
-                // Comment input area styled like Instagram
                 HStack {
                     TextField("Add a comment...", text: $newComment)
                         .padding(10)
-                        .background(Color(.systemGray6)) // Light gray background
-                        .cornerRadius(20) // Rounded corners
-                        .padding(.trailing, 8) // Space between TextField and button
+                        .background(Color(.systemGray6))
+                        .cornerRadius(20)
+                        .padding(.trailing, 8)
 
                     Button(action: {
                         if !newComment.isEmpty {
-                            post.comments.append(newComment) // Append the new comment
-                            newComment = "" // Clear the text field
+                            let comment = Comment(context: viewContext)
+                            comment.text = newComment
+                            comment.timestamp = Date()
+                            comment.catPost = post // Link the comment to the post
+
+                            do {
+                                try viewContext.save()
+                                newComment = "" // Clear the text field
+                            } catch {
+                                print("Error saving comment: \(error.localizedDescription)")
+                            }
                         }
                     }) {
                         Text("Post")
-                            .fontWeight(.bold) // Bold font for emphasis
-                            .foregroundColor(.blue) // Use a blue color for the button text
+                            .fontWeight(.bold)
+                            .foregroundColor(.blue)
                             .padding(10)
-                            .background(Color.clear) // Clear background for button
-                            .cornerRadius(20) // Rounded corners
+                            .background(Color.clear)
+                            .cornerRadius(20)
                     }
-                    .disabled(newComment.isEmpty) // Disable button if no text
+                    .disabled(newComment.isEmpty)
                 }
                 .padding()
             }
@@ -52,12 +61,20 @@ struct CommentsView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Back") {
-                        showComments = false // Close the comments view
+                        showComments = false
                     }
                 }
             }
         }
-        .background(Color(.systemGroupedBackground)) // Background color for the whole view
-        .edgesIgnoringSafeArea(.bottom) // Extend the background color to the bottom
+        .background(Color(.systemGroupedBackground))
+        .edgesIgnoringSafeArea(.bottom)
+    }
+}
+
+// Extension for easier access to the post's comments array
+extension CatPost {
+    var commentsArray: [Comment] {
+        let set = comments as? Set<Comment> ?? []
+        return set.sorted { $0.timestamp ?? Date() < $1.timestamp ?? Date() }
     }
 }
