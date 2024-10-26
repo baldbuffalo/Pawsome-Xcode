@@ -3,13 +3,12 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 70;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
 		6221FE882CA1EA1C00C55851 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 6221FE872CA1EA1C00C55851 /* GoogleSignIn */; };
 		6221FE8A2CA1EA1C00C55851 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 6221FE892CA1EA1C00C55851 /* GoogleSignInSwift */; };
-		624652692CCD1A9C000B3F46 /* PawsomeTests.xctest in Embed PlugIns */ = {isa = PBXBuildFile; fileRef = 62355CD92C84CC5600560D69 /* PawsomeTests.xctest */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		6246526D2CCD1AA1000B3F46 /* PawsomeUITests.xctest in Embed PlugIns */ = {isa = PBXBuildFile; fileRef = 62355CE32C84CC5600560D69 /* PawsomeUITests.xctest */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		624652B82CCD2351000B3F46 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 624652A52CCD2351000B3F46 /* AppDelegate.swift */; };
 		624652BA2CCD2351000B3F46 /* CatPostModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 624652A82CCD2351000B3F46 /* CatPostModel.xcdatamodeld */; };
@@ -26,6 +25,7 @@
 		624652C52CCD2351000B3F46 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 624652A32CCD2351000B3F46 /* Preview Assets.xcassets */; };
 		624652C62CCD2351000B3F46 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 624652A62CCD2351000B3F46 /* Assets.xcassets */; };
 		624652C72CCD2351000B3F46 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 624652AC2CCD2351000B3F46 /* GoogleService-Info.plist */; };
+		6268EBF72CCD471400238C8F /* PawsomeTests.xctest in Embed PlugIns */ = {isa = PBXBuildFile; fileRef = 62355CD92C84CC5600560D69 /* PawsomeTests.xctest */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		629E680A2CC6F53B0018ACEF /* CoreData.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 629E68092CC6F53B0018ACEF /* CoreData.framework */; };
 		62D8049F2CAD1F6B00D13EFA /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 62D8049E2CAD1F6B00D13EFA /* FirebaseAnalytics */; };
 		62D804A12CAD1F6B00D13EFA /* FirebaseAnalyticsOnDeviceConversion in Frameworks */ = {isa = PBXBuildFile; productRef = 62D804A02CAD1F6B00D13EFA /* FirebaseAnalyticsOnDeviceConversion */; };
@@ -49,34 +49,20 @@
 			remoteGlobalIDString = 62355CC42C84CC5400560D69;
 			remoteInfo = Pawsome;
 		};
-		6268EBED2CCD3E3B00238C8F /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 62355CBD2C84CC5400560D69 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 62355CE22C84CC5600560D69;
-			remoteInfo = PawsomeUITests;
-		};
-		6268EBEF2CCD3E6B00238C8F /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 62355CBD2C84CC5400560D69 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 62355CD82C84CC5600560D69;
-			remoteInfo = PawsomeTests;
-		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		6246526C2CCD1A9C000B3F46 /* Embed PlugIns */ = {
 			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 12;
+			buildActionMask = 8;
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				624652692CCD1A9C000B3F46 /* PawsomeTests.xctest in Embed PlugIns */,
+				6268EBF72CCD471400238C8F /* PawsomeTests.xctest in Embed PlugIns */,
 				6246526D2CCD1AA1000B3F46 /* PawsomeUITests.xctest in Embed PlugIns */,
 			);
 			name = "Embed PlugIns";
-			runOnlyForDeploymentPostprocessing = 0;
+			runOnlyForDeploymentPostprocessing = 1;
 		};
 /* End PBXCopyFilesBuildPhase section */
 
@@ -106,8 +92,16 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		62355CDC2C84CC5600560D69 /* PawsomeTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = PawsomeTests; sourceTree = "<group>"; };
-		62355CE62C84CC5600560D69 /* PawsomeUITests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = PawsomeUITests; sourceTree = "<group>"; };
+		62355CDC2C84CC5600560D69 /* PawsomeTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = PawsomeTests;
+			sourceTree = "<group>";
+		};
+		62355CE62C84CC5600560D69 /* PawsomeUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = PawsomeUITests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -220,8 +214,6 @@
 			buildRules = (
 			);
 			dependencies = (
-				6268EBF02CCD3E6B00238C8F /* PBXTargetDependency */,
-				6268EBEE2CCD3E3B00238C8F /* PBXTargetDependency */,
 			);
 			name = Pawsome;
 			packageProductDependencies = (
@@ -307,7 +299,6 @@
 				};
 			};
 			buildConfigurationList = 62355CC02C84CC5400560D69 /* Build configuration list for PBXProject "Pawsome" */;
-			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -319,6 +310,7 @@
 				6221FE862CA1EA1C00C55851 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
 				622262992CAD1008003661E6 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 			);
+			preferredProjectObjectVersion = 77;
 			productRefGroup = 62355CC62C84CC5400560D69 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -403,16 +395,6 @@
 			isa = PBXTargetDependency;
 			target = 62355CC42C84CC5400560D69 /* Pawsome */;
 			targetProxy = 6268EBE12CCD375C00238C8F /* PBXContainerItemProxy */;
-		};
-		6268EBEE2CCD3E3B00238C8F /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 62355CE22C84CC5600560D69 /* PawsomeUITests */;
-			targetProxy = 6268EBED2CCD3E3B00238C8F /* PBXContainerItemProxy */;
-		};
-		6268EBF02CCD3E6B00238C8F /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 62355CD82C84CC5600560D69 /* PawsomeTests */;
-			targetProxy = 6268EBEF2CCD3E6B00238C8F /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
