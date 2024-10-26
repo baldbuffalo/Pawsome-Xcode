@@ -1,9 +1,9 @@
 import Foundation
 import CoreData
 
-@objc(CatPost) // Necessary for Core Data to recognize the class
-public class CatPost: NSManagedObject, Identifiable {
-    
+@objc(CatPostEntity) // Necessary for Core Data to recognize the class
+public class CatPostEntity: NSManagedObject, Identifiable {
+
     // Core Data attributes
     @NSManaged public var age: String?
     @NSManaged public var breed: String?
@@ -17,10 +17,19 @@ public class CatPost: NSManagedObject, Identifiable {
     @NSManaged public var name: String?
     @NSManaged public var postDescription: String?
     @NSManaged public var username: String?
-    
+
     // Initializer for the model
-    public class func createCatPost(username: String, name: String, breed: String, age: String, location: String, postDescription: String, imageData: Data?, context: NSManagedObjectContext) -> CatPost {
-        let catPost = CatPost(context: context)
+    public class func createCatPostEntity(
+        username: String,
+        name: String,
+        breed: String,
+        age: String,
+        location: String,
+        postDescription: String,
+        imageData: Data?,
+        context: NSManagedObjectContext
+    ) -> CatPostEntity {
+        let catPost = CatPostEntity(context: context)
         catPost.id = UUID() // Automatically generate a new UUID for each post
         catPost.username = username
         catPost.name = name
@@ -38,8 +47,8 @@ public class CatPost: NSManagedObject, Identifiable {
 }
 
 // Core Data fetch request extension
-extension CatPost {
-    @nonobjc public class func fetchRequest() -> NSFetchRequest<CatPost> {
-        return NSFetchRequest<CatPost>(entityName: "CatPost")
+extension CatPostEntity {
+    @nonobjc public class func fetchRequest() -> NSFetchRequest<CatPostEntity> {
+        return NSFetchRequest<CatPostEntity>(entityName: "CatPostEntity")
     }
 }
