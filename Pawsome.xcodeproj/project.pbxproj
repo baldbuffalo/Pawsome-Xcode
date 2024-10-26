@@ -3,18 +3,15 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
 		6221FE882CA1EA1C00C55851 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 6221FE872CA1EA1C00C55851 /* GoogleSignIn */; };
 		6221FE8A2CA1EA1C00C55851 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 6221FE892CA1EA1C00C55851 /* GoogleSignInSwift */; };
-		624652672CCD1106000B3F46 /* CatPost+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 624652652CCD1106000B3F46 /* CatPost+CoreDataClass.swift */; };
-		624652682CCD1106000B3F46 /* CatPost+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 624652662CCD1106000B3F46 /* CatPost+CoreDataProperties.swift */; };
 		624652692CCD1A9C000B3F46 /* PawsomeTests.xctest in Embed PlugIns */ = {isa = PBXBuildFile; fileRef = 62355CD92C84CC5600560D69 /* PawsomeTests.xctest */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		6246526D2CCD1AA1000B3F46 /* PawsomeUITests.xctest in Embed PlugIns */ = {isa = PBXBuildFile; fileRef = 62355CE32C84CC5600560D69 /* PawsomeUITests.xctest */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		624652B82CCD2351000B3F46 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 624652A52CCD2351000B3F46 /* AppDelegate.swift */; };
-		624652B92CCD2351000B3F46 /* CatPost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 624652A72CCD2351000B3F46 /* CatPost.swift */; };
 		624652BA2CCD2351000B3F46 /* CatPostModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 624652A82CCD2351000B3F46 /* CatPostModel.xcdatamodeld */; };
 		624652BB2CCD2351000B3F46 /* ColorExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 624652A92CCD2351000B3F46 /* ColorExtensions.swift */; };
 		624652BC2CCD2351000B3F46 /* CommentsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 624652AA2CCD2351000B3F46 /* CommentsView.swift */; };
@@ -38,40 +35,26 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		62355CDA2C84CC5600560D69 /* PBXContainerItemProxy */ = {
+		6268EBDF2CCD375800238C8F /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 62355CBD2C84CC5400560D69 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 62355CC42C84CC5400560D69;
 			remoteInfo = Pawsome;
 		};
-		62355CE42C84CC5600560D69 /* PBXContainerItemProxy */ = {
+		6268EBE12CCD375C00238C8F /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 62355CBD2C84CC5400560D69 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 62355CC42C84CC5400560D69;
 			remoteInfo = Pawsome;
-		};
-		6246526A2CCD1A9C000B3F46 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 62355CBD2C84CC5400560D69 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 62355CD82C84CC5600560D69;
-			remoteInfo = PawsomeTests;
-		};
-		6246526E2CCD1AA1000B3F46 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 62355CBD2C84CC5400560D69 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 62355CE22C84CC5600560D69;
-			remoteInfo = PawsomeUITests;
 		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		6246526C2CCD1A9C000B3F46 /* Embed PlugIns */ = {
 			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
+			buildActionMask = 12;
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
@@ -87,12 +70,9 @@
 		62355CC52C84CC5400560D69 /* Pawsome.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Pawsome.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		62355CD92C84CC5600560D69 /* PawsomeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PawsomeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		62355CE32C84CC5600560D69 /* PawsomeUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PawsomeUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		624652652CCD1106000B3F46 /* CatPost+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CatPost+CoreDataClass.swift"; sourceTree = "<group>"; };
-		624652662CCD1106000B3F46 /* CatPost+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CatPost+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		624652A32CCD2351000B3F46 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		624652A52CCD2351000B3F46 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		624652A62CCD2351000B3F46 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		624652A72CCD2351000B3F46 /* CatPost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatPost.swift; sourceTree = "<group>"; };
 		624652A92CCD2351000B3F46 /* ColorExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorExtensions.swift; sourceTree = "<group>"; };
 		624652AA2CCD2351000B3F46 /* CommentsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommentsView.swift; sourceTree = "<group>"; };
 		624652AB2CCD2351000B3F46 /* Form.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Form.swift; sourceTree = "<group>"; };
@@ -107,20 +87,13 @@
 		624652B42CCD2351000B3F46 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		624652B52CCD2351000B3F46 /* ScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanView.swift; sourceTree = "<group>"; };
 		624652B72CCD2351000B3F46 /* CatPostModel.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = CatPostModel.xcdatamodel; sourceTree = "<group>"; };
+		624652DE2CCD2CD4000B3F46 /* CatPostScope.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatPostScope.swift; sourceTree = "<group>"; };
 		629E68092CC6F53B0018ACEF /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.1.sdk/System/Library/Frameworks/CoreData.framework; sourceTree = DEVELOPER_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		62355CDC2C84CC5600560D69 /* PawsomeTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = PawsomeTests;
-			sourceTree = "<group>";
-		};
-		62355CE62C84CC5600560D69 /* PawsomeUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = PawsomeUITests;
-			sourceTree = "<group>";
-		};
+		62355CDC2C84CC5600560D69 /* PawsomeTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = PawsomeTests; sourceTree = "<group>"; };
+		62355CE62C84CC5600560D69 /* PawsomeUITests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = PawsomeUITests; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -159,8 +132,6 @@
 		62355CBC2C84CC5400560D69 = {
 			isa = PBXGroup;
 			children = (
-				624652652CCD1106000B3F46 /* CatPost+CoreDataClass.swift */,
-				624652662CCD1106000B3F46 /* CatPost+CoreDataProperties.swift */,
 				624652B62CCD2351000B3F46 /* Pawsome */,
 				62355CDC2C84CC5600560D69 /* PawsomeTests */,
 				62355CE62C84CC5600560D69 /* PawsomeUITests */,
@@ -190,10 +161,10 @@
 		624652B62CCD2351000B3F46 /* Pawsome */ = {
 			isa = PBXGroup;
 			children = (
+				624652DE2CCD2CD4000B3F46 /* CatPostScope.swift */,
 				624652A42CCD2351000B3F46 /* Preview Content */,
 				624652A52CCD2351000B3F46 /* AppDelegate.swift */,
 				624652A62CCD2351000B3F46 /* Assets.xcassets */,
-				624652A72CCD2351000B3F46 /* CatPost.swift */,
 				624652A82CCD2351000B3F46 /* CatPostModel.xcdatamodeld */,
 				624652A92CCD2351000B3F46 /* ColorExtensions.swift */,
 				624652AA2CCD2351000B3F46 /* CommentsView.swift */,
@@ -235,8 +206,6 @@
 			buildRules = (
 			);
 			dependencies = (
-				6246526B2CCD1A9C000B3F46 /* PBXTargetDependency */,
-				6246526F2CCD1AA1000B3F46 /* PBXTargetDependency */,
 			);
 			name = Pawsome;
 			packageProductDependencies = (
@@ -263,7 +232,7 @@
 			buildRules = (
 			);
 			dependencies = (
-				62355CDB2C84CC5600560D69 /* PBXTargetDependency */,
+				6268EBE02CCD375800238C8F /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				62355CDC2C84CC5600560D69 /* PawsomeTests */,
@@ -286,7 +255,7 @@
 			buildRules = (
 			);
 			dependencies = (
-				62355CE52C84CC5600560D69 /* PBXTargetDependency */,
+				6268EBE22CCD375C00238C8F /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				62355CE62C84CC5600560D69 /* PawsomeUITests */,
@@ -322,6 +291,7 @@
 				};
 			};
 			buildConfigurationList = 62355CC02C84CC5400560D69 /* Build configuration list for PBXProject "Pawsome" */;
+			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -376,10 +346,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				624652672CCD1106000B3F46 /* CatPost+CoreDataClass.swift in Sources */,
-				624652682CCD1106000B3F46 /* CatPost+CoreDataProperties.swift in Sources */,
 				624652B82CCD2351000B3F46 /* AppDelegate.swift in Sources */,
-				624652B92CCD2351000B3F46 /* CatPost.swift in Sources */,
 				624652BA2CCD2351000B3F46 /* CatPostModel.xcdatamodeld in Sources */,
 				624652BB2CCD2351000B3F46 /* ColorExtensions.swift in Sources */,
 				624652BC2CCD2351000B3F46 /* CommentsView.swift in Sources */,
@@ -411,25 +378,15 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		62355CDB2C84CC5600560D69 /* PBXTargetDependency */ = {
+		6268EBE02CCD375800238C8F /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 62355CC42C84CC5400560D69 /* Pawsome */;
-			targetProxy = 62355CDA2C84CC5600560D69 /* PBXContainerItemProxy */;
+			targetProxy = 6268EBDF2CCD375800238C8F /* PBXContainerItemProxy */;
 		};
-		62355CE52C84CC5600560D69 /* PBXTargetDependency */ = {
+		6268EBE22CCD375C00238C8F /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 62355CC42C84CC5400560D69 /* Pawsome */;
-			targetProxy = 62355CE42C84CC5600560D69 /* PBXContainerItemProxy */;
-		};
-		6246526B2CCD1A9C000B3F46 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 62355CD82C84CC5600560D69 /* PawsomeTests */;
-			targetProxy = 6246526A2CCD1A9C000B3F46 /* PBXContainerItemProxy */;
-		};
-		6246526F2CCD1AA1000B3F46 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 62355CE22C84CC5600560D69 /* PawsomeUITests */;
-			targetProxy = 6246526E2CCD1AA1000B3F46 /* PBXContainerItemProxy */;
+			targetProxy = 6268EBE12CCD375C00238C8F /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
