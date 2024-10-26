@@ -5,12 +5,11 @@ struct HomeView: View {
     @Binding var isLoggedIn: Bool
     @Binding var currentUsername: String
     @Binding var profileImage: Image?
-    
+
     @State private var catPosts: [CatPost] = []
     @State private var selectedImage: UIImage? = nil
     @State private var showForm: Bool = false
     @State private var navigateToHome: Bool = false
-    @State private var selectedPost: CatPost? // Store the currently selected post for comments
     @State private var isTabViewHidden: Bool = false // State to control TabView visibility
 
     // Core Data context
@@ -38,9 +37,8 @@ struct HomeView: View {
                             }
                         }
                         .onChange(of: navigateToHome) {
-                            if navigateToHome {
+                            if $0 {
                                 showForm = false // Dismiss the form
-                                navigateToHome = false // Reset the navigation state
                             }
                         }
                     }
@@ -88,10 +86,9 @@ struct HomeView: View {
 
     private var postListView: some View {
         List {
-            ForEach(catPosts, id: \.self) { post in // Use the Core Data posts
+            ForEach(catPosts, id: \.self) { post in
                 LazyVStack(alignment: .leading) {
                     VStack(alignment: .leading) {
-                        // Show only the username
                         Text("Posted by: \(post.username ?? "")")
                             .font(.subheadline)
                             .foregroundColor(.gray)
@@ -131,7 +128,6 @@ struct HomeView: View {
 
                             Spacer()
 
-                            // NavigationLink to CommentsView
                             NavigationLink(destination: CommentsView(showComments: .constant(true), post: post)
                                 .onAppear {
                                     isTabViewHidden = true // Hide TabView when CommentsView appears
@@ -167,15 +163,18 @@ struct HomeView: View {
 
     private func savePost(_ post: CatPost) {
         let newPost = CatPost(context: viewContext)
-        newPost.id = UUID()
+        
+        // Save only necessary properties defined in CatPost+CoreDataProperties.swift
         newPost.username = post.username
         newPost.imageData = post.imageData
+        newPost.likes = post.likes // Include if necessary
+        
+        // If other properties are also defined in Core Data, keep them
         newPost.name = post.name
         newPost.breed = post.breed
         newPost.age = post.age
         newPost.location = post.location
         newPost.description = post.description
-        newPost.likes = post.likes
         
         saveContext() // Save changes to Core Data
     }

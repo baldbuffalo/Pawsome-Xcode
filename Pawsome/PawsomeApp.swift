@@ -1,5 +1,5 @@
 import SwiftUI
-import SwiftData
+import CoreData
 
 @main
 struct PawsomeApp: App {
@@ -7,28 +7,25 @@ struct PawsomeApp: App {
     @State private var username: String = ""
     @State private var profileImage: Image? = nil
 
-    var sharedModelContainer: ModelContainer = {
-        // Use CatPost instead of UserPost
-        let schema = Schema([CatPost.self])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
+    // Create the Core Data stack
+    let persistentContainer: NSPersistentContainer = {
+        let container = NSPersistentContainer(name: "CatPostModel") // Ensure this matches your .xcdatamodeld file name
+        container.loadPersistentStores { (storeDescription, error) in
+            if let error = error as NSError? {
+                fatalError("Unresolved error \(error), \(error.userInfo)")
+            }
         }
+        return container
     }()
 
     var body: some Scene {
         WindowGroup {
             if isLoggedIn {
-                // Pass profileImage to HomeView
                 HomeView(isLoggedIn: $isLoggedIn, currentUsername: $username, profileImage: $profileImage)
-                    .modelContainer(sharedModelContainer)
+                    .environment(\.managedObjectContext, persistentContainer.viewContext) // Pass the managed object context
             } else {
-                // Pass all the required bindings, including profileImage
                 LoginView(isLoggedIn: $isLoggedIn, username: $username, profileImage: $profileImage)
-                    .modelContainer(sharedModelContainer)
+                    .environment(\.managedObjectContext, persistentContainer.viewContext) // Pass the managed object context
             }
         }
     }
