@@ -10,8 +10,7 @@ struct FormView: View {
     var onPostCreated: (CatPost) -> Void
     @Environment(\.managedObjectContext) private var viewContext // Managed object context
 
-    // Removed the @State properties
-    @State private var catPost: CatPost // Initialize CatPost instance to hold the data
+    @State private var catPost: CatPost // This will hold the data
 
     init(showForm: Binding<Bool>, navigateToHome: Binding<Bool>, imageUI: UIImage?, videoURL: URL?, username: String, onPostCreated: @escaping (CatPost) -> Void) {
         self._showForm = showForm
@@ -20,10 +19,11 @@ struct FormView: View {
         self.videoURL = videoURL
         self.username = username
         self.onPostCreated = onPostCreated
-        
-        // Initialize the CatPost object
-        self._catPost = State(initialValue: CatPost(context: viewContext)) // This needs to be updated according to your context usage
-        self.catPost.username = self.username // Use self.username here
+
+        // Create a CatPost instance using Core Data's context
+        let context = PersistenceController.shared.container.viewContext // Update with your PersistenceController
+        self._catPost = State(initialValue: CatPost(context: context))
+        self.catPost.username = self.username
     }
 
     var body: some View {
@@ -79,11 +79,12 @@ struct FormView: View {
 
                 // Button to create a post
                 Button(action: {
-                    catPost.imageData = imageUI?.pngData() // Store image data
+                    // Convert UIImage to Data
+                    catPost.imageData = imageUI?.pngData()
 
                     // Save the context
                     do {
-                        try viewContext.save()
+                        try viewContext.save() // Save context here
                         onPostCreated(catPost) // Call the post creation handler
                         // Dismiss the form and navigate to HomeView
                         showForm = false

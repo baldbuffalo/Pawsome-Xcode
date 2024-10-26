@@ -1,25 +1,4 @@
 import SwiftUI
-import AVKit
-import PhotosUI
-
-struct MediaPicker {
-    enum MediaType: String, CaseIterable {
-        case library // For selecting from the photo library
-        case photo   // For capturing a photo using the camera
-        case video   // For capturing a video using the camera
-
-        var displayName: String {
-            switch self {
-            case .library:
-                return "Photo Library"
-            case .photo:
-                return "Camera (Photo)"
-            case .video:
-                return "Camera (Video)"
-            }
-        }
-    }
-}
 
 struct ScanView: View {
     @Binding var capturedImage: UIImage?
@@ -31,7 +10,7 @@ struct ScanView: View {
     @State private var mediaType: MediaPicker.MediaType = .photo
     @State private var showMediaTypeActionSheet: Bool = false
     @State private var navigateToForm: Bool = false
-    @State private var navigateToHome: Bool = false // New state variable for navigation
+    @State private var navigateToHome: Bool = false // State variable for navigation
 
     var body: some View {
         NavigationStack {
@@ -72,7 +51,7 @@ struct ScanView: View {
                 FormView(showForm: $navigateToForm,
                          navigateToHome: $navigateToHome, // Pass the navigateToHome binding first
                          imageUI: capturedImage,
-                         videoURL: capturedVideoURL,
+                         videoURL: capturedVideoURL, // Pass the video URL here
                          username: username,
                          onPostCreated: { catPost in
                              onPostCreated(catPost)
@@ -141,6 +120,25 @@ struct ScanView: View {
 
             func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
                 picker.dismiss(animated: true)
+            }
+        }
+    }
+}
+
+enum MediaPicker {
+    enum MediaType {
+        case photo
+        case video
+        case library
+        
+        var displayName: String {
+            switch self {
+            case .photo:
+                return "Photo"
+            case .video:
+                return "Video"
+            case .library:
+                return "Library"
             }
         }
     }
