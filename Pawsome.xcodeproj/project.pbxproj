@@ -49,6 +49,20 @@
 			remoteGlobalIDString = 62355CC42C84CC5400560D69;
 			remoteInfo = Pawsome;
 		};
+		6268EBED2CCD3E3B00238C8F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 62355CBD2C84CC5400560D69 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 62355CE22C84CC5600560D69;
+			remoteInfo = PawsomeUITests;
+		};
+		6268EBEF2CCD3E6B00238C8F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 62355CBD2C84CC5400560D69 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 62355CD82C84CC5600560D69;
+			remoteInfo = PawsomeTests;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -206,6 +220,8 @@
 			buildRules = (
 			);
 			dependencies = (
+				6268EBF02CCD3E6B00238C8F /* PBXTargetDependency */,
+				6268EBEE2CCD3E3B00238C8F /* PBXTargetDependency */,
 			);
 			name = Pawsome;
 			packageProductDependencies = (
@@ -387,6 +403,16 @@
 			isa = PBXTargetDependency;
 			target = 62355CC42C84CC5400560D69 /* Pawsome */;
 			targetProxy = 6268EBE12CCD375C00238C8F /* PBXContainerItemProxy */;
+		};
+		6268EBEE2CCD3E3B00238C8F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 62355CE22C84CC5600560D69 /* PawsomeUITests */;
+			targetProxy = 6268EBED2CCD3E3B00238C8F /* PBXContainerItemProxy */;
+		};
+		6268EBF02CCD3E6B00238C8F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 62355CD82C84CC5600560D69 /* PawsomeTests */;
+			targetProxy = 6268EBEF2CCD3E6B00238C8F /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
