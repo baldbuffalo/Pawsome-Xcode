@@ -3,22 +3,22 @@ import SwiftData
 
 @Model
 public class CatPost: Identifiable {
-    @Attribute(.uuid) public var id: UUID
-    @Attribute(.string) public var username: String
-    @Attribute(.string) public var name: String
-    @Attribute(.string) public var breed: String
-    @Attribute(.string) public var age: String
-    @Attribute(.string) public var location: String
-    @Attribute(.string) public var postDescription: String
-    @Attribute(.data) public var imageData: Data?
-    @Attribute(.int) public var likes: Int
-    @Attribute(.array) public var comments: [String]
-    @Attribute(.date) public var creationDate: Date
-    @Attribute(.date) public var modificationDate: Date
+    public var id: UUID // Core Data will recognize this as a UUID type
+    public var username: String
+    public var name: String
+    public var breed: String
+    public var age: String
+    public var location: String
+    public var postDescription: String
+    public var imageData: Data?
+    public var likes: Int
+    public var comments: [String]
+    public var creationDate: Date
+    public var modificationDate: Date
 
     // Initializer for the model
     public init(username: String, name: String, breed: String, age: String, location: String, postDescription: String, imageData: Data?) {
-        self.id = UUID() // Automatically generated UUID
+        self.id = UUID()
         self.username = username
         self.name = name
         self.breed = breed
@@ -27,7 +27,7 @@ public class CatPost: Identifiable {
         self.postDescription = postDescription
         self.imageData = imageData
         self.likes = 0
-        self.comments = []
+        self.comments = [] // Initialize as an empty array
         self.creationDate = Date()
         self.modificationDate = Date()
     }
