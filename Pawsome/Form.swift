@@ -3,14 +3,14 @@ import CoreData
 
 struct FormView: View {
     @Binding var showForm: Bool
-    @Binding var navigateToHome: Bool // Binding to control navigation
+    @Binding var navigateToHome: Bool
     var imageUI: UIImage?
-    var videoURL: URL? // Keeping this for future use, but won't be displayed
+    var videoURL: URL?
     var username: String
     var onPostCreated: (CatPost) -> Void
-    @Environment(\.managedObjectContext) private var viewContext // Managed object context
 
-    @State private var catPost: CatPost // This will hold the data
+    @Environment(\.managedObjectContext) private var viewContext // Managed object context
+    @State private var catPost: CatPost // Hold data for a new post
 
     init(showForm: Binding<Bool>, navigateToHome: Binding<Bool>, imageUI: UIImage?, videoURL: URL?, username: String, onPostCreated: @escaping (CatPost) -> Void) {
         self._showForm = showForm
@@ -20,8 +20,8 @@ struct FormView: View {
         self.username = username
         self.onPostCreated = onPostCreated
 
-        // Create a CatPost instance using Core Data's context
-        let context = PersistenceController.shared.container.viewContext // Update with your PersistenceController
+        // Initialize a new CatPost in the managed object context
+        let context = PersistenceController.shared.container.viewContext
         self._catPost = State(initialValue: CatPost(context: context))
         self.catPost.username = self.username
     }
@@ -29,7 +29,6 @@ struct FormView: View {
     var body: some View {
         ScrollView {
             VStack {
-                // Display the selected image or a placeholder message
                 if let image = imageUI {
                     Image(uiImage: image)
                         .resizable()
@@ -40,7 +39,6 @@ struct FormView: View {
                         .foregroundColor(.gray)
                 }
 
-                // Input fields for cat information
                 TextField("Cat Name", text: Binding(
                     get: { catPost.name ?? "" },
                     set: { catPost.name = $0 }
@@ -77,33 +75,27 @@ struct FormView: View {
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding()
 
-                // Button to create a post
                 Button(action: {
-                    // Convert UIImage to Data
                     catPost.imageData = imageUI?.pngData()
 
-                    // Save the context
                     do {
-                        try viewContext.save() // Save context here
-                        onPostCreated(catPost) // Call the post creation handler
-                        // Dismiss the form and navigate to HomeView
+                        try viewContext.save() // Save Core Data context
+                        onPostCreated(catPost)
                         showForm = false
                         navigateToHome = true
                     } catch {
-                        // Handle the Core Data error
-                        print("Error saving context: \(error.localizedDescription)")
+                        print("Error saving post: \(error.localizedDescription)")
                     }
                 }) {
                     Text("Post")
                         .foregroundColor(catPost.name?.isEmpty == false && catPost.breed?.isEmpty == false && catPost.age?.isEmpty == false && catPost.location?.isEmpty == false && catPost.postDescription?.isEmpty == false ? .blue : .gray)
                 }
-                .disabled(catPost.name?.isEmpty == true || catPost.breed?.isEmpty == true || catPost.age?.isEmpty == true || catPost.location?.isEmpty == true || catPost.postDescription?.isEmpty == true) // Disable button if fields are empty
+                .disabled(catPost.name?.isEmpty == true || catPost.breed?.isEmpty == true || catPost.age?.isEmpty == true || catPost.location?.isEmpty == true || catPost.postDescription?.isEmpty == true)
                 .padding()
             }
             .padding()
         }
         .onTapGesture {
-            // Dismiss the keyboard when tapping outside the text fields
             UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         }
     }

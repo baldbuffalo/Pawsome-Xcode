@@ -6,13 +6,11 @@ struct HomeView: View {
     @Binding var currentUsername: String
     @Binding var profileImage: Image?
 
-    @State private var catPosts: [CatPost] = []
     @State private var selectedImage: UIImage? = nil
     @State private var showForm: Bool = false
     @State private var navigateToHome: Bool = false
-    @State private var isTabViewHidden: Bool = false // State to control TabView visibility
+    @State private var isTabViewHidden: Bool = false
 
-    // Core Data context
     @Environment(\.managedObjectContext) private var viewContext
 
     var body: some View {
@@ -26,19 +24,16 @@ struct HomeView: View {
                             Spacer()
                         }
                         .navigationTitle("Pawsome")
-                        .onAppear {
-                            loadPosts() // Load posts when the view appears
-                        }
                         .sheet(isPresented: $showForm) {
                             if let selectedImage = selectedImage {
-                                FormView(showForm: $showForm, navigateToHome: $navigateToHome, imageUI: selectedImage, username: currentUsername) { newPost in
-                                    savePost(newPost) // Save the new post to Core Data
+                                FormView(showForm: $showForm, navigateToHome: $navigateToHome, imageUI: selectedImage, videoURL: nil, username: currentUsername) { newPost in
+                                    // No need to add post-saving logic here
                                 }
                             }
                         }
-                        .onChange(of: navigateToHome) {
-                            if $0 {
-                                showForm = false // Dismiss the form
+                        .onChange(of: navigateToHome) { newValue in
+                            if newValue {
+                                showForm = false
                             }
                         }
                     }
@@ -51,7 +46,7 @@ struct HomeView: View {
                             capturedImage: $selectedImage,
                             username: currentUsername,
                             onPostCreated: { post in
-                                savePost(post) // Save the post to Core Data
+                                // No need to add post-saving logic here
                             }
                         )
                     }
@@ -68,7 +63,6 @@ struct HomeView: View {
                     }
                 }
                 .tabViewStyle(DefaultTabViewStyle())
-                .navigationViewStyle(StackNavigationViewStyle())
             }
         }
     }
@@ -87,103 +81,57 @@ struct HomeView: View {
     private var postListView: some View {
         List {
             ForEach(catPosts, id: \.self) { post in
-                LazyVStack(alignment: .leading) {
-                    VStack(alignment: .leading) {
-                        Text("Posted by: \(post.username ?? "")")
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
-                            .padding(.bottom, 2)
+                VStack(alignment: .leading) {
+                    Text("Posted by: \(post.username ?? "")")
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                        .padding(.bottom, 2)
 
-                        if let imageData = post.imageData, let image = UIImage(data: imageData) {
-                            Image(uiImage: image)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(height: 200)
-                                .cornerRadius(12)
-                        }
-
-                        Text(post.name ?? "")
-                            .font(.headline)
-                        Text("Breed: \(post.breed ?? "")")
-                        Text("Age: \(post.age ?? "")")
-                        Text("Location: \(post.location ?? "")")
-                        Text("Description: \(post.postDescription ?? "")")
-
-                        HStack {
-                            Button(action: {
-                                // Toggle likes
-                                let currentLikes = post.likes
-                                post.likes = currentLikes > 0 ? 0 : 1 // Unlike or like
-                                saveContext() // Save changes to Core Data
-                            }) {
-                                HStack {
-                                    Image(systemName: post.likes > 0 ? "hand.thumbsup.fill" : "hand.thumbsup")
-                                    Text("Like (\(post.likes))")
-                                }
-                                .padding()
-                                .background(Color.white.opacity(0.5))
-                                .cornerRadius(8)
-                            }
-                            .buttonStyle(BorderlessButtonStyle())
-
-                            Spacer()
-
-                            NavigationLink(destination: CommentsView(showComments: .constant(true), post: post)
-                                .onAppear {
-                                    isTabViewHidden = true // Hide TabView when CommentsView appears
-                                }
-                                .onDisappear {
-                                    isTabViewHidden = false // Show TabView again when CommentsView disappears
-                                }) {
-                                HStack {
-                                    Image(systemName: "message")
-                                    Text("Comment")
-                                }
-                            }
-                            .buttonStyle(BorderlessButtonStyle())
-                        }
-                        .padding(.top, 5)
+                    if let imageData = post.imageData, let image = UIImage(data: imageData) {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 200)
+                            .cornerRadius(12)
                     }
-                    .padding(.vertical)
+
+                    Text(post.name ?? "")
+                        .font(.headline)
+                    Text("Breed: \(post.breed ?? "")")
+                    Text("Age: \(post.age ?? "")")
+                    Text("Location: \(post.location ?? "")")
+                    Text("Description: \(post.postDescription ?? "")")
+
+                    HStack {
+                        Button(action: {
+                            post.likes = post.likes > 0 ? 0 : 1
+                            // Removed saveContext() call
+                        }) {
+                            HStack {
+                                Image(systemName: post.likes > 0 ? "hand.thumbsup.fill" : "hand.thumbsup")
+                                Text("Like (\(post.likes))")
+                            }
+                            .padding()
+                            .background(Color.white.opacity(0.5))
+                            .cornerRadius(8)
+                        }
+                        .buttonStyle(BorderlessButtonStyle())
+
+                        Spacer()
+
+                        NavigationLink(destination: CommentsView(showComments: .constant(true), post: post)
+                            .onAppear { isTabViewHidden = true }
+                            .onDisappear { isTabViewHidden = false }) {
+                            HStack {
+                                Image(systemName: "message")
+                                Text("Comment")
+                            }
+                        }
+                        .buttonStyle(BorderlessButtonStyle())
+                    }
+                    .padding(.top, 5)
                 }
-            }
-        }
-    }
-
-    private func loadPosts() {
-        let request: NSFetchRequest<CatPost> = CatPost.fetchRequest()
-        
-        do {
-            catPosts = try viewContext.fetch(request)
-            print("Posts loaded from Core Data successfully")
-        } catch {
-            print("Error loading posts from Core Data: \(error)")
-        }
-    }
-
-    private func savePost(_ post: CatPost) {
-        // Create a new CatPost instance in Core Data
-        let newPost = CatPost(context: viewContext)
-
-        // Set creation and modification dates for the new post
-        newPost.creationDate = Date()
-        newPost.modificationDate = Date()
-
-        // Use existing post properties for the new post
-        newPost.imageData = post.imageData
-        newPost.username = post.username
-        newPost.likes = post.likes // Set likes as needed
-
-        saveContext() // Save changes to Core Data
-    }
-
-    private func saveContext() {
-        if viewContext.hasChanges {
-            do {
-                try viewContext.save()
-                print("Posts saved to Core Data successfully")
-            } catch {
-                print("Error saving posts to Core Data: \(error)")
+                .padding(.vertical)
             }
         }
     }
