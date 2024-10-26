@@ -107,7 +107,7 @@ struct HomeView: View {
                         Text("Breed: \(post.breed ?? "")")
                         Text("Age: \(post.age ?? "")")
                         Text("Location: \(post.location ?? "")")
-                        Text("Description: \(post.description ?? "")")
+                        Text("Description: \(post.postDescription ?? "")")
 
                         HStack {
                             Button(action: {
@@ -162,20 +162,18 @@ struct HomeView: View {
     }
 
     private func savePost(_ post: CatPost) {
+        // Create a new CatPost instance in Core Data
         let newPost = CatPost(context: viewContext)
-        
-        // Save only necessary properties defined in CatPost+CoreDataProperties.swift
-        newPost.username = post.username
+
+        // Set creation and modification dates for the new post
+        newPost.creationDate = Date()
+        newPost.modificationDate = Date()
+
+        // Use existing post properties for the new post
         newPost.imageData = post.imageData
-        newPost.likes = post.likes // Include if necessary
-        
-        // If other properties are also defined in Core Data, keep them
-        newPost.name = post.name
-        newPost.breed = post.breed
-        newPost.age = post.age
-        newPost.location = post.location
-        newPost.description = post.description
-        
+        newPost.username = post.username
+        newPost.likes = post.likes // Set likes as needed
+
         saveContext() // Save changes to Core Data
     }
 
