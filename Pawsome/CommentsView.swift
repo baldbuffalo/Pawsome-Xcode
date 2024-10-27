@@ -32,19 +32,7 @@ struct CommentsView: View {
                         .padding(.trailing, 8)
 
                     Button(action: {
-                        if !newComment.isEmpty {
-                            let comment = Comment(context: viewContext)
-                            comment.text = newComment
-                            comment.timestamp = Date()
-                            comment.catPost = post // Link the comment to the post
-
-                            do {
-                                try viewContext.save()
-                                newComment = "" // Clear the text field
-                            } catch {
-                                print("Error saving comment: \(error.localizedDescription)")
-                            }
-                        }
+                        postComment() // Call a method to handle posting the comment
                     }) {
                         Text("Post")
                             .fontWeight(.bold)
@@ -68,6 +56,23 @@ struct CommentsView: View {
         }
         .background(Color(.systemGroupedBackground))
         .edgesIgnoringSafeArea(.bottom)
+    }
+
+    private func postComment() {
+        guard !newComment.isEmpty else { return }
+
+        let comment = Comment(context: viewContext)
+        comment.text = newComment
+        comment.timestamp = Date()
+        comment.catPost = post // Link the comment to the post
+
+        do {
+            try viewContext.save() // Save the new comment to Core Data
+            newComment = "" // Clear the text field after saving
+        } catch {
+            // Handle the error appropriately (e.g., show an alert)
+            print("Error saving comment: \(error.localizedDescription)")
+        }
     }
 }
 
