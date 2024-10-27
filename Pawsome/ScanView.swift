@@ -6,6 +6,7 @@ struct ScanView: View {
     @Binding var showForm: Bool
     @Binding var navigateToHome: Bool
     @State private var catPost = CatPost() // Assuming CatPost is your Core Data entity
+    var username: String // Add username as a parameter
 
     var body: some View {
         VStack {
@@ -24,7 +25,7 @@ struct ScanView: View {
                     navigateToHome: $navigateToHome,
                     imageUI: image,
                     videoURL: nil,
-                    username: "Username", // Replace with the actual username
+                    username: username, // Use the passed username
                     catPost: .constant(catPost),
                     onPostCreated: { post in
                         // Handle post creation if needed
@@ -44,10 +45,8 @@ struct ScanView: View {
             }
             
             // Placeholder for scan functionality
-            // Here, you can add your scanning logic or button.
             Button("Scan Image") {
                 // Implement scanning functionality here
-                // For example, you could directly capture the image from the camera
             }
         }
         .navigationTitle("Scan or Select Image")

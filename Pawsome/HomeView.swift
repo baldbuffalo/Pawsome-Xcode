@@ -8,8 +8,8 @@ struct HomeView: View {
         animation: .default)
     private var posts: FetchedResults<CatPost>
 
-    var currentUsername: String // This should come from the profile tab
-    @Binding var profileImage: Image? // Ensure this is a Binding
+    var currentUsername: String
+    @Binding var profileImage: UIImage? // Change this to UIImage?
 
     var body: some View {
         NavigationStack {
@@ -90,13 +90,6 @@ struct HomeView: View {
     }
 
     // Function to delete posts
-    private func deletePosts(offsets: IndexSet) {
-        withAnimation {
-            offsets.map { posts[$0] }.forEach(viewContext.delete)
-            saveContext()
-        }
-    }
-
     private func deletePost(post: CatPost) {
         withAnimation {
             viewContext.delete(post)

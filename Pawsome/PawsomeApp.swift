@@ -5,9 +5,11 @@ import CoreData
 struct PawsomeApp: App {
     @State private var isLoggedIn: Bool = false
     @State private var username: String = ""
-    @State private var profileImage: Image? = nil
+    @State private var profileImageData: Data? = nil // Use Data to store image
     @State private var capturedImage: UIImage? = nil
     @State private var videoURL: URL? = nil
+    @State private var showForm: Bool = false // For form visibility
+    @State private var navigateToHome: Bool = false // For navigation
 
     // Shared PersistenceController instance for Core Data
     let persistenceController = PersistenceController.shared
@@ -15,67 +17,49 @@ struct PawsomeApp: App {
     var body: some Scene {
         WindowGroup {
             if isLoggedIn {
-                TabView {
-                    // HomeView: Pass username and profileImage as parameters
-                    HomeView(currentUsername: username, profileImage: $profileImage)
-                        .tabItem {
-                            Label("Home", systemImage: "house")
+                HomeView(
+                    currentUsername: username,
+                    profileImage: Binding<UIImage?>(
+                        get: { profileImageData.flatMap { UIImage(data: $0) } },
+                        set: { newImage in
+                            profileImageData = newImage?.pngData()
                         }
-
-                    // ScanView: Pass capturedImage, videoURL, username, and the closure for onPostCreated
-                    ScanView(
-                        capturedImage: $capturedImage,
-                        videoURL: $videoURL,
-                        username: username,
-                        onPostCreated: { newPost in
-                            addPost(newPost) // Call to add a new post
-                        },
-                        selectedImageForForm: $capturedImage // Pass binding directly
                     )
-                    .tabItem {
-                        Label("Post", systemImage: "camera") // Camera icon
-                    }
-
-                    // ProfileView: Pass the necessary parameters
-                    ProfileView(isLoggedIn: $isLoggedIn, currentUsername: $username, profileImage: $profileImage)
-                        .tabItem {
-                            Label("Profile", systemImage: "person")
-                        }
-                }
+                )
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
             } else {
-                // Login screen when not logged in
-                LoginView(isLoggedIn: $isLoggedIn, username: $username, profileImage: $profileImage)
-                    .environment(\.managedObjectContext, persistenceController.container.viewContext)
+                // Convert Binding<UIImage?> to Binding<Image?> for LoginView
+                LoginView(
+                    isLoggedIn: $isLoggedIn,
+                    username: $username,
+                    profileImage: Binding<Image?>(
+                        get: {
+                            if let data = profileImageData, let uiImage = UIImage(data: data) {
+                                return Image(uiImage: uiImage)
+                            }
+                            return nil
+                        },
+                        set: { newImage in
+                            profileImageData = newImage?.asUIImage()?.pngData()
+                        }
+                    )
+                )
             }
         }
     }
+}
 
-    private func addPost(_ newPost: CatPost) {
-        // Logic to create a new post in Core Data
-        let context = persistenceController.container.viewContext
-        let post = CatPost(context: context)
-        
-        // Set properties for the new post
-        post.username = username
-        post.timestamp = Date() // Assuming you want to add a timestamp
-        if let imageData = newPost.imageData {
-            post.imageData = imageData // Set imageData if available
-        }
-        if let videoURLString = newPost.videoURL {
-            post.videoURL = videoURLString // Set videoURL if available
-        }
-        
-        saveContext() // Save the context after adding the post
-    }
+// Extension to convert Image to UIImage
+extension Image {
+    func asUIImage() -> UIImage? {
+        let controller = UIHostingController(rootView: self)
+        let view = controller.view
 
-    private func saveContext() {
-        do {
-            try persistenceController.container.viewContext.save()
-        } catch {
-            let nsError = error as NSError
-            print("Unresolved error \(nsError), \(nsError.userInfo)")
-            // Handle error appropriately (e.g., show an alert to the user)
+        // Render the view to an image
+        let targetSize = controller.view.intrinsicContentSize
+        let renderer = UIGraphicsImageRenderer(size: targetSize)
+        return renderer.image { _ in
+            view?.drawHierarchy(in: CGRect(origin: .zero, size: targetSize), afterScreenUpdates: true)
         }
     }
 }
