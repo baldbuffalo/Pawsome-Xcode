@@ -10,12 +10,34 @@ struct HomeView: View {
 
     @State private var capturedImage: UIImage? = nil
     @State private var videoURL: URL? = nil
-    var currentUsername: String
+    @State private var newPostContent: String = "" // New post content
+    @State private var isPostButtonDisabled: Bool = true // Disable button initially
+    var currentUsername: String // This should come from the profile tab
     @Binding var profileImage: Image? // Ensure this is a Binding
 
     var body: some View {
         NavigationStack {
             VStack {
+                // Form fields for new post
+                VStack(alignment: .leading) {
+                    TextField("What's on your mind?", text: $newPostContent)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .padding(.bottom, 8)
+                    
+                    Button(action: {
+                        addPost()
+                    }) {
+                        Text("Post")
+                            .foregroundColor(.white)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(isPostButtonDisabled ? Color.gray : Color.blue)
+                            .cornerRadius(8)
+                    }
+                    .disabled(isPostButtonDisabled) // Disable button if fields are empty
+                }
+                .padding()
+
                 // Display a message if no posts are available
                 if posts.isEmpty {
                     Text("No posts yet! Start by creating a new one.")
@@ -26,9 +48,33 @@ struct HomeView: View {
                     List {
                         ForEach(posts) { post in
                             VStack(alignment: .leading) {
-                                Text("Posted by \(post.username ?? "Unknown")")
-                                    .font(.headline)
-                                    .foregroundColor(.blue)
+                                HStack {
+                                    Text("Posted by \(post.username ?? currentUsername)") // Use currentUsername
+                                        .font(.headline)
+                                        .foregroundColor(.blue)
+                                    Spacer()
+                                    // Menu for Edit and Delete options
+                                    Menu {
+                                        Button(action: {
+                                            // Handle Edit action
+                                            print("Edit post \(post.id ?? UUID())") // Placeholder for edit functionality
+                                        }) {
+                                            Text("Edit")
+                                        }
+                                        Button(action: {
+                                            // Handle Delete action
+                                            deletePost(post: post)
+                                        }) {
+                                            Text("Delete")
+                                                .foregroundColor(.red)
+                                        }
+                                    } label: {
+                                        Image(systemName: "ellipsis")
+                                            .foregroundColor(.blue)
+                                            .padding(8)
+                                            .background(Circle().fill(Color.gray.opacity(0.2)))
+                                    }
+                                }
 
                                 // Displaying image or video
                                 if let imageData = post.imageData, let uiImage = UIImage(data: imageData) {
@@ -48,10 +94,15 @@ struct HomeView: View {
                                         .foregroundColor(.gray)
                                         .padding(.top)
                                 }
+
+                                // Display the user's input (new post content) under the media
+                                Text(post.content ?? "No content")
+                                    .font(.subheadline)
+                                    .padding(.top, 5)
+                                    .foregroundColor(.black) // Customize color as needed
                             }
                             .padding(.vertical, 8)
                         }
-                        .onDelete(perform: deletePosts)
                     }
                 }
 
@@ -59,13 +110,37 @@ struct HomeView: View {
             }
             .navigationTitle("Home")
             .navigationBarTitleDisplayMode(.inline) // Optional: For a cleaner title display
+            .onChange(of: newPostContent) { newValue in
+                // Enable post button if all fields are filled
+                isPostButtonDisabled = newPostContent.isEmpty
+            }
         }
+    }
+
+    // Function to add a new post
+    private func addPost() {
+        let newPost = CatPost(context: viewContext)
+        newPost.timestamp = Date()
+        newPost.username = currentUsername // Set the username from the profile
+        newPost.content = newPostContent // Assuming you have a content attribute in CatPost
+
+        saveContext()
+
+        // Clear fields after posting
+        newPostContent = ""
     }
 
     // Function to delete posts
     private func deletePosts(offsets: IndexSet) {
         withAnimation {
             offsets.map { posts[$0] }.forEach(viewContext.delete)
+            saveContext()
+        }
+    }
+
+    private func deletePost(post: CatPost) {
+        withAnimation {
+            viewContext.delete(post)
             saveContext()
         }
     }
