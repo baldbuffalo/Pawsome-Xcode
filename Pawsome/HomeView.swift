@@ -9,67 +9,75 @@ struct HomeView: View {
     @State private var selectedImage: UIImage? = nil
     @State private var showForm: Bool = false
     @State private var navigateToHome: Bool = false
-    @State private var isTabViewHidden: Bool = false
+    @State private var isTabViewHidden: Bool = false // New state variable
 
     @Environment(\.managedObjectContext) private var viewContext
     
-    // Fetch CatPosts from Core Data sorted by timestamp
     @FetchRequest(
         entity: CatPost.entity(),
-        sortDescriptors: [NSSortDescriptor(keyPath: \CatPost.timestamp, ascending: false)] // Sort by timestamp
+        sortDescriptors: [NSSortDescriptor(keyPath: \CatPost.timestamp, ascending: false)]
     ) var catPosts: FetchedResults<CatPost>
 
     var body: some View {
         Group {
-            if !isTabViewHidden {
-                TabView {
-                    NavigationStack {
-                        VStack(spacing: 0) {
-                            headerView
-                            postListView
-                            Spacer()
-                        }
-                        .navigationTitle("Pawsome")
-                        .sheet(isPresented: $showForm) {
-                            if let selectedImage = selectedImage {
-                                FormView(showForm: $showForm, navigateToHome: $navigateToHome, imageUI: selectedImage, videoURL: nil, username: currentUsername) { newPost in
-                                    // Handle new post logic here
-                                    savePost(from: newPost) // Pass the new post object
-                                }
-                            }
-                        }
-                        .onChange(of: navigateToHome) { newValue in
-                            if newValue {
-                                showForm = false
+            TabView {
+                NavigationStack {
+                    VStack(spacing: 0) {
+                        headerView
+                        postListView
+                        Spacer()
+                    }
+                    .navigationTitle("Pawsome")
+                    .sheet(isPresented: $showForm) {
+                        if let selectedImage = selectedImage {
+                            FormView(showForm: $showForm, navigateToHome: $navigateToHome, imageUI: selectedImage, videoURL: nil, username: currentUsername) { newPost in
+                                savePost(from: newPost)
                             }
                         }
                     }
-                    .tabItem {
-                        Label("Home", systemImage: "house")
-                    }
-
-                    NavigationStack {
-                        ScanView(
-                            capturedImage: $selectedImage,
-                            username: currentUsername,
-                            onPostCreated: { post in
-                                savePost(from: post) // Save the new post to Core Data
-                            }
-                        )
-                    }
-                    .tabItem {
-                        Label("Post", systemImage: "camera")
-                    }
-
-                    NavigationStack {
-                        ProfileView(isLoggedIn: $isLoggedIn, currentUsername: $currentUsername, profileImage: $profileImage)
-                            .navigationTitle("Profile")
-                    }
-                    .tabItem {
-                        Label("Profile", systemImage: "person")
+                    .onChange(of: navigateToHome) { newValue in
+                        if newValue {
+                            showForm = false
+                        }
                     }
                 }
-                .tabViewStyle(DefaultTabViewStyle())
+                .tabItem {
+                    Label("Home", systemImage: "house")
+                }
+
+                NavigationStack {
+                    ScanView(
+                        capturedImage: $selectedImage,
+                        username: currentUsername,
+                        onPostCreated: { post in
+                            if let capturedImage = post.imageData {
+                                savePost(from: post)
+                            }
+                        }
+                    )
+                }
+                .tabItem {
+                    Label("Post", systemImage: "camera")
+                }
+
+                NavigationStack {
+                    ProfileView(isLoggedIn: $isLoggedIn, currentUsername: $currentUsername, profileImage: $profileImage)
+                        .navigationTitle("Profile")
+                }
+                .tabItem {
+                    Label("Profile", systemImage: "person")
+                }
+            }
+            .tabViewStyle(DefaultTabViewStyle())
+            .opacity(isTabViewHidden ? 0 : 1) // Hide tab view based on state
+        }
+        .overlay {
+            // This overlay hides the TabView when CommentsView is shown
+            if isTabViewHidden {
+                Color.clear
+                    .onTapGesture {
+                        // Do nothing to prevent interaction with the overlay
+                    }
             }
         }
     }
@@ -135,10 +143,13 @@ struct HomeView: View {
 
                         Spacer()
 
-                        // NavigationLink for comments
                         NavigationLink(destination: CommentsView(showComments: .constant(true), post: post)
-                            .onAppear { isTabViewHidden = true }
-                            .onDisappear { isTabViewHidden = false }) {
+                            .onAppear {
+                                isTabViewHidden = true // Hide tab items when CommentsView appears
+                            }
+                            .onDisappear {
+                                isTabViewHidden = false // Show tab items when CommentsView disappears
+                            }) {
                             HStack {
                                 Image(systemName: "message")
                                 Text("Comment")
@@ -146,10 +157,9 @@ struct HomeView: View {
                         }
                         .buttonStyle(BorderlessButtonStyle())
 
-                        // Show delete button only if the current user is the post owner
                         if post.username == currentUsername {
                             Button(action: {
-                                deletePost(post: post) // Call delete function
+                                deletePost(post: post)
                             }) {
                                 HStack {
                                     Image(systemName: "trash")
@@ -172,32 +182,31 @@ struct HomeView: View {
         formatter.timeStyle = .short
         return formatter.string(from: date)
     }
-    
-    // Function to save a new CatPost
-    private func savePost(from newPost: CatPost) {
-        let catPost = CatPost(context: viewContext) // Create a new CatPost instance
-        catPost.username = currentUsername // Set the username
-        catPost.imageData = newPost.imageData // Set the imageData if available
-        catPost.catName = newPost.catName // Set the catName
-        catPost.catBreed = newPost.catBreed // Set the catBreed
-        catPost.catAge = newPost.catAge // Updated property name to catAge
-        catPost.location = newPost.location // Set the location
-        catPost.postDescription = newPost.postDescription // Set the post description
-        catPost.timestamp = Date() // Set the timestamp
-        catPost.likes = 0 // Initialize likes to 0
 
-        saveContext() // Save the context after creating the post
+    private func savePost(from newPost: CatPost) {
+        let catPost = CatPost(context: viewContext)
+        catPost.username = currentUsername
+        catPost.imageData = newPost.imageData
+        catPost.catName = newPost.catName
+        catPost.catBreed = newPost.catBreed
+        catPost.catAge = newPost.catAge
+        catPost.location = newPost.location
+        catPost.postDescription = newPost.postDescription
+        catPost.timestamp = Date()
+        catPost.likes = 0
+
+        saveContext()
     }
 
     private func deletePost(post: CatPost) {
-        viewContext.delete(post) // Delete the specified post
-        saveContext() // Save the context after deletion
+        viewContext.delete(post)
+        saveContext()
     }
 
     private func saveContext() {
         if viewContext.hasChanges {
             do {
-                try viewContext.save() // Save changes to Core Data
+                try viewContext.save()
             } catch {
                 print("Failed to save context: \(error)")
             }
