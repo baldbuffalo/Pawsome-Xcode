@@ -21,8 +21,8 @@ struct ScanView: View {
     @State private var showMediaTypeActionSheet: Bool = false
     @State private var isNavigatingToForm: Bool = false
 
-    // Changed from optional to non-optional
-    @State private var newPost: CatPost?
+    // Keep newPost optional
+    @State private var newPost: CatPost? // This is mutable
 
     var body: some View {
         NavigationStack {
@@ -79,18 +79,21 @@ struct ScanView: View {
                 }
             }
             .navigationDestination(isPresented: $isNavigatingToForm) {
-                FormView(
-                    showForm: .constant(false), // Pass as Binding
-                    navigateToHome: .constant(false), // Pass as Binding
-                    imageUI: selectedImageForForm,
-                    videoURL: videoURL,
-                    username: username,
-                    catPost: Binding(
-                        get: { newPost! }, // Assuming newPost will not be nil when you reach here
-                        set: { newPost = $0 }
-                    ),
-                    onPostCreated: onPostCreated
-                )
+                // Use a conditional binding to check if newPost is nil
+                if let newPost = newPost {
+                    FormView(
+                        showForm: .constant(false), // Pass as Binding
+                        navigateToHome: .constant(false), // Pass as Binding
+                        imageUI: selectedImageForForm,
+                        videoURL: videoURL,
+                        username: username,
+                        catPost: Binding(
+                            get: { newPost }, // Now safe to use
+                            set: { self.newPost = $0 } // Use `self` to refer to the state variable
+                        ),
+                        onPostCreated: onPostCreated
+                    )
+                }
             }
         }
     }
@@ -108,6 +111,7 @@ struct ScanView: View {
             newPost.videoURL = videoURL.absoluteString
         }
 
+        // Set the state variable to the new post
         self.newPost = newPost
         onPostCreated(newPost)
     }
