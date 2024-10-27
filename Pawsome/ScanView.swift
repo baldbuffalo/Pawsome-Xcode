@@ -73,13 +73,12 @@ struct ScanView: View {
                         selectedImageForForm = selectedImage
                     }
 
-                    createPost()
-                    
                     // Navigate to the form
                     isNavigatingToForm = true
                 }
             }
             .navigationDestination(isPresented: $isNavigatingToForm) {
+                // Safely unwrap newPost
                 if let newPost = newPost {
                     FormView(
                         showForm: .constant(false),
@@ -93,27 +92,15 @@ struct ScanView: View {
                         ),
                         onPostCreated: onPostCreated
                     )
+                } else {
+                    // Handle the case where newPost is nil
+                    // You might want to show an alert or navigate back
                 }
             }
         }
     }
 
-    private func createPost() {
-        let newPost = CatPost(context: PersistenceController.shared.container.viewContext)
-        newPost.username = username
-        newPost.timestamp = Date()
-
-        if let image = capturedImage, let imageData = image.jpegData(compressionQuality: 0.8) {
-            newPost.imageData = imageData
-        }
-
-        if let videoURL = videoURL {
-            newPost.videoURL = videoURL.absoluteString
-        }
-
-        self.newPost = newPost
-        onPostCreated(newPost)
-    }
+    // The createPost function is no longer needed if we're not posting the image
 }
 
 // Combined ImagePicker functionality
