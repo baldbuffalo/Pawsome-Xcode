@@ -102,9 +102,9 @@ struct HomeView: View {
                             .cornerRadius(12)
                     }
 
-                    Text(post.name ?? "") // Uses Core Data property 'name'
+                    Text(post.catName ?? "") // Updated property name
                         .font(.headline)
-                    Text("Breed: \(post.breed ?? "")") // Uses Core Data property 'breed'
+                    Text("Breed: \(post.catBreed ?? "")") // Updated property name
                     Text("Age: \(post.age ?? "Unknown")") // Uses Core Data property 'age'
                     Text("Location: \(post.location ?? "")") // Uses Core Data property 'location'
                     Text("Description: \(post.postDescription ?? "")") // Uses Core Data property 'postDescription'
@@ -162,8 +162,8 @@ struct HomeView: View {
         let catPost = CatPost(context: viewContext) // Create a new CatPost instance
         catPost.username = currentUsername // Set the username
         catPost.imageData = newPost.imageData // Set the imageData if available
-        catPost.name = newPost.name // Set the name
-        catPost.breed = newPost.breed // Set the breed
+        catPost.catName = newPost.catName // Set the catName
+        catPost.catBreed = newPost.catBreed // Set the catBreed
         catPost.age = newPost.age // Set the age
         catPost.location = newPost.location // Set the location
         catPost.postDescription = newPost.postDescription // Set the post description
