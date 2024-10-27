@@ -9,8 +9,7 @@ struct ScanView: View {
     @State private var isImagePickerPresented: Bool = false
     @State private var mediaType: MediaPicker.MediaType = .photo
     @State private var showMediaTypeActionSheet: Bool = false
-    @State private var navigateToForm: Bool = false
-    @State private var navigateToHome: Bool = false // State variable for navigation
+    @State private var navigateToForm: Bool = false // State variable for navigation
 
     var body: some View {
         NavigationStack {
@@ -40,7 +39,8 @@ struct ScanView: View {
                                  selectedImage: $capturedImage,
                                  capturedVideoURL: $capturedVideoURL, // Pass the video URL binding
                                  onImageCaptured: {
-                                     navigateToForm = true // Set to true to trigger navigation
+                                     // Navigate to FormView immediately after capturing media
+                                     navigateToForm = true
                                  },
                                  mediaType: mediaType)
                 }
@@ -49,9 +49,8 @@ struct ScanView: View {
             .navigationDestination(isPresented: $navigateToForm) {
                 // Pass the captured image and video URL to FormView
                 FormView(showForm: $navigateToForm,
-                         navigateToHome: $navigateToHome, // Pass the navigateToHome binding first
                          imageUI: capturedImage,
-                         videoURL: capturedVideoURL, // Pass the video URL here
+                         videoURL: capturedVideoURL,
                          username: username,
                          onPostCreated: { catPost in
                              onPostCreated(catPost)
