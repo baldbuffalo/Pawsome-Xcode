@@ -32,6 +32,7 @@
 		62D804A52CAD1F6B00D13EFA /* FirebaseAppCheck in Frameworks */ = {isa = PBXBuildFile; productRef = 62D804A42CAD1F6B00D13EFA /* FirebaseAppCheck */; };
 		62D804A72CAD1F6B00D13EFA /* FirebaseAppDistribution-Beta in Frameworks */ = {isa = PBXBuildFile; productRef = 62D804A62CAD1F6B00D13EFA /* FirebaseAppDistribution-Beta */; };
 		62EF00A32CCDBB470034730C /* CatPost+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62EF00A22CCDBB470034730C /* CatPost+CoreDataProperties.swift */; };
+		62EF00A52CCE53470034730C /* CatPost+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62EF00A42CCE4E030034730C /* CatPost+CoreDataClass.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -94,8 +95,6 @@
 		62355CBC2C84CC5400560D69 = {
 			isa = PBXGroup;
 			children = (
-				62EF00A42CCE4E030034730C /* CatPost+CoreDataClass.swift */,
-				62EF00A22CCDBB470034730C /* CatPost+CoreDataProperties.swift */,
 				624652B62CCD2351000B3F46 /* Pawsome */,
 				629E68082CC6F53B0018ACEF /* Frameworks */,
 				62355CC62C84CC5400560D69 /* Products */,
@@ -139,6 +138,8 @@
 				624652B32CCD2351000B3F46 /* PawsomeApp.swift */,
 				624652B42CCD2351000B3F46 /* ProfileView.swift */,
 				624652B52CCD2351000B3F46 /* ScanView.swift */,
+				62EF00A42CCE4E030034730C /* CatPost+CoreDataClass.swift */,
+				62EF00A22CCDBB470034730C /* CatPost+CoreDataProperties.swift */,
 			);
 			path = Pawsome;
 			sourceTree = "<group>";
@@ -237,6 +238,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				62EF00A52CCE53470034730C /* CatPost+CoreDataClass.swift in Sources */,
 				624652B82CCD2351000B3F46 /* AppDelegate.swift in Sources */,
 				624652BA2CCD2351000B3F46 /* CatPostModel.xcdatamodeld in Sources */,
 				624652BB2CCD2351000B3F46 /* ColorExtensions.swift in Sources */,
