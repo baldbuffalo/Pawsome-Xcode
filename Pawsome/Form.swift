@@ -54,12 +54,12 @@ struct FormView: View {
                 .padding(.horizontal)
 
                 TextField("Age", text: Binding(
-                    get: { catPost.catAge != nil ? String(describing: catPost.catAge!) : "" }, // Safely unwrap the optional
+                    get: { String(catPost.catAge) }, // Convert Int32 to String directly
                     set: {
                         if let age = Int32($0), age > 0 {
-                            catPost.catAge = NSNumber(value: age) // Wrap in NSNumber
+                            catPost.catAge = age // Assign age directly
                         } else {
-                            catPost.catAge = nil // Set to nil if input is invalid
+                            catPost.catAge = 0 // Assign a default value if input is invalid
                         }
                     }
                 ))
@@ -112,7 +112,7 @@ struct FormView: View {
         // Check if all fields are filled and valid
         return !(catPost.catName?.isEmpty ?? true) &&
                !(catPost.catBreed?.isEmpty ?? true) &&
-               (catPost.catAge != nil) && // Ensure catAge is set and valid
+               (catPost.catAge > 0) && // Ensure catAge is valid
                !(catPost.location?.isEmpty ?? true) &&
                !(catPost.postDescription?.isEmpty ?? true)
     }
