@@ -11,7 +11,8 @@ struct HomeView: View {
     @State private var showScanView = false // Controls presentation of ScanView
     @State private var capturedImage: UIImage? = nil // Holds the captured image
     @State private var videoURL: URL? = nil // Holds the captured video URL
-    private var currentUsername: String = "User123" // Replace with actual username
+    @Binding var isLoggedIn: Bool // Binding to check if the user is logged in
+    private var currentUsername: String // Replace with actual username
 
     var body: some View {
         NavigationStack {
@@ -70,6 +71,12 @@ struct HomeView: View {
                     ScanView(capturedImage: $capturedImage, videoURL: $videoURL, username: currentUsername) { newPost in
                         addPost(newPost) // Pass the new CatPost
                     }
+                }
+
+                // Example of checking if the user is logged in
+                if !isLoggedIn {
+                    Text("You are not logged in.")
+                        .foregroundColor(.red)
                 }
             }
             .navigationTitle("Home")
