@@ -4,13 +4,13 @@
         <attribute name="catAge" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="catBreed" optional="YES" attributeType="String"/>
         <attribute name="catName" optional="YES" attributeType="String"/>
-        <relationship name="comment" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Comment" inverseName="catPost" inverseEntity="Comment"/>
+        <relationship name="comments" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Comment" inverseName="catPost" inverseEntity="Comment"/>
     </entity>
     <entity name="Comment" representedClassName="Comment" syncable="YES">
         <attribute name="profilePicture" optional="YES" attributeType="Binary"/>
         <attribute name="text" optional="YES" attributeType="String"/>
         <attribute name="timestamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="username" optional="YES" attributeType="String"/>
-        <relationship name="catPost" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CatPost" inverseName="comment" inverseEntity="CatPost"/>
+        <relationship name="catPost" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CatPost" inverseName="comments" inverseEntity="CatPost"/>
     </entity>
 </model>
