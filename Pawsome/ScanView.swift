@@ -1,20 +1,30 @@
 import SwiftUI
 import UIKit
 
+// Define the MediaPicker.MediaType enum
+struct MediaPicker {
+    enum MediaType {
+        case photo
+        case video
+    }
+}
+
 struct ScanView: View {
     @Binding var capturedImage: UIImage?
     @Binding var videoURL: URL?
     var username: String
     var onPostCreated: (CatPost) -> Void // Callback to notify when a post is created
+    @Binding var selectedImageForForm: UIImage? // New binding to send image to FormView
 
     @State private var isImagePickerPresented: Bool = false
-    @State private var sourceType: UIImagePickerController.SourceType = .photoLibrary
+    @State private var sourceType: UIImagePickerController.SourceType = .camera
     @State private var mediaType: MediaPicker.MediaType = .photo
     @State private var showMediaTypeActionSheet: Bool = false
 
     var body: some View {
         NavigationView {
             VStack {
+                // Media Picker Button at the Top
                 Button("Select Media") {
                     showMediaTypeActionSheet = true
                 }
@@ -22,17 +32,20 @@ struct ScanView: View {
                     ActionSheet(title: Text("Select Media Type"), buttons: [
                         .default(Text("Photo")) {
                             mediaType = .photo
-                            sourceType = .photoLibrary
+                            sourceType = .camera // Open camera for taking a photo
                             isImagePickerPresented = true
                         },
                         .default(Text("Video")) {
                             mediaType = .video
-                            sourceType = .camera
+                            sourceType = .camera // Set to camera for video as well
                             isImagePickerPresented = true
                         },
                         .cancel()
                     ])
                 }
+                .padding() // Add some padding for aesthetics
+
+                // Present the ImagePicker
                 .sheet(isPresented: $isImagePickerPresented) {
                     ImagePicker(sourceType: sourceType,
                                  selectedImage: $capturedImage,
@@ -40,6 +53,8 @@ struct ScanView: View {
                                  mediaType: mediaType) {
                         // When the image or video is captured, create the post
                         createPost()
+                        // Assign the captured image to the FormView binding
+                        selectedImageForForm = capturedImage
                     }
                 }
 
@@ -52,8 +67,17 @@ struct ScanView: View {
                         .cornerRadius(10)
                         .padding()
                 }
+
+                // Optionally display the captured video URL
+                if let videoURL = videoURL {
+                    Text("Video URL: \(videoURL.absoluteString)")
+                        .padding()
+                }
+                
+                Spacer() // Push content up and create some space at the bottom
             }
             .navigationTitle("Media Capture")
+            .navigationBarTitleDisplayMode(.inline) // Optional: adjust title display
         }
     }
 
@@ -76,11 +100,7 @@ struct ScanView: View {
     }
 }
 
-// ImagePicker Struct
-
-import UIKit
-import SwiftUI
-
+// ImagePicker Struct to handle image and video selection
 struct ImagePicker: UIViewControllerRepresentable {
     var sourceType: UIImagePickerController.SourceType
     @Binding var selectedImage: UIImage?
@@ -88,30 +108,8 @@ struct ImagePicker: UIViewControllerRepresentable {
     var mediaType: MediaPicker.MediaType
     var completion: () -> Void
 
-    class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
-        var parent: ImagePicker
-
-        init(parent: ImagePicker) {
-            self.parent = parent
-        }
-
-        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-            if let image = info[.originalImage] as? UIImage {
-                parent.selectedImage = image
-            } else if let videoURL = info[.mediaURL] as? URL {
-                parent.capturedVideoURL = videoURL
-            }
-            parent.completion() // Call completion after selecting media
-            picker.dismiss(animated: true)
-        }
-
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            picker.dismiss(animated: true)
-        }
-    }
-
     func makeCoordinator() -> Coordinator {
-        return Coordinator(parent: self)
+        Coordinator(self)
     }
 
     func makeUIViewController(context: Context) -> UIImagePickerController {
@@ -119,18 +117,35 @@ struct ImagePicker: UIViewControllerRepresentable {
         picker.delegate = context.coordinator
         picker.sourceType = sourceType
         picker.mediaTypes = mediaType == .photo ? ["public.image"] : ["public.movie"]
-        picker.allowsEditing = false
+        picker.allowsEditing = true
         return picker
     }
 
     func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
-}
 
-// MediaPicker Enum for Media Type
+    class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
+        var parent: ImagePicker
 
-enum MediaPicker {
-    enum MediaType {
-        case photo
-        case video
+        init(_ parent: ImagePicker) {
+            self.parent = parent
+        }
+
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+            if let image = info[.editedImage] as? UIImage ?? info[.originalImage] as? UIImage {
+                parent.selectedImage = image
+            }
+
+            if let videoURL = info[.mediaURL] as? URL {
+                parent.capturedVideoURL = videoURL
+            }
+
+            picker.dismiss(animated: true) {
+                self.parent.completion()
+            }
+        }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            picker.dismiss(animated: true)
+        }
     }
 }

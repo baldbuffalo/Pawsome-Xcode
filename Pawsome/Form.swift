@@ -29,55 +29,60 @@ struct FormView: View {
 
     var body: some View {
         ScrollView {
-            VStack {
+            VStack(spacing: 16) {
+                // Display the captured image at the top
                 if let image = imageUI {
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFit()
                         .frame(height: 200)
+                        .cornerRadius(10)
+                        .padding(.horizontal) // Add horizontal padding
                 } else {
                     Text("No image captured.")
                         .foregroundColor(.gray)
                 }
 
+                // Form fields
                 TextField("Cat Name", text: Binding(
                     get: { catPost.catName ?? "" },
                     set: { catPost.catName = $0 }
                 ))
                 .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding()
+                .padding(.horizontal)
 
                 TextField("Breed", text: Binding(
                     get: { catPost.catBreed ?? "" },
                     set: { catPost.catBreed = $0 }
                 ))
                 .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding()
+                .padding(.horizontal)
 
                 TextField("Age", text: Binding(
-                    get: { String(catPost.catAge) }, // Directly convert Int32 to String
-                    set: { catPost.catAge = Int32($0) ?? 0 } // Convert String to Int32, set to 0 if conversion fails
+                    get: { String(catPost.catAge) },
+                    set: { catPost.catAge = Int32($0) ?? 0 }
                 ))
                 .keyboardType(.numberPad)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding()
+                .padding(.horizontal)
 
                 TextField("Location", text: Binding(
                     get: { catPost.location ?? "" },
                     set: { catPost.location = $0 }
                 ))
                 .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding()
+                .padding(.horizontal)
 
                 TextField("Description", text: Binding(
                     get: { catPost.postDescription ?? "" },
                     set: { catPost.postDescription = $0 }
                 ))
                 .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding()
+                .padding(.horizontal)
 
+                // Post Button
                 Button(action: {
-                    catPost.imageData = imageUI?.pngData() // Setting image data to Core Data property
+                    catPost.imageData = imageUI?.pngData() // Set image data to Core Data property
                     catPost.timestamp = Date() // Update the timestamp when posting
 
                     do {
@@ -95,7 +100,7 @@ struct FormView: View {
                 .disabled(catPost.catName?.isEmpty == true || catPost.catBreed?.isEmpty == true || catPost.catAge <= 0 || catPost.location?.isEmpty == true || catPost.postDescription?.isEmpty == true)
                 .padding()
             }
-            .padding()
+            .padding(.vertical) // Add vertical padding for the entire VStack
         }
         .onTapGesture {
             UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)

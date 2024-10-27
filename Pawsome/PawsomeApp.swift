@@ -22,16 +22,22 @@ struct PawsomeApp: App {
                             Label("Home", systemImage: "house")
                         }
 
-                    // ScanView: Pass capturedImage and videoURL
-                    ScanView(capturedImage: $capturedImage, videoURL: $videoURL, username: username) { newPost in
-                        addPost(newPost) // Call to add a new post
-                    }
+                    // ScanView: Pass capturedImage, videoURL, username, and the closure for onPostCreated
+                    ScanView(
+                        capturedImage: $capturedImage,
+                        videoURL: $videoURL,
+                        username: username,
+                        onPostCreated: { newPost in
+                            addPost(newPost) // Call to add a new post
+                        },
+                        selectedImageForForm: $capturedImage // Pass binding directly
+                    )
                     .tabItem {
-                        Label("Post", systemImage: "plus.message")
+                        Label("Post", systemImage: "camera") // Camera icon
                     }
 
                     // ProfileView: Pass the necessary parameters
-                    ProfileView(isLoggedIn: $isLoggedIn, currentUsername: $username, profileImage: $profileImage) // Use $username for binding
+                    ProfileView(isLoggedIn: $isLoggedIn, currentUsername: $username, profileImage: $profileImage)
                         .tabItem {
                             Label("Profile", systemImage: "person")
                         }
