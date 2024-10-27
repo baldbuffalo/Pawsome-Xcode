@@ -89,12 +89,12 @@ struct HomeView: View {
         List {
             ForEach(catPosts, id: \.self) { post in
                 VStack(alignment: .leading) {
-                    Text("Posted by: \(post.username ?? "")") // Uses Core Data property 'username'
+                    Text("Posted by: \(post.username ?? "")")
                         .font(.subheadline)
                         .foregroundColor(.gray)
                         .padding(.bottom, 2)
 
-                    if let imageData = post.imageData, let image = UIImage(data: imageData) { // Uses Core Data property 'imageData'
+                    if let imageData = post.imageData, let image = UIImage(data: imageData) {
                         Image(uiImage: image)
                             .resizable()
                             .scaledToFit()
@@ -102,15 +102,19 @@ struct HomeView: View {
                             .cornerRadius(12)
                     }
 
-                    Text(post.catName ?? "") // Updated property name
+                    Text(post.catName ?? "")
                         .font(.headline)
-                    Text("Breed: \(post.catBreed ?? "")") // Updated property name
-                    Text("Age: \(post.catAge != nil ? String(post.catAge!) : "Unknown")") // Display age, handle optional
-                    Text("Location: \(post.location ?? "")") // Uses Core Data property 'location'
-                    Text("Description: \(post.postDescription ?? "")") // Uses Core Data property 'postDescription'
-                    
+                    Text("Breed: \(post.catBreed ?? "")")
+
+                    // Handle displaying age with default value if less than or equal to 0
+                    let ageDisplay = post.catAge > 0 ? "\(post.catAge)" : "Unknown"
+                    Text("Age: \(ageDisplay)")
+
+                    Text("Location: \(post.location ?? "")")
+                    Text("Description: \(post.postDescription ?? "")")
+
                     // Display the timestamp
-                    if let timestamp = post.timestamp { // Uses Core Data property 'timestamp'
+                    if let timestamp = post.timestamp {
                         Text("Posted on: \(formattedDate(timestamp))")
                             .font(.footnote)
                             .foregroundColor(.gray)
@@ -164,14 +168,7 @@ struct HomeView: View {
         catPost.imageData = newPost.imageData // Set the imageData if available
         catPost.catName = newPost.catName // Set the catName
         catPost.catBreed = newPost.catBreed // Set the catBreed
-
-        // Convert catAge from String to Int32 if it's a String
-        if let ageString = newPost.catAge, let ageInt = Int32(ageString) {
-            catPost.catAge = ageInt // Set the converted catAge
-        } else {
-            catPost.catAge = nil // Handle nil or invalid conversion
-        }
-
+        catPost.catAge = newPost.catAge // Updated property name to catAge
         catPost.location = newPost.location // Set the location
         catPost.postDescription = newPost.postDescription // Set the post description
         catPost.timestamp = Date() // Set the timestamp
