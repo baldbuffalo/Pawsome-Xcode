@@ -8,36 +8,12 @@ struct HomeView: View {
         animation: .default)
     private var posts: FetchedResults<CatPost>
 
-    @State private var capturedImage: UIImage? = nil
-    @State private var videoURL: URL? = nil
-    @State private var newPostContent: String = "" // New post content
-    @State private var isPostButtonDisabled: Bool = true // Disable button initially
     var currentUsername: String // This should come from the profile tab
     @Binding var profileImage: Image? // Ensure this is a Binding
 
     var body: some View {
         NavigationStack {
             VStack {
-                // Form fields for new post
-                VStack(alignment: .leading) {
-                    TextField("What's on your mind?", text: $newPostContent)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .padding(.bottom, 8)
-                    
-                    Button(action: {
-                        addPost()
-                    }) {
-                        Text("Post")
-                            .foregroundColor(.white)
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(isPostButtonDisabled ? Color.gray : Color.blue)
-                            .cornerRadius(8)
-                    }
-                    .disabled(isPostButtonDisabled) // Disable button if fields are empty
-                }
-                .padding()
-
                 // Display a message if no posts are available
                 if posts.isEmpty {
                     Text("No posts yet! Start by creating a new one.")
@@ -110,24 +86,7 @@ struct HomeView: View {
             }
             .navigationTitle("Home")
             .navigationBarTitleDisplayMode(.inline) // Optional: For a cleaner title display
-            .onChange(of: newPostContent) { newValue in
-                // Enable post button if all fields are filled
-                isPostButtonDisabled = newPostContent.isEmpty
-            }
         }
-    }
-
-    // Function to add a new post
-    private func addPost() {
-        let newPost = CatPost(context: viewContext)
-        newPost.timestamp = Date()
-        newPost.username = currentUsername // Set the username from the profile
-        newPost.content = newPostContent // Assuming you have a content attribute in CatPost
-
-        saveContext()
-
-        // Clear fields after posting
-        newPostContent = ""
     }
 
     // Function to delete posts

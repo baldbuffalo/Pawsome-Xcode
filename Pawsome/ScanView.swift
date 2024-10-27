@@ -21,7 +21,6 @@ struct ScanView: View {
     @State private var showMediaTypeActionSheet: Bool = false
     @State private var isNavigatingToForm: Bool = false
 
-    // Keep newPost optional
     @State private var newPost: CatPost? // This is mutable
 
     var body: some View {
@@ -32,9 +31,14 @@ struct ScanView: View {
                 }
                 .actionSheet(isPresented: $showMediaTypeActionSheet) {
                     ActionSheet(title: Text("Select Media Type"), buttons: [
-                        .default(Text("Photo")) {
+                        .default(Text("Photo from Camera")) {
                             mediaType = .photo
                             sourceType = .camera
+                            isImagePickerPresented = true
+                        },
+                        .default(Text("Photo from Gallery")) {
+                            mediaType = .photo
+                            sourceType = .photoLibrary
                             isImagePickerPresented = true
                         },
                         .default(Text("Video")) {
@@ -47,18 +51,7 @@ struct ScanView: View {
                 }
                 .padding()
 
-                if let image = capturedImage {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 200)
-                        .cornerRadius(10)
-                        .padding()
-                        .onTapGesture {
-                            selectedImageForForm = image
-                            isNavigatingToForm = true
-                        }
-                }
+                // Removed the Image display section
 
                 if let videoURL = videoURL {
                     Text("Video URL: \(videoURL.absoluteString)")
@@ -71,25 +64,32 @@ struct ScanView: View {
             .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $isImagePickerPresented) {
                 ImagePickerView(sourceType: sourceType, mediaType: mediaType) { image, videoURL in
+                    // Handle the selected image and video URL
                     capturedImage = image
                     self.videoURL = videoURL
+                    
+                    // Send the selected image to the form
+                    if let selectedImage = image {
+                        selectedImageForForm = selectedImage
+                    }
+
                     createPost()
-                    selectedImageForForm = image
+                    
+                    // Navigate to the form
                     isNavigatingToForm = true
                 }
             }
             .navigationDestination(isPresented: $isNavigatingToForm) {
-                // Use a conditional binding to check if newPost is nil
                 if let newPost = newPost {
                     FormView(
-                        showForm: .constant(false), // Pass as Binding
-                        navigateToHome: .constant(false), // Pass as Binding
+                        showForm: .constant(false),
+                        navigateToHome: .constant(false),
                         imageUI: selectedImageForForm,
                         videoURL: videoURL,
                         username: username,
                         catPost: Binding(
-                            get: { newPost }, // Now safe to use
-                            set: { self.newPost = $0 } // Use `self` to refer to the state variable
+                            get: { newPost },
+                            set: { self.newPost = $0 }
                         ),
                         onPostCreated: onPostCreated
                     )
@@ -111,7 +111,6 @@ struct ScanView: View {
             newPost.videoURL = videoURL.absoluteString
         }
 
-        // Set the state variable to the new post
         self.newPost = newPost
         onPostCreated(newPost)
     }
