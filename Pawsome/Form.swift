@@ -59,8 +59,14 @@ struct FormView: View {
                 .padding(.horizontal)
 
                 TextField("Age", text: Binding(
-                    get: { String(catPost.catAge) },
-                    set: { catPost.catAge = Int32($0) ?? 0 }
+                    get: { catPost.catAge != nil ? String(describing: catPost.catAge!) : "" }, // Safely unwrap the optional
+                    set: {
+                        if let age = Int32($0), age > 0 {
+                            catPost.catAge = NSNumber(value: age) // Wrap in NSNumber
+                        } else {
+                            catPost.catAge = nil // Set to nil if input is invalid
+                        }
+                    }
                 ))
                 .keyboardType(.numberPad)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -95,9 +101,9 @@ struct FormView: View {
                     }
                 }) {
                     Text("Post")
-                        .foregroundColor(catPost.catName?.isEmpty == false && catPost.catBreed?.isEmpty == false && catPost.catAge > 0 && catPost.location?.isEmpty == false && catPost.postDescription?.isEmpty == false ? .blue : .gray)
+                        .foregroundColor(isPostButtonEnabled() ? .blue : .gray) // Change color based on the enabled state
                 }
-                .disabled(catPost.catName?.isEmpty == true || catPost.catBreed?.isEmpty == true || catPost.catAge <= 0 || catPost.location?.isEmpty == true || catPost.postDescription?.isEmpty == true)
+                .disabled(!isPostButtonEnabled()) // Disable button based on form validation
                 .padding()
             }
             .padding(.vertical) // Add vertical padding for the entire VStack
@@ -105,5 +111,14 @@ struct FormView: View {
         .onTapGesture {
             UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         }
+    }
+
+    private func isPostButtonEnabled() -> Bool {
+        // Check if all fields are filled and valid
+        return !(catPost.catName?.isEmpty ?? true) &&
+               !(catPost.catBreed?.isEmpty ?? true) &&
+               (catPost.catAge != nil) && // Ensure catAge is set and valid
+               !(catPost.location?.isEmpty ?? true) &&
+               !(catPost.postDescription?.isEmpty ?? true)
     }
 }
