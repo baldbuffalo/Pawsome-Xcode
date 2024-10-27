@@ -9,8 +9,9 @@ struct HomeView: View {
     private var posts: FetchedResults<CatPost> // Fetch results from Core Data
 
     @State private var showScanView = false // Controls presentation of ScanView
-    @State private var capturedImage: UIImage? // Holds the captured image
-    private var currentUsername: String = "User123" // You can replace this with actual logged-in username
+    @State private var capturedImage: UIImage? = nil // Holds the captured image
+    @State private var videoURL: URL? = nil // Holds the captured video URL
+    private var currentUsername: String = "User123" // Replace with actual username
 
     var body: some View {
         NavigationStack {
@@ -43,8 +44,8 @@ struct HomeView: View {
                         .padding(.horizontal)
                 }
                 .sheet(isPresented: $showScanView) {
-                    ScanView(capturedImage: $capturedImage, username: currentUsername) { newPost in
-                        addPost(newPost)
+                    ScanView(capturedImage: $capturedImage, videoURL: $videoURL, username: currentUsername) { newPost in
+                        addPost(newPost) // Pass the new CatPost
                     }
                 }
             }
@@ -57,12 +58,14 @@ struct HomeView: View {
         post.username = currentUsername
         post.timestamp = Date()
         
+        // Check for captured image
         if let image = newPost.0, let imageData = image.jpegData(compressionQuality: 0.8) {
             post.imageData = imageData // Store image data
         }
         
+        // Check for video URL
         if let videoURL = newPost.1 {
-            post.videoURL = videoURL.absoluteString
+            post.videoURL = videoURL.absoluteString // Store the video URL as a string
         }
 
         saveContext()
@@ -85,7 +88,7 @@ struct HomeView: View {
     }
 }
 
-// Nested view to display each Core Data CatPost
+// Post row to display each Core Data CatPost
 struct PostRowView: View {
     let post: CatPost
     
@@ -117,10 +120,10 @@ struct PostRowView: View {
     }
 }
 
-// Placeholder VideoPlayer view
+// Placeholder VideoPlayer view (you can use AVKit for actual video playback)
 struct VideoPlayerView: View {
     let videoURL: URL
-    
+
     var body: some View {
         Text("Video: \(videoURL.lastPathComponent)") // Replace with AVKit player if needed
             .frame(height: 200)
