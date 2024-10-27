@@ -3,7 +3,7 @@ import CoreData
 
 struct CommentsView: View {
     @Binding var showComments: Bool
-    @Binding var post: CatPost // Use Binding to update the post with new comments
+    @Binding var post: CatPost // Use the CatPost class from CatPost+CoreDataClass.swift
 
     @Environment(\.managedObjectContext) private var viewContext
     @State private var newComment: String = ""
@@ -13,7 +13,7 @@ struct CommentsView: View {
             VStack {
                 List {
                     ForEach(post.commentsArray, id: \.self) { comment in
-                        Text(comment.text ?? "") // Display each comment's text
+                        Text(comment.text ?? "No text") // Display each comment's text
                             .padding(10)
                             .background(Color.white)
                             .cornerRadius(10)
