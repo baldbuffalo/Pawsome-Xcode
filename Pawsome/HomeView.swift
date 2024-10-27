@@ -23,14 +23,37 @@ struct HomeView: View {
                 } else {
                     List {
                         ForEach(posts) { post in
-                            PostRowView(post: post)
+                            VStack(alignment: .leading) {
+                                Text("Posted by \(post.username ?? "Unknown")")
+                                    .font(.headline)
+                                    .foregroundColor(.blue)
+
+                                if let imageData = post.imageData, let uiImage = UIImage(data: imageData) {
+                                    Image(uiImage: uiImage)
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(height: 200)
+                                        .cornerRadius(10)
+                                        .padding(.top)
+                                } else if let videoURLString = post.videoURL, let videoURL = URL(string: videoURLString) {
+                                    VideoPlayerView(videoURL: videoURL)
+                                        .frame(height: 200)
+                                        .cornerRadius(10)
+                                        .padding(.top)
+                                } else {
+                                    Text("No media available.")
+                                        .foregroundColor(.gray)
+                                        .padding(.top)
+                                }
+                            }
+                            .padding(.vertical, 8)
                         }
                         .onDelete(perform: deletePosts)
                     }
                 }
-                
+
                 Spacer()
-                
+
                 Button(action: {
                     showScanView = true // Show ScanView when button is pressed
                 }) {
@@ -52,22 +75,9 @@ struct HomeView: View {
             .navigationTitle("Home")
         }
     }
-    
-    private func addPost(_ newPost: CatPost) {
-        let post = CatPost(context: viewContext)
-        post.username = newPost.username // Copy the username from the new post
-        post.timestamp = Date()
-        
-        // Check for captured image
-        if let imageData = newPost.imageData {
-            post.imageData = imageData // Store image data
-        }
-        
-        // Check for video URL
-        if let videoURLString = newPost.videoURL {
-            post.videoURL = videoURLString // Store the video URL as a string
-        }
 
+    private func addPost(_ newPost: CatPost) {
+        // Use the passed newPost object directly
         saveContext()
     }
 
@@ -85,38 +95,6 @@ struct HomeView: View {
             let nsError = error as NSError
             print("Unresolved error \(nsError), \(nsError.userInfo)")
         }
-    }
-}
-
-// Post row to display each Core Data CatPost
-struct PostRowView: View {
-    let post: CatPost
-    
-    var body: some View {
-        VStack(alignment: .leading) {
-            Text("Posted by \(post.username ?? "Unknown")")
-                .font(.headline)
-                .foregroundColor(.blue)
-            
-            if let imageData = post.imageData, let uiImage = UIImage(data: imageData) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: 200)
-                    .cornerRadius(10)
-                    .padding(.top)
-            } else if let videoURLString = post.videoURL, let videoURL = URL(string: videoURLString) {
-                VideoPlayerView(videoURL: videoURL)
-                    .frame(height: 200)
-                    .cornerRadius(10)
-                    .padding(.top)
-            } else {
-                Text("No media available.")
-                    .foregroundColor(.gray)
-                    .padding(.top)
-            }
-        }
-        .padding(.vertical, 8)
     }
 }
 

@@ -8,12 +8,12 @@ struct ScanView: View {
     var onPostCreated: (CatPost) -> Void // Callback to notify when a post is created
 
     @State private var isImagePickerPresented: Bool = false
-    @State private var sourceType: UIImagePickerController.SourceType = .camera
+    @State private var sourceType: UIImagePickerController.SourceType = .photoLibrary
     @State private var mediaType: MediaPicker.MediaType = .photo
     @State private var showMediaTypeActionSheet: Bool = false
 
     var body: some View {
-        NavigationStack {
+        NavigationView {
             VStack {
                 Button("Select Media") {
                     showMediaTypeActionSheet = true
@@ -22,12 +22,12 @@ struct ScanView: View {
                     ActionSheet(title: Text("Select Media Type"), buttons: [
                         .default(Text("Photo")) {
                             mediaType = .photo
-                            sourceType = .photoLibrary // Use camera for photo if you prefer
+                            sourceType = .photoLibrary
                             isImagePickerPresented = true
                         },
                         .default(Text("Video")) {
                             mediaType = .video
-                            sourceType = .camera // Use camera for video
+                            sourceType = .camera
                             isImagePickerPresented = true
                         },
                         .cancel()
@@ -50,6 +50,7 @@ struct ScanView: View {
                         .scaledToFit()
                         .frame(height: 200)
                         .cornerRadius(10)
+                        .padding()
                 }
             }
             .navigationTitle("Media Capture")
@@ -70,17 +71,22 @@ struct ScanView: View {
             newPost.videoURL = videoURL.absoluteString // Store the video URL
         }
 
-        onPostCreated(newPost) // Notify that a new post has been created
+        // Notify that a new post has been created
+        onPostCreated(newPost)
     }
 }
 
-// ImagePicker to handle media capture
+// ImagePicker Struct
+
+import UIKit
+import SwiftUI
+
 struct ImagePicker: UIViewControllerRepresentable {
     var sourceType: UIImagePickerController.SourceType
     @Binding var selectedImage: UIImage?
     @Binding var capturedVideoURL: URL?
     var mediaType: MediaPicker.MediaType
-    var onImageCaptured: () -> Void
+    var completion: () -> Void
 
     class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
         var parent: ImagePicker
@@ -92,11 +98,10 @@ struct ImagePicker: UIViewControllerRepresentable {
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
             if let image = info[.originalImage] as? UIImage {
                 parent.selectedImage = image
-                parent.onImageCaptured()
-            } else if let url = info[.mediaURL] as? URL {
-                parent.capturedVideoURL = url
-                parent.onImageCaptured()
+            } else if let videoURL = info[.mediaURL] as? URL {
+                parent.capturedVideoURL = videoURL
             }
+            parent.completion() // Call completion after selecting media
             picker.dismiss(animated: true)
         }
 
@@ -106,39 +111,26 @@ struct ImagePicker: UIViewControllerRepresentable {
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(parent: self)
+        return Coordinator(parent: self)
     }
 
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
         picker.delegate = context.coordinator
         picker.sourceType = sourceType
-        picker.mediaTypes = [mediaType.rawValue] // Set the media type based on selection
+        picker.mediaTypes = mediaType == .photo ? ["public.image"] : ["public.movie"]
+        picker.allowsEditing = false
         return picker
     }
 
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {
-        // No updates needed
-    }
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
 }
 
-extension MediaPicker.MediaType {
-    var rawValue: String {
-        switch self {
-        case .photo:
-            return "public.image"
-        case .video:
-            return "public.movie"
-        case .library:
-            return "public.image" // or "public.movie" for both
-        }
-    }
-}
+// MediaPicker Enum for Media Type
 
-struct MediaPicker {
+enum MediaPicker {
     enum MediaType {
         case photo
         case video
-        case library
     }
 }
