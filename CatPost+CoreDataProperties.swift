@@ -16,14 +16,15 @@ extension CatPost {
         return NSFetchRequest<CatPost>(entityName: "CatPost")
     }
 
-    @NSManaged public var catName: String?
     @NSManaged public var catAge: Int32
     @NSManaged public var catBreed: String?
-    @NSManaged public var timestamp: Date?
+    @NSManaged public var catName: String?
     @NSManaged public var imageData: Data?
-    @NSManaged public var username: String?
-    @NSManaged public var location: String?
     @NSManaged public var likes: Int32
+    @NSManaged public var location: String?
+    @NSManaged public var timestamp: Date?
+    @NSManaged public var username: String?
+    @NSManaged public var postDescription: String?
     @NSManaged public var comments: NSSet?
 
 }
