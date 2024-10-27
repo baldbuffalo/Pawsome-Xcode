@@ -105,7 +105,7 @@ struct HomeView: View {
                     Text(post.catName ?? "") // Updated property name
                         .font(.headline)
                     Text("Breed: \(post.catBreed ?? "")") // Updated property name
-                    Text("Age: \(post.age ?? "Unknown")") // Uses Core Data property 'age'
+                    Text("Age: \(post.catAge ?? "Unknown")") // Updated property name to catAge
                     Text("Location: \(post.location ?? "")") // Uses Core Data property 'location'
                     Text("Description: \(post.postDescription ?? "")") // Uses Core Data property 'postDescription'
                     
@@ -164,7 +164,7 @@ struct HomeView: View {
         catPost.imageData = newPost.imageData // Set the imageData if available
         catPost.catName = newPost.catName // Set the catName
         catPost.catBreed = newPost.catBreed // Set the catBreed
-        catPost.age = newPost.age // Set the age
+        catPost.catAge = newPost.catAge // Updated property name to catAge
         catPost.location = newPost.location // Set the location
         catPost.postDescription = newPost.postDescription // Set the post description
         catPost.timestamp = Date() // Set the timestamp
