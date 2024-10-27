@@ -7,6 +7,7 @@ struct MediaPicker {
         case video
     }
 }
+
 struct ScanView: View {
     @Binding var capturedImage: UIImage?
     @Binding var videoURL: URL?
@@ -20,12 +21,11 @@ struct ScanView: View {
     @State private var showMediaTypeActionSheet: Bool = false
     @State private var isNavigatingToForm: Bool = false
 
-    // New state bindings for FormView
-    @State private var showForm: Bool = false
-    @State private var navigateToHome: Bool = false
+    // Changed from optional to non-optional
+    @State private var newPost: CatPost?
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack {
                 Button("Select Media") {
                     showMediaTypeActionSheet = true
@@ -46,17 +46,6 @@ struct ScanView: View {
                     ])
                 }
                 .padding()
-
-                .sheet(isPresented: $isImagePickerPresented) {
-                    ImagePicker(sourceType: sourceType,
-                                 selectedImage: $capturedImage,
-                                 capturedVideoURL: $videoURL,
-                                 mediaType: mediaType) {
-                        createPost()
-                        selectedImageForForm = capturedImage
-                        isNavigatingToForm = true
-                    }
-                }
 
                 if let image = capturedImage {
                     Image(uiImage: image)
@@ -80,19 +69,29 @@ struct ScanView: View {
             }
             .navigationTitle("Media Capture")
             .navigationBarTitleDisplayMode(.inline)
-            .background(
-                NavigationLink(destination: FormView(
-                    showForm: $showForm, // Pass as Binding
-                    navigateToHome: $navigateToHome, // Pass as Binding
+            .sheet(isPresented: $isImagePickerPresented) {
+                ImagePickerView(sourceType: sourceType, mediaType: mediaType) { image, videoURL in
+                    capturedImage = image
+                    self.videoURL = videoURL
+                    createPost()
+                    selectedImageForForm = image
+                    isNavigatingToForm = true
+                }
+            }
+            .navigationDestination(isPresented: $isNavigatingToForm) {
+                FormView(
+                    showForm: .constant(false), // Pass as Binding
+                    navigateToHome: .constant(false), // Pass as Binding
                     imageUI: selectedImageForForm,
                     videoURL: videoURL,
                     username: username,
+                    catPost: Binding(
+                        get: { newPost! }, // Assuming newPost will not be nil when you reach here
+                        set: { newPost = $0 }
+                    ),
                     onPostCreated: onPostCreated
-                ),
-                isActive: $isNavigatingToForm) {
-                    EmptyView()
-                }
-            )
+                )
+            }
         }
     }
 
@@ -109,16 +108,16 @@ struct ScanView: View {
             newPost.videoURL = videoURL.absoluteString
         }
 
+        self.newPost = newPost
         onPostCreated(newPost)
     }
 }
 
-struct ImagePicker: UIViewControllerRepresentable {
+// Combined ImagePicker functionality
+struct ImagePickerView: UIViewControllerRepresentable {
     var sourceType: UIImagePickerController.SourceType
-    @Binding var selectedImage: UIImage?
-    @Binding var capturedVideoURL: URL?
     var mediaType: MediaPicker.MediaType
-    var completion: () -> Void
+    var onImagePicked: (UIImage?, URL?) -> Void
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
@@ -136,24 +135,19 @@ struct ImagePicker: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
 
     class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
-        var parent: ImagePicker
+        var parent: ImagePickerView
 
-        init(_ parent: ImagePicker) {
+        init(_ parent: ImagePickerView) {
             self.parent = parent
         }
 
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-            if let image = info[.editedImage] as? UIImage ?? info[.originalImage] as? UIImage {
-                parent.selectedImage = image
-            }
+            let image = info[.editedImage] as? UIImage ?? info[.originalImage] as? UIImage
+            let videoURL = info[.mediaURL] as? URL
+            
+            parent.onImagePicked(image, videoURL)
 
-            if let videoURL = info[.mediaURL] as? URL {
-                parent.capturedVideoURL = videoURL
-            }
-
-            picker.dismiss(animated: true) {
-                self.parent.completion()
-            }
+            picker.dismiss(animated: true)
         }
 
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {

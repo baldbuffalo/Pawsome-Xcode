@@ -10,21 +10,16 @@ struct FormView: View {
     var onPostCreated: (CatPost) -> Void
 
     @Environment(\.managedObjectContext) private var viewContext // Managed object context
-    @State private var catPost: CatPost // Hold data for a new post
+    @Binding var catPost: CatPost // Change this to a Binding
 
-    init(showForm: Binding<Bool>, navigateToHome: Binding<Bool>, imageUI: UIImage?, videoURL: URL?, username: String, onPostCreated: @escaping (CatPost) -> Void) {
+    init(showForm: Binding<Bool>, navigateToHome: Binding<Bool>, imageUI: UIImage?, videoURL: URL?, username: String, catPost: Binding<CatPost>, onPostCreated: @escaping (CatPost) -> Void) {
         self._showForm = showForm
         self._navigateToHome = navigateToHome
         self.imageUI = imageUI
         self.videoURL = videoURL
         self.username = username
         self.onPostCreated = onPostCreated
-
-        // Initialize a new CatPost in the managed object context
-        let context = PersistenceController.shared.container.viewContext
-        self._catPost = State(initialValue: CatPost(context: context))
-        self.catPost.username = self.username
-        self.catPost.timestamp = Date() // Set the current date as the timestamp
+        self._catPost = catPost // Set binding for catPost
     }
 
     var body: some View {
