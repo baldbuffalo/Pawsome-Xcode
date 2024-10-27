@@ -12,13 +12,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>151</string>
+					<string>116</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>151</string>
+					<string>116</string>
 					<key>Timestamp</key>
-					<string>751746211.35272</string>
+					<string>751746883.8779089</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -36,8 +36,8 @@
 				<key>focused</key>
 				<string></string>
 				<key>leading</key>
-				<string>    }
-}
+				<string>
+// Add the ImagePicker struct here...
 </string>
 				<key>trailing</key>
 				<string></string>

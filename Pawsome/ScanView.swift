@@ -1,30 +1,32 @@
 import SwiftUI
 import UIKit
 
-// Define the MediaPicker.MediaType enum
 struct MediaPicker {
     enum MediaType {
         case photo
         case video
     }
 }
-
 struct ScanView: View {
     @Binding var capturedImage: UIImage?
     @Binding var videoURL: URL?
     var username: String
-    var onPostCreated: (CatPost) -> Void // Callback to notify when a post is created
-    @Binding var selectedImageForForm: UIImage? // New binding to send image to FormView
+    var onPostCreated: (CatPost) -> Void
+    @Binding var selectedImageForForm: UIImage?
 
     @State private var isImagePickerPresented: Bool = false
     @State private var sourceType: UIImagePickerController.SourceType = .camera
     @State private var mediaType: MediaPicker.MediaType = .photo
     @State private var showMediaTypeActionSheet: Bool = false
+    @State private var isNavigatingToForm: Bool = false
+
+    // New state bindings for FormView
+    @State private var showForm: Bool = false
+    @State private var navigateToHome: Bool = false
 
     var body: some View {
         NavigationView {
             VStack {
-                // Media Picker Button at the Top
                 Button("Select Media") {
                     showMediaTypeActionSheet = true
                 }
@@ -32,33 +34,30 @@ struct ScanView: View {
                     ActionSheet(title: Text("Select Media Type"), buttons: [
                         .default(Text("Photo")) {
                             mediaType = .photo
-                            sourceType = .camera // Open camera for taking a photo
+                            sourceType = .camera
                             isImagePickerPresented = true
                         },
                         .default(Text("Video")) {
                             mediaType = .video
-                            sourceType = .camera // Set to camera for video as well
+                            sourceType = .camera
                             isImagePickerPresented = true
                         },
                         .cancel()
                     ])
                 }
-                .padding() // Add some padding for aesthetics
+                .padding()
 
-                // Present the ImagePicker
                 .sheet(isPresented: $isImagePickerPresented) {
                     ImagePicker(sourceType: sourceType,
                                  selectedImage: $capturedImage,
                                  capturedVideoURL: $videoURL,
                                  mediaType: mediaType) {
-                        // When the image or video is captured, create the post
                         createPost()
-                        // Assign the captured image to the FormView binding
                         selectedImageForForm = capturedImage
+                        isNavigatingToForm = true
                     }
                 }
 
-                // Display captured image
                 if let image = capturedImage {
                     Image(uiImage: image)
                         .resizable()
@@ -66,41 +65,54 @@ struct ScanView: View {
                         .frame(height: 200)
                         .cornerRadius(10)
                         .padding()
+                        .onTapGesture {
+                            selectedImageForForm = image
+                            isNavigatingToForm = true
+                        }
                 }
 
-                // Optionally display the captured video URL
                 if let videoURL = videoURL {
                     Text("Video URL: \(videoURL.absoluteString)")
                         .padding()
                 }
-                
-                Spacer() // Push content up and create some space at the bottom
+
+                Spacer()
             }
             .navigationTitle("Media Capture")
-            .navigationBarTitleDisplayMode(.inline) // Optional: adjust title display
+            .navigationBarTitleDisplayMode(.inline)
+            .background(
+                NavigationLink(destination: FormView(
+                    showForm: $showForm, // Pass as Binding
+                    navigateToHome: $navigateToHome, // Pass as Binding
+                    imageUI: selectedImageForForm,
+                    videoURL: videoURL,
+                    username: username,
+                    onPostCreated: onPostCreated
+                ),
+                isActive: $isNavigatingToForm) {
+                    EmptyView()
+                }
+            )
         }
     }
 
     private func createPost() {
-        // Create the CatPost object with captured media
         let newPost = CatPost(context: PersistenceController.shared.container.viewContext)
         newPost.username = username
         newPost.timestamp = Date()
 
         if let image = capturedImage, let imageData = image.jpegData(compressionQuality: 0.8) {
-            newPost.imageData = imageData // Store the image data
+            newPost.imageData = imageData
         }
 
         if let videoURL = videoURL {
-            newPost.videoURL = videoURL.absoluteString // Store the video URL
+            newPost.videoURL = videoURL.absoluteString
         }
 
-        // Notify that a new post has been created
         onPostCreated(newPost)
     }
 }
 
-// ImagePicker Struct to handle image and video selection
 struct ImagePicker: UIViewControllerRepresentable {
     var sourceType: UIImagePickerController.SourceType
     @Binding var selectedImage: UIImage?
