@@ -4,6 +4,7 @@
         <attribute name="catAge" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="catBreed" optional="YES" attributeType="String"/>
         <attribute name="catName" optional="YES" attributeType="String"/>
+        <attribute name="timestamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <relationship name="comments" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Comment" inverseName="catPost" inverseEntity="Comment"/>
     </entity>
     <entity name="Comment" representedClassName="Comment" syncable="YES">

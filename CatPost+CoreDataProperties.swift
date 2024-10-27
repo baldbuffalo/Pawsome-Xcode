@@ -19,24 +19,25 @@ extension CatPost {
     @NSManaged public var catName: String?
     @NSManaged public var catAge: Int16
     @NSManaged public var catBreed: String?
+    @NSManaged public var timestamp: Date?
     @NSManaged public var comments: NSSet?
 
 }
 
-// MARK: Generated accessors for comment
+// MARK: Generated accessors for comments
 extension CatPost {
 
-    @objc(addCommentObject:)
-    @NSManaged public func addToComment(_ value: Comment)
+    @objc(addCommentsObject:)
+    @NSManaged public func addToComments(_ value: Comment)
 
-    @objc(removeCommentObject:)
-    @NSManaged public func removeFromComment(_ value: Comment)
+    @objc(removeCommentsObject:)
+    @NSManaged public func removeFromComments(_ value: Comment)
 
-    @objc(addComment:)
-    @NSManaged public func addToComment(_ values: NSSet)
+    @objc(addComments:)
+    @NSManaged public func addToComments(_ values: NSSet)
 
-    @objc(removeComment:)
-    @NSManaged public func removeFromComment(_ values: NSSet)
+    @objc(removeComments:)
+    @NSManaged public func removeFromComments(_ values: NSSet)
 
 }
 

@@ -34,7 +34,7 @@ struct HomeView: View {
                             if let selectedImage = selectedImage {
                                 FormView(showForm: $showForm, navigateToHome: $navigateToHome, imageUI: selectedImage, videoURL: nil, username: currentUsername) { newPost in
                                     // Handle new post logic here
-                                    savePost(newPost)
+                                    savePost(from: newPost) // Pass the new post object
                                 }
                             }
                         }
@@ -53,7 +53,7 @@ struct HomeView: View {
                             capturedImage: $selectedImage,
                             username: currentUsername,
                             onPostCreated: { post in
-                                savePost(post) // Save the new post to Core Data
+                                savePost(from: post) // Save the new post to Core Data
                             }
                         )
                     }
@@ -157,16 +157,26 @@ struct HomeView: View {
         return formatter.string(from: date)
     }
     
-    private func savePost(_ post: CatPost) {
-        // Save the new CatPost instance
-        let newCatPost = CatPost.create(title: post.title ?? "Unknown", imageUrl: post.imageUrl ?? "Unknown") // Replace with your own properties
-        // Set other properties here as necessary
+    // Function to save a new CatPost
+    private func savePost(from newPost: CatPost) {
+        let catPost = CatPost(context: viewContext) // Create a new CatPost instance
+        catPost.username = currentUsername // Set the username
+        catPost.imageData = newPost.imageData // Set the imageData if available
+        catPost.name = newPost.name // Set the name
+        catPost.breed = newPost.breed // Set the breed
+        catPost.age = newPost.age // Set the age
+        catPost.location = newPost.location // Set the location
+        catPost.postDescription = newPost.postDescription // Set the post description
+        catPost.timestamp = Date() // Set the timestamp
+        catPost.likes = 0 // Initialize likes to 0
+
+        saveContext() // Save the context after creating the post
     }
 
     private func saveContext() {
         if viewContext.hasChanges {
             do {
-                try viewContext.save()
+                try viewContext.save() // Save changes to Core Data
             } catch {
                 print("Failed to save context: \(error)")
             }
