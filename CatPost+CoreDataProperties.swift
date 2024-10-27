@@ -16,18 +16,9 @@ extension CatPost {
         return NSFetchRequest<CatPost>(entityName: "CatPost")
     }
 
-    @NSManaged public var age: String?
-    @NSManaged public var breed: String?
-    @NSManaged public var comments: NSObject?
-    @NSManaged public var id: UUID?
-    @NSManaged public var imageData: Data?
-    @NSManaged public var likes: Int16
-    @NSManaged public var location: String?
-    @NSManaged public var modificationDate: Date?
-    @NSManaged public var name: String?
-    @NSManaged public var postDescription: String?
-    @NSManaged public var timestamp: Date?
-    @NSManaged public var username: String?
+    @NSManaged public var catName: String?
+    @NSManaged public var catAge: Int16
+    @NSManaged public var catBreed: String?
     @NSManaged public var comment: NSSet?
 
 }

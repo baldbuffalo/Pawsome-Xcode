@@ -1,21 +1,16 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23501.1" systemVersion="24C5057p" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="YES" userDefinedModelVersionIdentifier="">
     <entity name="CatPost" representedClassName="CatPost" syncable="YES">
-        <attribute name="age" optional="YES" attributeType="String"/>
-        <attribute name="breed" optional="YES" attributeType="String"/>
-        <attribute name="comments" optional="YES" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromDataTransformerName"/>
-        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="imageData" optional="YES" attributeType="Binary"/>
-        <attribute name="likes" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
-        <attribute name="location" optional="YES" attributeType="String"/>
-        <attribute name="modificationDate" attributeType="Date" usesScalarValueType="NO"/>
-        <attribute name="name" attributeType="String"/>
-        <attribute name="postDescription" optional="YES" attributeType="String"/>
-        <attribute name="timestamp" attributeType="Date" usesScalarValueType="NO"/>
-        <attribute name="username" attributeType="String"/>
+        <attribute name="catAge" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="catBreed" optional="YES" attributeType="String"/>
+        <attribute name="catName" optional="YES" attributeType="String"/>
         <relationship name="comment" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Comment" inverseName="catPost" inverseEntity="Comment"/>
     </entity>
     <entity name="Comment" representedClassName="Comment" syncable="YES">
+        <attribute name="profilePicture" optional="YES" attributeType="Binary"/>
+        <attribute name="text" optional="YES" attributeType="String"/>
+        <attribute name="timestamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="username" optional="YES" attributeType="String"/>
         <relationship name="catPost" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CatPost" inverseName="comment" inverseEntity="CatPost"/>
     </entity>
 </model>

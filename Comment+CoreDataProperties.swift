@@ -16,6 +16,10 @@ extension Comment {
         return NSFetchRequest<Comment>(entityName: "Comment")
     }
 
+    @NSManaged public var text: String?
+    @NSManaged public var timestamp: Date?
+    @NSManaged public var username: String?
+    @NSManaged public var profilePicture: Data?
     @NSManaged public var catPost: CatPost?
 
 }
