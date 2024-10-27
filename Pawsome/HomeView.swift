@@ -35,10 +35,8 @@ struct HomeView: View {
                             }
                         }
                     }
-                    .onChange(of: navigateToHome) { newValue in
-                        if newValue {
-                            showForm = false
-                        }
+                    .onChange(of: navigateToHome) { _ in
+                        showForm = false
                     }
                 }
                 .tabItem {
@@ -94,84 +92,106 @@ struct HomeView: View {
     }
 
     private var postListView: some View {
-        List {
-            ForEach(catPosts, id: \.self) { post in
-                VStack(alignment: .leading) {
-                    Text("Posted by: \(post.username ?? "")")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                        .padding(.bottom, 2)
+        VStack {
+            // Delete All Posts Button
+            Button(action: {
+                deleteAllPosts()
+            }) {
+                Text("Delete All Posts")
+                    .fontWeight(.bold)
+                    .foregroundColor(.red)
+            }
+            .padding()
+            .alert(isPresented: .constant(catPosts.isEmpty == false)) {
+                Alert(
+                    title: Text("Confirmation"),
+                    message: Text("Are you sure you want to delete all posts?"),
+                    primaryButton: .destructive(Text("Delete")) {
+                        deleteAllPosts()
+                    },
+                    secondaryButton: .cancel()
+                )
+            }
 
-                    if let imageData = post.imageData, let image = UIImage(data: imageData) {
-                        Image(uiImage: image)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(height: 200)
-                            .cornerRadius(12)
-                    }
-
-                    Text(post.catName ?? "")
-                        .font(.headline)
-                    Text("Breed: \(post.catBreed ?? "")")
-
-                    let ageDisplay = post.catAge > 0 ? "\(post.catAge)" : "Unknown"
-                    Text("Age: \(ageDisplay)")
-
-                    Text("Location: \(post.location ?? "")")
-                    Text("Description: \(post.postDescription ?? "")")
-
-                    if let timestamp = post.timestamp {
-                        Text("Posted on: \(formattedDate(timestamp))")
-                            .font(.footnote)
+            List {
+                ForEach(catPosts, id: \.self) { post in
+                    VStack(alignment: .leading) {
+                        Text("Posted by: \(post.username ?? "")")
+                            .font(.subheadline)
                             .foregroundColor(.gray)
-                    }
+                            .padding(.bottom, 2)
 
-                    HStack {
-                        Button(action: {
-                            post.likes = post.likes > 0 ? 0 : 1
-                            saveContext()
-                        }) {
-                            HStack {
-                                Image(systemName: post.likes > 0 ? "hand.thumbsup.fill" : "hand.thumbsup")
-                                Text("Like (\(post.likes))")
-                            }
-                            .padding()
-                            .background(Color.white.opacity(0.5))
-                            .cornerRadius(8)
+                        if let imageData = post.imageData, let image = UIImage(data: imageData) {
+                            Image(uiImage: image)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(height: 200)
+                                .cornerRadius(12)
                         }
-                        .buttonStyle(BorderlessButtonStyle())
 
-                        Spacer()
+                        Text(post.catName ?? "")
+                            .font(.headline)
+                        Text("Breed: \(post.catBreed ?? "")")
 
-                        NavigationLink(destination: CommentsView(showComments: .constant(true), post: post)
-                            .onAppear {
-                                isTabViewHidden = true // Hide tab items when CommentsView appears
-                            }
-                            .onDisappear {
-                                isTabViewHidden = false // Show tab items when CommentsView disappears
-                            }) {
-                            HStack {
-                                Image(systemName: "message")
-                                Text("Comment")
-                            }
+                        let ageDisplay = post.catAge > 0 ? "\(post.catAge)" : "Unknown"
+                        Text("Age: \(ageDisplay)")
+
+                        Text("Location: \(post.location ?? "")")
+                        Text("Description: \(post.postDescription ?? "")")
+
+                        if let timestamp = post.timestamp {
+                            Text("Posted on: \(formattedDate(timestamp))")
+                                .font(.footnote)
+                                .foregroundColor(.gray)
                         }
-                        .buttonStyle(BorderlessButtonStyle())
 
-                        if post.username == currentUsername {
+                        HStack {
                             Button(action: {
-                                deletePost(post: post)
+                                post.likes = post.likes > 0 ? 0 : 1
+                                saveContext()
                             }) {
                                 HStack {
-                                    Image(systemName: "trash")
-                                    Text("Delete")
+                                    Image(systemName: post.likes > 0 ? "hand.thumbsup.fill" : "hand.thumbsup")
+                                    Text("Like (\(post.likes))")
+                                }
+                                .padding()
+                                .background(Color.white.opacity(0.5))
+                                .cornerRadius(8)
+                            }
+                            .buttonStyle(BorderlessButtonStyle())
+
+                            Spacer()
+
+                            NavigationLink(destination: CommentsView(showComments: .constant(true), post: post)
+                                .onAppear {
+                                    isTabViewHidden = true // Hide tab items when CommentsView appears
+                                }
+                                .onDisappear {
+                                    isTabViewHidden = false // Show tab items when CommentsView disappears
+                                }) {
+                                HStack {
+                                    Image(systemName: "message")
+                                    Text("Comment")
                                 }
                             }
                             .buttonStyle(BorderlessButtonStyle())
+
+                            if post.username == currentUsername {
+                                Button(action: {
+                                    deletePost(post: post)
+                                }) {
+                                    HStack {
+                                        Image(systemName: "trash")
+                                        Text("Delete")
+                                    }
+                                }
+                                .buttonStyle(BorderlessButtonStyle())
+                            }
                         }
+                        .padding(.top, 5)
                     }
-                    .padding(.top, 5)
+                    .padding(.vertical)
                 }
-                .padding(.vertical)
             }
         }
     }
@@ -200,6 +220,13 @@ struct HomeView: View {
 
     private func deletePost(post: CatPost) {
         viewContext.delete(post)
+        saveContext()
+    }
+
+    private func deleteAllPosts() {
+        for post in catPosts {
+            viewContext.delete(post)
+        }
         saveContext()
     }
 
