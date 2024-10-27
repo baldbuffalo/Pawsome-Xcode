@@ -13,5 +13,9 @@
         <attribute name="postDescription" optional="YES" attributeType="String"/>
         <attribute name="timestamp" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="username" attributeType="String"/>
+        <relationship name="comment" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Comment" inverseName="catPost" inverseEntity="Comment"/>
+    </entity>
+    <entity name="Comment" representedClassName="Comment" syncable="YES">
+        <relationship name="catPost" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CatPost" inverseName="comment" inverseEntity="CatPost"/>
     </entity>
 </model>
