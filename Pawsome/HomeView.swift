@@ -33,7 +33,8 @@ struct HomeView: View {
                         .sheet(isPresented: $showForm) {
                             if let selectedImage = selectedImage {
                                 FormView(showForm: $showForm, navigateToHome: $navigateToHome, imageUI: selectedImage, videoURL: nil, username: currentUsername) { newPost in
-                                    // Handle new post logic here, if necessary
+                                    // Handle new post logic here
+                                    savePost(newPost)
                                 }
                             }
                         }
@@ -52,8 +53,7 @@ struct HomeView: View {
                             capturedImage: $selectedImage,
                             username: currentUsername,
                             onPostCreated: { post in
-                                // Save the new post to Core Data
-                                savePost(post) // Implement this function to save the post
+                                savePost(post) // Save the new post to Core Data
                             }
                         )
                     }
@@ -105,10 +105,7 @@ struct HomeView: View {
                     Text(post.name ?? "") // Uses Core Data property 'name'
                         .font(.headline)
                     Text("Breed: \(post.breed ?? "")") // Uses Core Data property 'breed'
-                    
-                    // Uses Core Data property for age
                     Text("Age: \(post.age ?? "Unknown")") // Uses Core Data property 'age'
-
                     Text("Location: \(post.location ?? "")") // Uses Core Data property 'location'
                     Text("Description: \(post.postDescription ?? "")") // Uses Core Data property 'postDescription'
                     
@@ -121,8 +118,8 @@ struct HomeView: View {
 
                     HStack {
                         Button(action: {
-                            post.likes = post.likes > 0 ? 0 : 1 // Uses Core Data property 'likes'
-                            // Save context if necessary
+                            post.likes = post.likes > 0 ? 0 : 1 // Toggle likes
+                            saveContext() // Save context after liking
                         }) {
                             HStack {
                                 Image(systemName: post.likes > 0 ? "hand.thumbsup.fill" : "hand.thumbsup")
@@ -161,7 +158,18 @@ struct HomeView: View {
     }
     
     private func savePost(_ post: CatPost) {
-        // Implement your saving logic here
-        // Remember to save the context
+        // Save the new CatPost instance
+        let newCatPost = CatPost.create(title: post.title ?? "Unknown", imageUrl: post.imageUrl ?? "Unknown") // Replace with your own properties
+        // Set other properties here as necessary
+    }
+
+    private func saveContext() {
+        if viewContext.hasChanges {
+            do {
+                try viewContext.save()
+            } catch {
+                print("Failed to save context: \(error)")
+            }
+        }
     }
 }
