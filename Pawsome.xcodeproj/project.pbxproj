@@ -25,13 +25,13 @@
 		624652C62CCD2351000B3F46 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 624652A62CCD2351000B3F46 /* Assets.xcassets */; };
 		624652C72CCD2351000B3F46 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 624652AC2CCD2351000B3F46 /* GoogleService-Info.plist */; };
 		6268EC372CCD7F7400238C8F /* PersistenceController.swift in Resources */ = {isa = PBXBuildFile; fileRef = 6268EC362CCD7F7400238C8F /* PersistenceController.swift */; };
-		6268EC392CCD823C00238C8F /* CatPost+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6268EC382CCD823C00238C8F /* CatPost+CoreDataProperties.swift */; };
 		629E680A2CC6F53B0018ACEF /* CoreData.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 629E68092CC6F53B0018ACEF /* CoreData.framework */; };
 		62D8049F2CAD1F6B00D13EFA /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 62D8049E2CAD1F6B00D13EFA /* FirebaseAnalytics */; };
 		62D804A12CAD1F6B00D13EFA /* FirebaseAnalyticsOnDeviceConversion in Frameworks */ = {isa = PBXBuildFile; productRef = 62D804A02CAD1F6B00D13EFA /* FirebaseAnalyticsOnDeviceConversion */; };
 		62D804A32CAD1F6B00D13EFA /* FirebaseAnalyticsWithoutAdIdSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 62D804A22CAD1F6B00D13EFA /* FirebaseAnalyticsWithoutAdIdSupport */; };
 		62D804A52CAD1F6B00D13EFA /* FirebaseAppCheck in Frameworks */ = {isa = PBXBuildFile; productRef = 62D804A42CAD1F6B00D13EFA /* FirebaseAppCheck */; };
 		62D804A72CAD1F6B00D13EFA /* FirebaseAppDistribution-Beta in Frameworks */ = {isa = PBXBuildFile; productRef = 62D804A62CAD1F6B00D13EFA /* FirebaseAppDistribution-Beta */; };
+		62EF00A32CCDBB470034730C /* CatPost+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62EF00A22CCDBB470034730C /* CatPost+CoreDataProperties.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -67,8 +67,9 @@
 		624652B52CCD2351000B3F46 /* ScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanView.swift; sourceTree = "<group>"; };
 		624652B72CCD2351000B3F46 /* CatPostModel.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = CatPostModel.xcdatamodel; sourceTree = "<group>"; };
 		6268EC362CCD7F7400238C8F /* PersistenceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceController.swift; sourceTree = "<group>"; };
-		6268EC382CCD823C00238C8F /* CatPost+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CatPost+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		629E68092CC6F53B0018ACEF /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.1.sdk/System/Library/Frameworks/CoreData.framework; sourceTree = DEVELOPER_DIR; };
+		62EF00A22CCDBB470034730C /* CatPost+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CatPost+CoreDataProperties.swift"; sourceTree = "<group>"; };
+		62EF00A42CCE4E030034730C /* CatPost+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CatPost+CoreDataClass.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -93,7 +94,8 @@
 		62355CBC2C84CC5400560D69 = {
 			isa = PBXGroup;
 			children = (
-				6268EC382CCD823C00238C8F /* CatPost+CoreDataProperties.swift */,
+				62EF00A42CCE4E030034730C /* CatPost+CoreDataClass.swift */,
+				62EF00A22CCDBB470034730C /* CatPost+CoreDataProperties.swift */,
 				624652B62CCD2351000B3F46 /* Pawsome */,
 				629E68082CC6F53B0018ACEF /* Frameworks */,
 				62355CC62C84CC5400560D69 /* Products */,
@@ -241,7 +243,7 @@
 				624652BC2CCD2351000B3F46 /* CommentsView.swift in Sources */,
 				624652BD2CCD2351000B3F46 /* Form.swift in Sources */,
 				624652BE2CCD2351000B3F46 /* HomeView.swift in Sources */,
-				6268EC392CCD823C00238C8F /* CatPost+CoreDataProperties.swift in Sources */,
+				62EF00A32CCDBB470034730C /* CatPost+CoreDataProperties.swift in Sources */,
 				624652BF2CCD2351000B3F46 /* ImageEditing.swift in Sources */,
 				624652C02CCD2351000B3F46 /* Item.swift in Sources */,
 				624652C12CCD2351000B3F46 /* LoginView.swift in Sources */,
