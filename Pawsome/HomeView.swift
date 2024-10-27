@@ -2,17 +2,19 @@ import SwiftUI
 import CoreData
 
 struct HomeView: View {
+    @Binding var isLoggedIn: Bool
+    var currentUsername: String
+    @Binding var profileImage: Image?
+
     @Environment(\.managedObjectContext) private var viewContext
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \CatPost.timestamp, ascending: false)],
         animation: .default)
-    private var posts: FetchedResults<CatPost> // Fetch results from Core Data
+    private var posts: FetchedResults<CatPost>
 
-    @State private var showScanView = false // Controls presentation of ScanView
-    @State private var capturedImage: UIImage? = nil // Holds the captured image
-    @State private var videoURL: URL? = nil // Holds the captured video URL
-    @Binding var isLoggedIn: Bool // Binding to check if the user is logged in
-    private var currentUsername: String // Replace with actual username
+    @State private var showScanView = false
+    @State private var capturedImage: UIImage? = nil
+    @State private var videoURL: URL? = nil
 
     var body: some View {
         NavigationStack {
@@ -56,7 +58,7 @@ struct HomeView: View {
                 Spacer()
 
                 Button(action: {
-                    showScanView = true // Show ScanView when button is pressed
+                    showScanView = true
                 }) {
                     Text("Add New Post")
                         .font(.headline)
@@ -69,14 +71,8 @@ struct HomeView: View {
                 }
                 .sheet(isPresented: $showScanView) {
                     ScanView(capturedImage: $capturedImage, videoURL: $videoURL, username: currentUsername) { newPost in
-                        addPost(newPost) // Pass the new CatPost
+                        addPost(newPost)
                     }
-                }
-
-                // Example of checking if the user is logged in
-                if !isLoggedIn {
-                    Text("You are not logged in.")
-                        .foregroundColor(.red)
                 }
             }
             .navigationTitle("Home")
@@ -84,7 +80,6 @@ struct HomeView: View {
     }
 
     private func addPost(_ newPost: CatPost) {
-        // Use the passed newPost object directly
         saveContext()
     }
 
@@ -105,12 +100,12 @@ struct HomeView: View {
     }
 }
 
-// Placeholder VideoPlayer view (you can use AVKit for actual video playback)
+// Placeholder VideoPlayer view
 struct VideoPlayerView: View {
     let videoURL: URL
 
     var body: some View {
-        Text("Video: \(videoURL.lastPathComponent)") // Replace with AVKit player if needed
+        Text("Video: \(videoURL.lastPathComponent)") // Replace with actual video player
             .frame(height: 200)
             .background(Color.black)
             .foregroundColor(.white)

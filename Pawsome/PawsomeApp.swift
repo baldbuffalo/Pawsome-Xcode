@@ -14,10 +14,10 @@ struct PawsomeApp: App {
         WindowGroup {
             Group {
                 if isLoggedIn {
-                    HomeView(isLoggedIn: $isLoggedIn, currentUsername: username, profileImage: profileImage)
+                    HomeView(isLoggedIn: $isLoggedIn, currentUsername: username, profileImage: $profileImage) // Correctly passing bindings
                         .environment(\.managedObjectContext, persistenceController.container.viewContext)
                 } else {
-                    LoginView(isLoggedIn: $isLoggedIn, username: $username, profileImage: profileImage)
+                    LoginView(isLoggedIn: $isLoggedIn, username: $username, profileImage: $profileImage)
                         .environment(\.managedObjectContext, persistenceController.container.viewContext)
                 }
             }
