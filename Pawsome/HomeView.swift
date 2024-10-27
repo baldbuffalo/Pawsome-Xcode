@@ -56,8 +56,8 @@ struct HomeView: View {
                                     // Menu for Edit and Delete options
                                     Menu {
                                         Button(action: {
-                                            // Handle Edit action
-                                            print("Edit post \(post.id ?? UUID())") // Placeholder for edit functionality
+                                            // Handle Edit action using objectID directly
+                                            print("Edit post with ObjectID: \(post.objectID)") // Use objectID
                                         }) {
                                             Text("Edit")
                                         }
