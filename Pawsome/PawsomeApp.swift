@@ -40,16 +40,26 @@ struct PawsomeApp: App {
                     }
 
                     ProfileView(
-                        isLoggedIn: $isLoggedIn,
-                        currentUsername: $username,
-                        profileImageData: $profileImageData // Bind the profile image data
+                        isLoggedIn: $isLoggedIn, // Pass isLoggedIn binding
+                        currentUsername: $username, // Pass currentUsername binding
+                        profileImage: Binding<Image?>(
+                            get: {
+                                if let data = profileImageData, let uiImage = UIImage(data: data) {
+                                    return Image(uiImage: uiImage)
+                                }
+                                return nil
+                            },
+                            set: { newImage in
+                                profileImageData = newImage?.asUIImage()?.pngData()
+                            }
+                        )
                     )
                     .tabItem {
                         Label("Profile", systemImage: "person.circle")
                     }
                 }
             } else {
-                // Ensure all parameters are passed to LoginView
+                // Ensure only necessary parameters are passed to LoginView
                 LoginView(
                     isLoggedIn: $isLoggedIn,
                     username: $username,
@@ -63,9 +73,7 @@ struct PawsomeApp: App {
                         set: { newImage in
                             profileImageData = newImage?.asUIImage()?.pngData()
                         }
-                    ),
-                    showForm: $showForm, // Provide the missing argument
-                    navigateToHome: $navigateToHome // Provide the missing argument
+                    )
                 )
             }
         }
