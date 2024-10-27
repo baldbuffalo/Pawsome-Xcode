@@ -106,14 +106,12 @@ struct HomeView: View {
                         .font(.headline)
                     Text("Breed: \(post.catBreed ?? "")")
 
-                    // Handle displaying age with default value if less than or equal to 0
                     let ageDisplay = post.catAge > 0 ? "\(post.catAge)" : "Unknown"
                     Text("Age: \(ageDisplay)")
 
                     Text("Location: \(post.location ?? "")")
                     Text("Description: \(post.postDescription ?? "")")
 
-                    // Display the timestamp
                     if let timestamp = post.timestamp {
                         Text("Posted on: \(formattedDate(timestamp))")
                             .font(.footnote)
@@ -122,8 +120,8 @@ struct HomeView: View {
 
                     HStack {
                         Button(action: {
-                            post.likes = post.likes > 0 ? 0 : 1 // Toggle likes
-                            saveContext() // Save context after liking
+                            post.likes = post.likes > 0 ? 0 : 1
+                            saveContext()
                         }) {
                             HStack {
                                 Image(systemName: post.likes > 0 ? "hand.thumbsup.fill" : "hand.thumbsup")
@@ -137,6 +135,7 @@ struct HomeView: View {
 
                         Spacer()
 
+                        // NavigationLink for comments
                         NavigationLink(destination: CommentsView(showComments: .constant(true), post: post)
                             .onAppear { isTabViewHidden = true }
                             .onDisappear { isTabViewHidden = false }) {
@@ -146,11 +145,25 @@ struct HomeView: View {
                             }
                         }
                         .buttonStyle(BorderlessButtonStyle())
+
+                        // Show delete button only if the current user is the post owner
+                        if post.username == currentUsername {
+                            Button(action: {
+                                deletePost(post: post) // Call delete function
+                            }) {
+                                HStack {
+                                    Image(systemName: "trash")
+                                    Text("Delete")
+                                }
+                            }
+                            .buttonStyle(BorderlessButtonStyle())
+                        }
                     }
                     .padding(.top, 5)
                 }
                 .padding(.vertical)
             }
+            .onDelete(perform: deletePosts) // Enable swipe to delete
         }
     }
 
@@ -175,6 +188,16 @@ struct HomeView: View {
         catPost.likes = 0 // Initialize likes to 0
 
         saveContext() // Save the context after creating the post
+    }
+
+    private func deletePost(post: CatPost) {
+        viewContext.delete(post) // Delete the specified post
+        saveContext() // Save the context after deletion
+    }
+
+    private func deletePosts(at offsets: IndexSet) {
+        offsets.map { catPosts[$0] }.forEach(viewContext.delete) // Delete posts from offsets
+        saveContext() // Save the context after deletion
     }
 
     private func saveContext() {
