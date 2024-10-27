@@ -32,6 +32,7 @@
 		62D804A72CAD1F6B00D13EFA /* FirebaseAppDistribution-Beta in Frameworks */ = {isa = PBXBuildFile; productRef = 62D804A62CAD1F6B00D13EFA /* FirebaseAppDistribution-Beta */; };
 		62EF00A32CCDBB470034730C /* CatPost+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62EF00A22CCDBB470034730C /* CatPost+CoreDataProperties.swift */; };
 		62EF00A52CCE53470034730C /* CatPost+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62EF00A42CCE4E030034730C /* CatPost+CoreDataClass.swift */; };
+		62EF00A62CCE557E0034730C /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6268EC362CCD7F7400238C8F /* PersistenceController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -245,6 +246,7 @@
 				624652BE2CCD2351000B3F46 /* HomeView.swift in Sources */,
 				62EF00A32CCDBB470034730C /* CatPost+CoreDataProperties.swift in Sources */,
 				624652BF2CCD2351000B3F46 /* ImageEditing.swift in Sources */,
+				62EF00A62CCE557E0034730C /* PersistenceController.swift in Sources */,
 				624652C02CCD2351000B3F46 /* Item.swift in Sources */,
 				624652C12CCD2351000B3F46 /* LoginView.swift in Sources */,
 				624652C22CCD2351000B3F46 /* PawsomeApp.swift in Sources */,
