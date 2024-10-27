@@ -41,22 +41,22 @@ struct FormView: View {
                 }
 
                 TextField("Cat Name", text: Binding(
-                    get: { catPost.name ?? "" },
-                    set: { catPost.name = $0 }
+                    get: { catPost.catName ?? "" },
+                    set: { catPost.catName = $0 }
                 ))
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding()
 
                 TextField("Breed", text: Binding(
-                    get: { catPost.breed ?? "" },
-                    set: { catPost.breed = $0 }
+                    get: { catPost.catBreed ?? "" },
+                    set: { catPost.catBreed = $0 }
                 ))
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding()
 
                 TextField("Age", text: Binding(
-                    get: { catPost.age ?? "" },
-                    set: { catPost.age = $0 }
+                    get: { String(catPost.catAge) }, // Directly convert Int32 to String
+                    set: { catPost.catAge = Int32($0) ?? 0 } // Convert String to Int32, set to 0 if conversion fails
                 ))
                 .keyboardType(.numberPad)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -90,9 +90,9 @@ struct FormView: View {
                     }
                 }) {
                     Text("Post")
-                        .foregroundColor(catPost.name?.isEmpty == false && catPost.breed?.isEmpty == false && catPost.age?.isEmpty == false && catPost.location?.isEmpty == false && catPost.postDescription?.isEmpty == false ? .blue : .gray)
+                        .foregroundColor(catPost.catName?.isEmpty == false && catPost.catBreed?.isEmpty == false && catPost.catAge > 0 && catPost.location?.isEmpty == false && catPost.postDescription?.isEmpty == false ? .blue : .gray)
                 }
-                .disabled(catPost.name?.isEmpty == true || catPost.breed?.isEmpty == true || catPost.age?.isEmpty == true || catPost.location?.isEmpty == true || catPost.postDescription?.isEmpty == true)
+                .disabled(catPost.catName?.isEmpty == true || catPost.catBreed?.isEmpty == true || catPost.catAge <= 0 || catPost.location?.isEmpty == true || catPost.postDescription?.isEmpty == true)
                 .padding()
             }
             .padding()

@@ -22,6 +22,7 @@ extension CatPost {
     @NSManaged public var timestamp: Date?
     @NSManaged public var imageData: Data?
     @NSManaged public var username: String?
+    @NSManaged public var location: String?
     @NSManaged public var comments: NSSet?
 
 }
