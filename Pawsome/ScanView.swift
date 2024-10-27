@@ -10,6 +10,7 @@ struct ScanView: View {
     @State private var mediaType: MediaPicker.MediaType = .photo
     @State private var showMediaTypeActionSheet: Bool = false
     @State private var navigateToForm: Bool = false // State variable for navigation
+    @State private var navigateToHome: Bool = false // State variable for navigation to HomeView
 
     var body: some View {
         NavigationStack {
@@ -37,9 +38,8 @@ struct ScanView: View {
                 .sheet(isPresented: $isImagePickerPresented) {
                     ImagePicker(sourceType: sourceTypeForMediaType(mediaType),
                                  selectedImage: $capturedImage,
-                                 capturedVideoURL: $capturedVideoURL, // Pass the video URL binding
+                                 capturedVideoURL: $capturedVideoURL,
                                  onImageCaptured: {
-                                     // Navigate to FormView immediately after capturing media
                                      navigateToForm = true
                                  },
                                  mediaType: mediaType)
@@ -47,8 +47,9 @@ struct ScanView: View {
             }
             .navigationTitle("Camera")
             .navigationDestination(isPresented: $navigateToForm) {
-                // Pass the captured image and video URL to FormView
+                // Pass the captured image, video URL, and navigateToHome to FormView
                 FormView(showForm: $navigateToForm,
+                         navigateToHome: $navigateToHome,
                          imageUI: capturedImage,
                          videoURL: capturedVideoURL,
                          username: username,
@@ -68,11 +69,10 @@ struct ScanView: View {
         }
     }
 
-    // Nested ImagePicker struct
     struct ImagePicker: UIViewControllerRepresentable {
         var sourceType: UIImagePickerController.SourceType
         @Binding var selectedImage: UIImage?
-        @Binding var capturedVideoURL: URL? // New binding for video URL
+        @Binding var capturedVideoURL: URL?
         var onImageCaptured: () -> Void
         var mediaType: MediaPicker.MediaType
 
@@ -110,10 +110,10 @@ struct ScanView: View {
                 if let image = info[.originalImage] as? UIImage {
                     parent.selectedImage = image
                 } else if let videoURL = info[.mediaURL] as? URL {
-                    parent.capturedVideoURL = videoURL // Capture the video URL
+                    parent.capturedVideoURL = videoURL
                 }
 
-                parent.onImageCaptured() // Trigger the action for navigation
+                parent.onImageCaptured()
                 picker.dismiss(animated: true)
             }
 
