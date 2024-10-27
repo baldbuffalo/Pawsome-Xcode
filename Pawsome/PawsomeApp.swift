@@ -16,13 +16,13 @@ struct PawsomeApp: App {
         WindowGroup {
             if isLoggedIn {
                 TabView {
-                    // Pass username and profileImage as parameters
+                    // HomeView: Pass username and profileImage as parameters
                     HomeView(currentUsername: username, profileImage: $profileImage)
                         .tabItem {
                             Label("Home", systemImage: "house")
                         }
 
-                    // Pass capturedImage and videoURL
+                    // ScanView: Pass capturedImage and videoURL
                     ScanView(capturedImage: $capturedImage, videoURL: $videoURL, username: username) { newPost in
                         addPost(newPost) // Call to add a new post
                     }
@@ -30,8 +30,8 @@ struct PawsomeApp: App {
                         Label("Post", systemImage: "plus.message")
                     }
 
-                    // Pass the necessary parameters to ProfileView
-                    ProfileView(isLoggedIn: $isLoggedIn, currentUsername: username, profileImage: $profileImage)
+                    // ProfileView: Pass the necessary parameters
+                    ProfileView(isLoggedIn: $isLoggedIn, currentUsername: $username, profileImage: $profileImage) // Use $username for binding
                         .tabItem {
                             Label("Profile", systemImage: "person")
                         }
@@ -46,13 +46,19 @@ struct PawsomeApp: App {
     }
 
     private func addPost(_ newPost: CatPost) {
-        // Add the logic to create a new post in Core Data
+        // Logic to create a new post in Core Data
         let context = persistenceController.container.viewContext
         let post = CatPost(context: context)
         
-        // Assuming `CatPost` has properties for username, imageData, etc.
-        post.username = username // Set the username
-        // Set other properties of the post (imageData, videoURL, etc.)
+        // Set properties for the new post
+        post.username = username
+        post.timestamp = Date() // Assuming you want to add a timestamp
+        if let imageData = newPost.imageData {
+            post.imageData = imageData // Set imageData if available
+        }
+        if let videoURLString = newPost.videoURL {
+            post.videoURL = videoURLString // Set videoURL if available
+        }
         
         saveContext() // Save the context after adding the post
     }
@@ -63,6 +69,7 @@ struct PawsomeApp: App {
         } catch {
             let nsError = error as NSError
             print("Unresolved error \(nsError), \(nsError.userInfo)")
+            // Handle error appropriately (e.g., show an alert to the user)
         }
     }
 }
