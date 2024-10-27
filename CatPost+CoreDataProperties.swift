@@ -19,7 +19,7 @@ extension CatPost {
     @NSManaged public var catName: String?
     @NSManaged public var catAge: Int16
     @NSManaged public var catBreed: String?
-    @NSManaged public var comment: NSSet?
+    @NSManaged public var comments: NSSet?
 
 }
 

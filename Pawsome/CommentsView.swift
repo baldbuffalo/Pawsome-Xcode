@@ -12,39 +12,13 @@ struct CommentsListView: View {
                 let commentsArray = Array(commentsSet).sorted { ($0.timestamp ?? Date()) < ($1.timestamp ?? Date()) }
                 ForEach(commentsArray, id: \.self) { comment in
                     VStack(alignment: .leading) {
-                        HStack {
-                            // Display the user's profile picture
-                            if let imageData = comment.profilePicture {
-                                if let profileImage = UIImage(data: imageData) {
-                                    Image(uiImage: profileImage)
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(width: 40, height: 40) // Adjust size as needed
-                                        .clipShape(Circle())
-                                }
-                            } else {
-                                // Default profile picture if none is available
-                                Image(systemName: "person.circle.fill")
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(width: 40, height: 40)
-                                    .clipShape(Circle())
-                                    .foregroundColor(.gray)
-                            }
-
-                            VStack(alignment: .leading) {
-                                Text(comment.username ?? "Anonymous") // Display username
-                                    .font(.subheadline)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.black)
-                                Text(comment.text ?? "No text") // Display each comment's text
-                                    .font(.body)
-                                    .foregroundColor(.gray)
-                                Text(comment.timestamp?.formatted() ?? "Unknown date") // Display timestamp
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
-                            }
-                        }
+                        Text(comment.username ?? "Anonymous") // Display username
+                            .font(.subheadline)
+                            .fontWeight(.bold)
+                            .foregroundColor(.black)
+                        Text(comment.text ?? "No text") // Display each comment's text
+                            .font(.body)
+                            .foregroundColor(.gray)
                     }
                     .padding(10)
                     .background(Color.white)
@@ -97,9 +71,9 @@ struct CommentInputView: View {
 
         let comment = Comment(context: viewContext) // This Comment refers to your Core Data model
         comment.text = newComment
-        comment.timestamp = Date() // Save the current date and time
+        comment.timestamp = Date()
         comment.username = "YourUsername" // Replace with the actual username
-        comment.profilePicture = nil // Set profile picture data if available
+        comment.profilePicture = nil // Replace with actual image data if available
         comment.catPost = post // Link the comment to the post
 
         // Add the comment to the CatPost's comments set
@@ -119,7 +93,7 @@ struct CommentInputView: View {
 // Main view for comments
 struct CommentsView: View {
     @Binding var showComments: Bool
-    @ObservedObject var post: CatPost // Use ObservedObject for CatPost
+    var post: CatPost // Use the CatPost class from CatPost+CoreDataClass.swift
 
     @State private var newComment: String = ""
 
