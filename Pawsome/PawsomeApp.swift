@@ -7,17 +7,17 @@ struct PawsomeApp: App {
     @State private var username: String = ""
     @State private var profileImage: Image? = nil
 
-    // Use the shared PersistenceController
+    // Shared PersistenceController instance for Core Data
     let persistenceController = PersistenceController.shared
 
     var body: some Scene {
         WindowGroup {
             if isLoggedIn {
                 HomeView(isLoggedIn: $isLoggedIn, currentUsername: $username, profileImage: $profileImage)
-                    .environment(\.managedObjectContext, persistenceController.container.viewContext) // Pass the managed object context
+                    .environment(\.managedObjectContext, persistenceController.container.viewContext)
             } else {
                 LoginView(isLoggedIn: $isLoggedIn, username: $username, profileImage: $profileImage)
-                    .environment(\.managedObjectContext, persistenceController.container.viewContext) // Pass the managed object context
+                    .environment(\.managedObjectContext, persistenceController.container.viewContext)
             }
         }
     }

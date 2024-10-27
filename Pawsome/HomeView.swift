@@ -9,7 +9,9 @@ struct HomeView: View {
     private var posts: FetchedResults<CatPost> // Fetch results from Core Data
 
     @State private var showScanView = false // Controls presentation of ScanView
-    
+    @State private var capturedImage: UIImage? // Holds the captured image
+    private var currentUsername: String = "User123" // You can replace this with actual logged-in username
+
     var body: some View {
         NavigationStack {
             VStack {
@@ -41,7 +43,7 @@ struct HomeView: View {
                         .padding(.horizontal)
                 }
                 .sheet(isPresented: $showScanView) {
-                    ScanView(capturedImage: .constant(nil), username: "User123") { newPost in
+                    ScanView(capturedImage: $capturedImage, username: currentUsername) { newPost in
                         addPost(newPost)
                     }
                 }
@@ -52,7 +54,7 @@ struct HomeView: View {
     
     private func addPost(_ newPost: (UIImage?, URL?)) {
         let post = CatPost(context: viewContext)
-        post.username = "User123"
+        post.username = currentUsername
         post.timestamp = Date()
         
         if let image = newPost.0, let imageData = image.jpegData(compressionQuality: 0.8) {
@@ -83,7 +85,7 @@ struct HomeView: View {
     }
 }
 
-// Post row to display each Core Data CatPost
+// Nested view to display each Core Data CatPost
 struct PostRowView: View {
     let post: CatPost
     
