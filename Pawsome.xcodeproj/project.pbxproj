@@ -33,8 +33,8 @@
 		62EF00A62CCE557E0034730C /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6268EC362CCD7F7400238C8F /* PersistenceController.swift */; };
 		62EF00B92CCE78850034730C /* Comment+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62EF00B82CCE78850034730C /* Comment+CoreDataProperties.swift */; };
 		62EF00BA2CCE78850034730C /* Comment+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62EF00B72CCE78850034730C /* Comment+CoreDataClass.swift */; };
-		62EF00BD2CCE7B450034730C /* CatPost+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62EF00BB2CCE7B450034730C /* CatPost+CoreDataClass.swift */; };
-		62EF00BE2CCE7B450034730C /* CatPost+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62EF00BC2CCE7B450034730C /* CatPost+CoreDataProperties.swift */; };
+		62EF00C12CCE7C310034730C /* CatPost+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62EF00C02CCE7C310034730C /* CatPost+CoreDataProperties.swift */; };
+		62EF00C22CCE7C310034730C /* CatPost+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62EF00BF2CCE7C310034730C /* CatPost+CoreDataClass.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -73,8 +73,8 @@
 		629E68092CC6F53B0018ACEF /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.1.sdk/System/Library/Frameworks/CoreData.framework; sourceTree = DEVELOPER_DIR; };
 		62EF00B72CCE78850034730C /* Comment+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Comment+CoreDataClass.swift"; sourceTree = "<group>"; };
 		62EF00B82CCE78850034730C /* Comment+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Comment+CoreDataProperties.swift"; sourceTree = "<group>"; };
-		62EF00BB2CCE7B450034730C /* CatPost+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CatPost+CoreDataClass.swift"; sourceTree = "<group>"; };
-		62EF00BC2CCE7B450034730C /* CatPost+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CatPost+CoreDataProperties.swift"; sourceTree = "<group>"; };
+		62EF00BF2CCE7C310034730C /* CatPost+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CatPost+CoreDataClass.swift"; sourceTree = "<group>"; };
+		62EF00C02CCE7C310034730C /* CatPost+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CatPost+CoreDataProperties.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -99,8 +99,8 @@
 		62355CBC2C84CC5400560D69 = {
 			isa = PBXGroup;
 			children = (
-				62EF00BB2CCE7B450034730C /* CatPost+CoreDataClass.swift */,
-				62EF00BC2CCE7B450034730C /* CatPost+CoreDataProperties.swift */,
+				62EF00BF2CCE7C310034730C /* CatPost+CoreDataClass.swift */,
+				62EF00C02CCE7C310034730C /* CatPost+CoreDataProperties.swift */,
 				62EF00B72CCE78850034730C /* Comment+CoreDataClass.swift */,
 				62EF00B82CCE78850034730C /* Comment+CoreDataProperties.swift */,
 				624652B62CCD2351000B3F46 /* Pawsome */,
@@ -243,8 +243,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				62EF00BD2CCE7B450034730C /* CatPost+CoreDataClass.swift in Sources */,
-				62EF00BE2CCE7B450034730C /* CatPost+CoreDataProperties.swift in Sources */,
+				62EF00C12CCE7C310034730C /* CatPost+CoreDataProperties.swift in Sources */,
+				62EF00C22CCE7C310034730C /* CatPost+CoreDataClass.swift in Sources */,
 				624652B82CCD2351000B3F46 /* AppDelegate.swift in Sources */,
 				624652BA2CCD2351000B3F46 /* CatPostModel.xcdatamodeld in Sources */,
 				624652BB2CCD2351000B3F46 /* ColorExtensions.swift in Sources */,

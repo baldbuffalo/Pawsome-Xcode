@@ -20,6 +20,7 @@ extension CatPost {
     @NSManaged public var catAge: Int16
     @NSManaged public var catBreed: String?
     @NSManaged public var timestamp: Date?
+    @NSManaged public var imageData: Data?
     @NSManaged public var comments: NSSet?
 
 }
