@@ -6,8 +6,6 @@ struct PawsomeApp: App {
     @State private var isLoggedIn: Bool = false
     @State private var username: String = ""
     @State private var profileImageData: Data? = nil // Use Data to store image
-    @State private var capturedImage: UIImage? = nil
-    @State private var videoURL: URL? = nil
     @State private var showForm: Bool = false // For form visibility
     @State private var navigateToHome: Bool = false // For navigation
 
@@ -17,18 +15,41 @@ struct PawsomeApp: App {
     var body: some Scene {
         WindowGroup {
             if isLoggedIn {
-                HomeView(
-                    currentUsername: username,
-                    profileImage: Binding<UIImage?>(
-                        get: { profileImageData.flatMap { UIImage(data: $0) } },
-                        set: { newImage in
-                            profileImageData = newImage?.pngData()
-                        }
+                TabView {
+                    HomeView(
+                        currentUsername: username,
+                        profileImage: Binding<UIImage?>(
+                            get: { profileImageData.flatMap { UIImage(data: $0) } },
+                            set: { newImage in
+                                profileImageData = newImage?.pngData()
+                            }
+                        )
                     )
-                )
-                .environment(\.managedObjectContext, persistenceController.container.viewContext)
+                    .tabItem {
+                        Label("Home", systemImage: "house")
+                    }
+                    .environment(\.managedObjectContext, persistenceController.container.viewContext)
+
+                    ScanView(
+                        showForm: $showForm,
+                        navigateToHome: $navigateToHome,
+                        username: username
+                    )
+                    .tabItem {
+                        Label("Post", systemImage: "plus.app")
+                    }
+
+                    ProfileView(
+                        isLoggedIn: $isLoggedIn,
+                        currentUsername: $username,
+                        profileImageData: $profileImageData // Bind the profile image data
+                    )
+                    .tabItem {
+                        Label("Profile", systemImage: "person.circle")
+                    }
+                }
             } else {
-                // Convert Binding<UIImage?> to Binding<Image?> for LoginView
+                // Ensure all parameters are passed to LoginView
                 LoginView(
                     isLoggedIn: $isLoggedIn,
                     username: $username,
@@ -42,7 +63,9 @@ struct PawsomeApp: App {
                         set: { newImage in
                             profileImageData = newImage?.asUIImage()?.pngData()
                         }
-                    )
+                    ),
+                    showForm: $showForm, // Provide the missing argument
+                    navigateToHome: $navigateToHome // Provide the missing argument
                 )
             }
         }
