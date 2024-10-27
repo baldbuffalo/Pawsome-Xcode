@@ -82,17 +82,6 @@ struct HomeView: View {
             Text("Hello, \(currentUsername)")
                 .font(.subheadline)
                 .padding(.bottom)
-
-            // Add a button to delete all posts
-            Button(action: {
-                deleteAllPosts() // Call the function to delete all posts
-            }) {
-                Text("Delete All Posts")
-                    .foregroundColor(.red)
-                    .padding()
-                    .background(Color.white.opacity(0.5))
-                    .cornerRadius(8)
-            }
         }
     }
 
@@ -174,7 +163,6 @@ struct HomeView: View {
                 }
                 .padding(.vertical)
             }
-            .onDelete(perform: deletePosts) // Enable swipe to delete
         }
     }
 
@@ -204,26 +192,6 @@ struct HomeView: View {
     private func deletePost(post: CatPost) {
         viewContext.delete(post) // Delete the specified post
         saveContext() // Save the context after deletion
-    }
-
-    private func deletePosts(at offsets: IndexSet) {
-        offsets.map { catPosts[$0] }.forEach(viewContext.delete) // Delete posts from offsets
-        saveContext() // Save the context after deletion
-    }
-
-    private func deleteAllPosts() {
-        // Fetch all posts
-        let fetchRequest: NSFetchRequest<CatPost> = CatPost.fetchRequest()
-        
-        do {
-            let posts = try viewContext.fetch(fetchRequest)
-            for post in posts {
-                viewContext.delete(post) // Delete each post
-            }
-            saveContext() // Save changes
-        } catch {
-            print("Failed to fetch posts: \(error)")
-        }
     }
 
     private func saveContext() {
