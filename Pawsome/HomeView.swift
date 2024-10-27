@@ -53,19 +53,19 @@ struct HomeView: View {
         }
     }
     
-    private func addPost(_ newPost: (UIImage?, URL?)) {
+    private func addPost(_ newPost: CatPost) {
         let post = CatPost(context: viewContext)
-        post.username = currentUsername
+        post.username = newPost.username // Copy the username from the new post
         post.timestamp = Date()
         
         // Check for captured image
-        if let image = newPost.0, let imageData = image.jpegData(compressionQuality: 0.8) {
+        if let imageData = newPost.imageData {
             post.imageData = imageData // Store image data
         }
         
         // Check for video URL
-        if let videoURL = newPost.1 {
-            post.videoURL = videoURL.absoluteString // Store the video URL as a string
+        if let videoURLString = newPost.videoURL {
+            post.videoURL = videoURLString // Store the video URL as a string
         }
 
         saveContext()
