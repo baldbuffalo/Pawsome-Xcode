@@ -23,6 +23,7 @@ struct FormView: View {
                     TextField("Cat Name", text: $catName)
                     TextField("Breed", text: $catBreed)
                     TextField("Age", text: $catAge)
+                        .keyboardType(.numberPad) // Set the keyboard type to number pad
                     TextField("Location", text: $location)
                     TextField("Description", text: $content)
                 }
@@ -46,6 +47,11 @@ struct FormView: View {
                 }
             }
             .navigationTitle("Create Post")
+            .background(Color.white) // Set background color for tap gesture
+            .onTapGesture {
+                // Dismiss the keyboard when tapping outside
+                hideKeyboard()
+            }
         }
     }
 
@@ -71,5 +77,12 @@ struct FormView: View {
         } catch {
             print("Error saving post: \(error.localizedDescription)")
         }
+    }
+}
+
+// Extension to hide the keyboard
+extension View {
+    func hideKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 }

@@ -11,6 +11,9 @@ struct HomeView: View {
     var currentUsername: String
     @Binding var profileImage: UIImage?
 
+    @State private var showForm = false // State variable to show the form
+    @State private var selectedImage: UIImage? // State variable to hold the selected image
+
     var body: some View {
         NavigationStack {
             VStack {
@@ -84,9 +87,28 @@ struct HomeView: View {
                 }
 
                 Spacer()
+                
+                // Show Form button
+                Button(action: {
+                    showForm = true
+                }) {
+                    Text("Create Post")
+                        .padding()
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                }
+                .padding()
             }
             .navigationTitle("Home")
             .navigationBarTitleDisplayMode(.inline)
+            .sheet(isPresented: $showForm) {
+                FormView(showForm: $showForm, currentUsername: currentUsername, onPostCreated: { newPost in
+                    // The new post will automatically appear in the list
+                    print("New post created: \(newPost)")
+                    // No need for additional actions; FetchRequest automatically updates the list
+                }, selectedImage: $selectedImage) // Pass the selected image binding if needed
+            }
         }
     }
 
