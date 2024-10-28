@@ -1,53 +1,67 @@
 import SwiftUI
-import CoreData
 
 struct ScanView: View {
-    @Environment(\.managedObjectContext) private var viewContext // Use environment to access Core Data context
     @State private var imageUI: UIImage? // State variable for the captured image
-    @State private var showingCamera = false
+    @State private var showingImagePicker = false
+    @State private var mediaType: UIImagePickerController.SourceType? = nil // Track the selected media type
+    @State private var showMediaTypeSelection = false // Control the action sheet display
     @Binding var showForm: Bool
     @Binding var navigateToHome: Bool
-    @State private var catPost: CatPost?
+    @State private var catPost = CatPost() // Assuming CatPost is your Core Data entity
     var username: String // Add username as a parameter
 
     var body: some View {
-        NavigationStack {
-            VStack {
-                // Button to open the camera
-                Button("Open Camera") {
-                    showingCamera = true
-                    // Initialize catPost only if it hasn't been created
-                    if catPost == nil {
-                        catPost = CatPost(context: viewContext)
-                    }
-                }
-                .sheet(isPresented: $showingCamera) {
-                    ImagePicker(sourceType: .camera, selectedImage: $imageUI)
-                }
-
-                // Show text if no image is captured
-                if imageUI == nil {
-                    Text("No image captured.")
-                        .foregroundColor(.gray)
-                        .padding(.top)
+        VStack {
+            // Button to open the media type selection action sheet
+            Button("Open Camera") {
+                showMediaTypeSelection = true // Show action sheet
+            }
+            .actionSheet(isPresented: $showMediaTypeSelection) {
+                ActionSheet(
+                    title: Text("Choose Media Type"),
+                    buttons: [
+                        .default(Text("Camera")) {
+                            mediaType = .camera
+                            showingImagePicker = true
+                        },
+                        .default(Text("Gallery")) {
+                            mediaType = .photoLibrary
+                            showingImagePicker = true
+                        },
+                        .cancel()
+                    ]
+                )
+            }
+            .sheet(isPresented: $showingImagePicker) {
+                if let mediaType = mediaType {
+                    ImagePicker(sourceType: mediaType, selectedImage: $imageUI)
                 }
             }
-            .navigationDestination(isPresented: .constant(imageUI != nil)) {
-                if let image = imageUI, let post = catPost {
-                    FormView(
-                        showForm: $showForm,
-                        navigateToHome: $navigateToHome,
-                        imageUI: image,
-                        videoURL: nil,
-                        username: username,
-                        catPost: .constant(post),
-                        onPostCreated: { post in
-                            // Handle post creation if needed
-                        }
-                    )
-                } else {
-                    Text("Error: Unable to load image or post data.")
+
+            // Display the captured image and navigate to FormView if available
+            if let image = imageUI {
+                NavigationLink(destination: FormView(
+                    showForm: $showForm,
+                    navigateToHome: $navigateToHome,
+                    imageUI: image,
+                    videoURL: nil,
+                    username: username, // Use the passed username
+                    catPost: .constant(catPost),
+                    onPostCreated: { post in
+                        // Handle post creation if needed
+                    }
+                )) {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 200)
+                        .cornerRadius(10)
                 }
+                .padding(.top)
+            } else {
+                Text("No image captured.")
+                    .foregroundColor(.gray)
+                    .padding(.top)
             }
         }
     }
@@ -65,7 +79,8 @@ struct ImagePicker: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
         picker.delegate = context.coordinator
-        picker.sourceType = sourceType // Set to camera
+        picker.sourceType = sourceType // Set the source type to the selected media type
+        picker.mediaTypes = ["public.image"] // Set to only pick images
         return picker
     }
 

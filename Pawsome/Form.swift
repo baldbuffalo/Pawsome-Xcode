@@ -96,10 +96,8 @@ struct FormView: View {
                     }
                 }) {
                     Text("Post")
-                        .foregroundColor(isPostButtonEnabled() ? .white : .gray) // Change text color
-                        .padding()
-                        .background(isPostButtonEnabled() ? Color.blue : Color.gray) // Change background color based on the enabled state
-                        .cornerRadius(10) // Add corner radius for a better button appearance
+                        .foregroundColor(isPostButtonEnabled() ? .blue : .gray) // Text color only
+                        .padding(.vertical, 10) // Add vertical padding for clickable area
                 }
                 .disabled(!isPostButtonEnabled()) // Disable button based on form validation
                 .padding()
