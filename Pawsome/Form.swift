@@ -88,9 +88,9 @@ struct FormView: View {
 
                     do {
                         try viewContext.save() // Save Core Data context
-                        onPostCreated(catPost)
-                        showForm = false
-                        navigateToHome = true
+                        onPostCreated(catPost) // Call the onPostCreated closure to update the home view
+                        showForm = false // Dismiss the form view
+                        navigateToHome = true // Trigger navigation to home view
                     } catch {
                         print("Error saving post: \(error.localizedDescription)")
                     }
@@ -110,11 +110,13 @@ struct FormView: View {
     }
 
     private func isPostButtonEnabled() -> Bool {
-        // Check if all fields are filled and valid
-        return !(catPost.catName?.isEmpty ?? true) &&
-               !(catPost.catBreed?.isEmpty ?? true) &&
-               (catPost.catAge > 0) && // Ensure catAge is valid
-               !(catPost.location?.isEmpty ?? true) &&
-               !(catPost.postDescription?.isEmpty ?? true)
+        // Use optional binding to unwrap the optional strings
+        let catName = catPost.catName ?? ""
+        let catBreed = catPost.catBreed ?? ""
+        let catAge = catPost.catAge
+        let location = catPost.location ?? ""
+        let postDescription = catPost.postDescription ?? ""
+
+        return !catName.isEmpty && !catBreed.isEmpty && catAge > 0 && !location.isEmpty && !postDescription.isEmpty
     }
 }
