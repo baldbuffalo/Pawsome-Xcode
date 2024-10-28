@@ -65,7 +65,7 @@ struct FormView: View {
                     Text("Post")
                         .foregroundColor(isPostButtonEnabled() ? .blue : .gray) // Change color based on button state
                 }
-                .disabled(!isPostButtonEnabled())
+                .disabled(!isPostButtonEnabled()) // Disable the button if not all fields are filled
             }
             .padding()
             .navigationTitle("Post a Cat")
