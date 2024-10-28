@@ -11,6 +11,8 @@ struct HomeView: View {
     var currentUsername: String
     @Binding var profileImage: UIImage?
 
+    @State private var showForm = false // State variable to show the form
+
     var body: some View {
         NavigationStack {
             VStack {
@@ -84,9 +86,27 @@ struct HomeView: View {
                 }
 
                 Spacer()
+
+                // Button to show the form
+                Button(action: {
+                    showForm = true
+                }) {
+                    Text("Add Post")
+                        .padding()
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                }
+                .padding()
             }
             .navigationTitle("Home")
             .navigationBarTitleDisplayMode(.inline)
+            .sheet(isPresented: $showForm) {
+                FormView(showForm: $showForm, currentUsername: currentUsername, onPostCreated: { newPost in
+                    // The new post will automatically appear in the list
+                    print("New post created: \(newPost)")
+                }, selectedImage: .constant(nil)) // Replace with your image binding if needed
+            }
         }
     }
 

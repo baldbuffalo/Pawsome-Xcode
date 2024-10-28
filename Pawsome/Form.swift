@@ -3,114 +3,73 @@ import CoreData
 
 struct FormView: View {
     @Binding var showForm: Bool
-    @Binding var navigateToHome: Bool
-    var imageUI: UIImage? // The selected image to display
-    var videoURL: URL?
-    var username: String
+    var currentUsername: String
     var onPostCreated: (CatPost) -> Void
+    @Binding var selectedImage: UIImage? // Binding to hold the selected image
 
     @Environment(\.managedObjectContext) private var viewContext
-    @Binding var catPost: CatPost
+
+    // Properties for your CatPost
+    @State private var catName: String = ""
+    @State private var catBreed: String = ""
+    @State private var catAge: String = ""
+    @State private var location: String = ""
+    @State private var content: String = ""
 
     var body: some View {
-        ScrollView { // Wrap the entire content in a ScrollView
-            VStack(spacing: 16) {
-                // Display the selected image at the top
-                if let image = imageUI {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 300)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                        .padding()
+        NavigationStack {
+            Form {
+                Section(header: Text("Cat Details")) {
+                    TextField("Cat Name", text: $catName)
+                    TextField("Breed", text: $catBreed)
+                    TextField("Age", text: $catAge)
+                    TextField("Location", text: $location)
+                    TextField("Description", text: $content)
                 }
 
-                // Text fields for the form
-                TextField("Cat Name", text: Binding(
-                    get: { catPost.catName ?? "" },
-                    set: { catPost.catName = $0 }
-                ))
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .onChange(of: catPost.catName) { _ in
-                    updatePostButtonState()
+                Section {
+                    // Show selected image if available
+                    if let image = selectedImage {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 200)
+                            .cornerRadius(10)
+                    }
                 }
 
-                TextField("Breed", text: Binding(
-                    get: { catPost.catBreed ?? "" },
-                    set: { catPost.catBreed = $0 }
-                ))
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .onChange(of: catPost.catBreed) { _ in
-                    updatePostButtonState()
-                }
-
-                TextField("Age", text: Binding(
-                    get: { catPost.catAge > 0 ? String(catPost.catAge) : "" },
-                    set: { catPost.catAge = Int32($0) ?? 0 }
-                ))
-                .keyboardType(.numberPad)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .onChange(of: catPost.catAge) { _ in
-                    updatePostButtonState()
-                }
-
-                TextField("Location", text: Binding(
-                    get: { catPost.location ?? "" },
-                    set: { catPost.location = $0 }
-                ))
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .onChange(of: catPost.location) { _ in
-                    updatePostButtonState()
-                }
-
-                TextField("Description", text: Binding(
-                    get: { catPost.postDescription ?? "" },
-                    set: { catPost.postDescription = $0 }
-                ))
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .onChange(of: catPost.postDescription) { _ in
-                    updatePostButtonState()
-                }
-
-                // Post Button
                 Button(action: {
-                    // Create a new post and call the provided closure
                     createPost()
                 }) {
                     Text("Post")
-                        .foregroundColor(.blue) // Always set to blue
+                        .foregroundColor(.blue)
                 }
-                .disabled(!isPostButtonEnabled()) // Disable the button if not all fields are filled
-                .padding()
-                .background(isPostButtonEnabled() ? Color.blue.opacity(0.2) : Color.gray.opacity(0.2)) // Light background color for visibility
-                .cornerRadius(8)
             }
-            .padding()
-            .navigationTitle("Post a Cat")
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationTitle("Create Post")
         }
     }
 
-    // Check if the post button should be enabled
-    private func isPostButtonEnabled() -> Bool {
-        return !(catPost.catName?.isEmpty ?? true) &&
-               !(catPost.catBreed?.isEmpty ?? true) &&
-               catPost.catAge > 0 &&
-               !(catPost.location?.isEmpty ?? true) &&
-               !(catPost.postDescription?.isEmpty ?? true)
-    }
-
-    // Handle post creation
     private func createPost() {
-        catPost.timestamp = Date() // Set timestamp for the post
-        onPostCreated(catPost) // Trigger the closure to create the post
-        showForm = false // Dismiss the form
-        navigateToHome = true // Navigate to the home view after posting
-    }
+        let newPost = CatPost(context: viewContext)
+        newPost.username = currentUsername
+        newPost.catName = catName
+        newPost.catBreed = catBreed
+        newPost.catAge = Int32(catAge) ?? 0
+        newPost.location = location
+        newPost.content = content
+        newPost.timestamp = Date()
 
-    // Update the button state whenever a text field changes
-    private func updatePostButtonState() {
-        // This function is currently not necessary since `isPostButtonEnabled()` is already being checked in the button's disabled modifier.
-        // However, you can call it to refresh UI if you plan to add more logic.
+        // Convert selectedImage to Data if it exists
+        if let image = selectedImage {
+            newPost.imageData = image.pngData() // Store the image as PNG data
+        }
+
+        do {
+            try viewContext.save()
+            onPostCreated(newPost) // Trigger the closure with the new post
+            showForm = false // Close the form
+        } catch {
+            print("Error saving post: \(error.localizedDescription)")
+        }
     }
 }

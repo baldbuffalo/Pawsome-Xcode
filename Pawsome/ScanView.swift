@@ -41,6 +41,18 @@ struct ScanView: View {
                         }
                     }
                 }
+
+                // Preview selected image
+                if let selectedImage = selectedImage {
+                    Image(uiImage: selectedImage)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 200)
+                        .cornerRadius(10)
+                        .padding()
+                }
+
+                Spacer()
             }
             .navigationTitle("Scan View")
             .navigationBarTitleDisplayMode(.inline)
@@ -48,11 +60,9 @@ struct ScanView: View {
                 // Pass the selected image to FormView
                 FormView(
                     showForm: $showForm,
-                    navigateToHome: .constant(false), // Assuming you want to pass a constant here
-                    imageUI: selectedImage, // Pass the selected image
-                    username: username,
+                    currentUsername: username, // Update the parameter name to match your FormView
                     onPostCreated: { _ in },
-                    catPost: .constant(CatPost(context: viewContext))
+                    selectedImage: selectedImage // Pass the selected image directly
                 )
             }
         }
