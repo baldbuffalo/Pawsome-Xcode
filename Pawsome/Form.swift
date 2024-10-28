@@ -54,12 +54,12 @@ struct FormView: View {
                 .padding(.horizontal)
 
                 TextField("Age", text: Binding(
-                    get: { String(catPost.catAge) }, // Convert Int32 to String directly
+                    get: { catPost.catAge > 0 ? String(catPost.catAge) : "" }, // Show age if > 0, else keep blank
                     set: {
                         if let age = Int32($0), age > 0 {
                             catPost.catAge = age // Assign age directly
                         } else {
-                            catPost.catAge = 0 // Assign a default value if input is invalid
+                            catPost.catAge = 0 // Remove default assignment
                         }
                     }
                 ))
