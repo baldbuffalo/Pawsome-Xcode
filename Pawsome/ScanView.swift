@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct ScanView: View {
-    @State private var imageUI: UIImage? // State variable for the selected image
-    @State private var showingImagePicker = false
+    @State private var imageUI: UIImage? // State variable for the captured image
+    @State private var showingCamera = false
     @Binding var showForm: Bool
     @Binding var navigateToHome: Bool
     @State private var catPost = CatPost() // Assuming CatPost is your Core Data entity
@@ -10,36 +10,33 @@ struct ScanView: View {
 
     var body: some View {
         VStack {
-            // Button to show image picker
-            Button("Choose Image from Gallery") {
-                showingImagePicker = true
+            // Button to open the camera
+            Button("Open Camera") {
+                showingCamera = true
             }
-            .sheet(isPresented: $showingImagePicker) {
-                ImagePicker(selectedImage: $imageUI)
+            .sheet(isPresented: $showingCamera) {
+                ImagePicker(sourceType: .camera, selectedImage: $imageUI)
             }
 
-            // Display the selected image
+            // Navigation to FormView once an image is captured
             if let image = imageUI {
-                NavigationLink(destination: FormView(
-                    showForm: $showForm,
-                    navigateToHome: $navigateToHome,
-                    imageUI: image,
-                    videoURL: nil,
-                    username: username, // Use the passed username
-                    catPost: .constant(catPost),
-                    onPostCreated: { post in
-                        // Handle post creation if needed
-                    }
-                )) {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 200)
-                        .cornerRadius(10)
-                }
-                .padding(.top)
+                NavigationLink(
+                    destination: FormView(
+                        showForm: $showForm,
+                        navigateToHome: $navigateToHome,
+                        imageUI: image,
+                        videoURL: nil,
+                        username: username, // Use the passed username
+                        catPost: .constant(catPost),
+                        onPostCreated: { post in
+                            // Handle post creation if needed
+                        }
+                    ),
+                    isActive: .constant(true), // Automatically activate the link
+                    label: { EmptyView() } // No visual element here
+                )
             } else {
-                Text("No image selected.")
+                Text("No image captured.")
                     .foregroundColor(.gray)
                     .padding(.top)
             }
@@ -49,6 +46,7 @@ struct ScanView: View {
 
 // ImagePicker Struct
 struct ImagePicker: UIViewControllerRepresentable {
+    var sourceType: UIImagePickerController.SourceType
     @Binding var selectedImage: UIImage?
 
     func makeCoordinator() -> Coordinator {
@@ -58,6 +56,7 @@ struct ImagePicker: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
         picker.delegate = context.coordinator
+        picker.sourceType = sourceType // Set to camera
         return picker
     }
 

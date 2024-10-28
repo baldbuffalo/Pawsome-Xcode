@@ -14,12 +14,10 @@ struct HomeView: View {
     var body: some View {
         NavigationStack {
             VStack {
-                // Welcome message
-                Text("Welcome to Pawsome!")
-                    .font(.largeTitle)
-                    .bold()
-                    .foregroundColor(.blue)
-                    .padding(.top, 20)
+                        Text("Welcome to Pawsome!")
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+                            .padding()
 
                 // Display a message if no posts are available
                 if posts.isEmpty {
