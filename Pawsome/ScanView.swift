@@ -1,44 +1,53 @@
 import SwiftUI
+import CoreData
 
 struct ScanView: View {
+    @Environment(\.managedObjectContext) private var viewContext // Use environment to access Core Data context
     @State private var imageUI: UIImage? // State variable for the captured image
     @State private var showingCamera = false
     @Binding var showForm: Bool
     @Binding var navigateToHome: Bool
-    @State private var catPost = CatPost() // Assuming CatPost is your Core Data entity
+    @State private var catPost: CatPost?
     var username: String // Add username as a parameter
 
     var body: some View {
-        VStack {
-            // Button to open the camera
-            Button("Open Camera") {
-                showingCamera = true
-            }
-            .sheet(isPresented: $showingCamera) {
-                ImagePicker(sourceType: .camera, selectedImage: $imageUI)
-            }
+        NavigationStack {
+            VStack {
+                // Button to open the camera
+                Button("Open Camera") {
+                    showingCamera = true
+                    // Initialize catPost only if it hasn't been created
+                    if catPost == nil {
+                        catPost = CatPost(context: viewContext)
+                    }
+                }
+                .sheet(isPresented: $showingCamera) {
+                    ImagePicker(sourceType: .camera, selectedImage: $imageUI)
+                }
 
-            // Navigation to FormView once an image is captured
-            if let image = imageUI {
-                NavigationLink(
-                    destination: FormView(
+                // Show text if no image is captured
+                if imageUI == nil {
+                    Text("No image captured.")
+                        .foregroundColor(.gray)
+                        .padding(.top)
+                }
+            }
+            .navigationDestination(isPresented: .constant(imageUI != nil)) {
+                if let image = imageUI, let post = catPost {
+                    FormView(
                         showForm: $showForm,
                         navigateToHome: $navigateToHome,
                         imageUI: image,
                         videoURL: nil,
-                        username: username, // Use the passed username
-                        catPost: .constant(catPost),
+                        username: username,
+                        catPost: .constant(post),
                         onPostCreated: { post in
                             // Handle post creation if needed
                         }
-                    ),
-                    isActive: .constant(true), // Automatically activate the link
-                    label: { EmptyView() } // No visual element here
-                )
-            } else {
-                Text("No image captured.")
-                    .foregroundColor(.gray)
-                    .padding(.top)
+                    )
+                } else {
+                    Text("Error: Unable to load image or post data.")
+                }
             }
         }
     }
