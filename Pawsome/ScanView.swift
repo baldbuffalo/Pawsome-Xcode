@@ -12,7 +12,7 @@ struct ScanView: View {
     var username: String
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack {
                 Button("Open Camera") {
                     showMediaTypeSelection = true
@@ -36,18 +36,17 @@ struct ScanView: View {
                 .sheet(isPresented: $showingImagePicker) {
                     if let mediaType = mediaType {
                         ImagePicker(sourceType: mediaType, selectedImage: $imageUI) { image in
-                            // Set the selected image and navigate to FormView
+                            // Set the selected image
                             selectedImage = image
                             navigateToForm()
                         }
                     }
                 }
                 
-                // Navigate to FormView when showForm is true
-                NavigationLink(destination: FormView(showForm: $showForm, navigateToHome: .constant(false), imageUI: selectedImage, videoURL: nil, username: username, catPost: .constant(CatPost()), onPostCreated: { _ in })) {
-                    EmptyView() // Empty view, navigation occurs through the button
+                // Navigation destination to FormView
+                .navigationDestination(isPresented: $showForm) {
+                    FormView(showForm: $showForm, navigateToHome: .constant(false), imageUI: selectedImage, videoURL: nil, username: username, catPost: .constant(CatPost()), onPostCreated: { _ in })
                 }
-                .hidden()
             }
             .navigationTitle("Scan View")
             .navigationBarTitleDisplayMode(.inline)
