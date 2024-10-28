@@ -86,11 +86,13 @@ struct HomeView: View {
             .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showForm) {
                 FormView(showForm: $showForm, currentUsername: currentUsername, onPostCreated: { newPost in
-                    // This closure will be called when a new post is created
                     print("New post created: \(newPost)")
-                    // This action can be extended to include additional logic if needed
                 }, selectedImage: $selectedImage)
                 .environment(\.managedObjectContext, viewContext) // Pass the context to FormView
+            }
+            .onAppear {
+                // This will refresh the view and can be used for debugging
+                print("Posts count: \(posts.count)")
             }
         }
     }
