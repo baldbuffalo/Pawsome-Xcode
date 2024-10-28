@@ -11,8 +11,8 @@ struct HomeView: View {
     var currentUsername: String
     @Binding var profileImage: UIImage?
 
-    @State private var showForm = false // State variable to show the form
-    @State private var selectedImage: UIImage? // State variable to hold the selected image
+    @State private var showForm = false
+    @State private var selectedImage: UIImage?
 
     var body: some View {
         NavigationStack {
@@ -22,13 +22,11 @@ struct HomeView: View {
                     .fontWeight(.bold)
                     .padding()
 
-                // Display a message if no posts are available
                 if posts.isEmpty {
                     Text("No posts yet! Start by creating a new one.")
                         .foregroundColor(.gray)
                         .padding()
                 } else {
-                    // List to display CatPosts
                     List {
                         ForEach(posts) { post in
                             VStack(alignment: .leading) {
@@ -37,7 +35,6 @@ struct HomeView: View {
                                         .font(.headline)
                                         .foregroundColor(.blue)
                                     Spacer()
-                                    // Menu for Edit and Delete options
                                     Menu {
                                         Button(action: {
                                             // Handle Edit action
@@ -46,7 +43,6 @@ struct HomeView: View {
                                             Text("Edit")
                                         }
                                         Button(action: {
-                                            // Handle Delete action
                                             deletePost(post: post)
                                         }) {
                                             Text("Delete")
@@ -60,7 +56,6 @@ struct HomeView: View {
                                     }
                                 }
 
-                                // Displaying image
                                 if let imageData = post.imageData, let uiImage = UIImage(data: imageData) {
                                     Image(uiImage: uiImage)
                                         .resizable()
@@ -74,7 +69,6 @@ struct HomeView: View {
                                         .padding(.top)
                                 }
 
-                                // Display the user's input under the media
                                 Text(post.content ?? "No content")
                                     .font(.subheadline)
                                     .padding(.top, 5)
@@ -83,7 +77,7 @@ struct HomeView: View {
                             .padding(.vertical, 8)
                         }
                     }
-                    .listStyle(PlainListStyle()) // Optional for performance
+                    .listStyle(PlainListStyle())
                 }
 
                 Spacer()
@@ -92,14 +86,15 @@ struct HomeView: View {
             .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showForm) {
                 FormView(showForm: $showForm, currentUsername: currentUsername, onPostCreated: { newPost in
-                    // FetchRequest will automatically update the list
+                    // This closure will be called when a new post is created
                     print("New post created: \(newPost)")
+                    // This action can be extended to include additional logic if needed
                 }, selectedImage: $selectedImage)
+                .environment(\.managedObjectContext, viewContext) // Pass the context to FormView
             }
         }
     }
 
-    // Function to delete posts
     private func deletePost(post: CatPost) {
         withAnimation {
             viewContext.delete(post)
@@ -107,14 +102,11 @@ struct HomeView: View {
         }
     }
 
-    // Function to save context changes to Core Data
     private func saveContext() {
         do {
             try viewContext.save()
-        } catch {
-            let nsError = error as NSError
-            print("Unresolved error \(nsError), \(nsError.userInfo)")
-            // Provide feedback to the user if needed
+        } catch let error as NSError {
+            print("Unresolved error \(error), \(error.userInfo)")
         }
     }
 }

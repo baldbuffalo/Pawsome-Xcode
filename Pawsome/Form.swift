@@ -5,12 +5,10 @@ struct FormView: View {
     @Binding var showForm: Bool
     var currentUsername: String
     var onPostCreated: (CatPost) -> Void
-    @Binding var selectedImage: UIImage? // Binding to hold the selected image
+    @Binding var selectedImage: UIImage?
 
     @Environment(\.managedObjectContext) private var viewContext
-    @Environment(\.presentationMode) private var presentationMode // Add this to dismiss the view
 
-    // Properties for your CatPost
     @State private var catName: String = ""
     @State private var catBreed: String = ""
     @State private var catAge: String = ""
@@ -24,13 +22,12 @@ struct FormView: View {
                     TextField("Cat Name", text: $catName)
                     TextField("Breed", text: $catBreed)
                     TextField("Age", text: $catAge)
-                        .keyboardType(.numberPad) // Set the keyboard type to number pad
+                        .keyboardType(.numberPad)
                     TextField("Location", text: $location)
                     TextField("Description", text: $content)
                 }
 
                 Section {
-                    // Show selected image if available
                     if let image = selectedImage {
                         Image(uiImage: image)
                             .resizable()
@@ -48,9 +45,8 @@ struct FormView: View {
                 }
             }
             .navigationTitle("Create Post")
-            .background(Color.white) // Set background color for tap gesture
+            .background(Color.white)
             .onTapGesture {
-                // Dismiss the keyboard when tapping outside
                 hideKeyboard()
             }
         }
@@ -66,16 +62,14 @@ struct FormView: View {
         newPost.content = content
         newPost.timestamp = Date()
 
-        // Convert selectedImage to Data if it exists
         if let image = selectedImage {
-            newPost.imageData = image.pngData() // Store the image as PNG data
+            newPost.imageData = image.pngData()
         }
 
         do {
             try viewContext.save()
-            onPostCreated(newPost) // Trigger the closure with the new post
+            onPostCreated(newPost) // Notify HomeView about the new post
             showForm = false // Close the form
-            presentationMode.wrappedValue.dismiss() // Dismiss the form view
         } catch {
             print("Error saving post: \(error.localizedDescription)")
         }
