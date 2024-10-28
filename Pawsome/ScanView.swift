@@ -3,11 +3,11 @@ import CoreData
 
 struct ScanView: View {
     @Environment(\.managedObjectContext) private var viewContext
+    @State private var imageUI: UIImage?
     @State private var showingImagePicker = false
     @State private var mediaType: UIImagePickerController.SourceType? = nil
     @State private var showMediaTypeSelection = false
-    @Binding var showForm: Bool // Binding to control form visibility
-    @State private var selectedImage: UIImage? // Store the selected image
+    @Binding var showForm: Bool
     var username: String
 
     var body: some View {
@@ -34,26 +34,29 @@ struct ScanView: View {
                 }
                 .sheet(isPresented: $showingImagePicker) {
                     if let mediaType = mediaType {
-                        ImagePicker(sourceType: mediaType, selectedImage: $selectedImage, onImageSelected: { image in
-                            // Pass the selected image to the form and navigate
-                            navigateToForm(with: image)
-                        })
+                        ImagePicker(sourceType: mediaType, selectedImage: $imageUI) { image in
+                            // Handle the selected image here
+                            // Pass the image to the form view or perform any logic you need
+                            navigateToForm()
+                        }
                     }
                 }
+
+                // Display a placeholder when no image is selected
+                Text("Select an image to post")
+                    .padding()
             }
             .navigationTitle("Scan View")
         }
     }
 
-    private func navigateToForm(with image: UIImage) {
-        // Set the selected image and show the form
-        // You can implement any logic here to navigate to FormView and pass the image
-        showForm = true // This will trigger the form to appear
-        // Optionally, you could also create an instance of FormView and pass the image to it
+    private func navigateToForm() {
+        // Set showForm to true to navigate to FormView
+        showForm = true
     }
 }
 
-// ImagePicker Struct
+// Integrated ImagePicker
 struct ImagePicker: UIViewControllerRepresentable {
     var sourceType: UIImagePickerController.SourceType
     @Binding var selectedImage: UIImage?

@@ -32,7 +32,6 @@ struct PawsomeApp: App {
 
                     ScanView(
                         showForm: $showForm,
-                        navigateToHome: $navigateToHome,
                         username: username
                     )
                     .tabItem {
@@ -40,8 +39,8 @@ struct PawsomeApp: App {
                     }
 
                     ProfileView(
-                        isLoggedIn: $isLoggedIn, // Pass isLoggedIn binding
-                        currentUsername: $username, // Pass currentUsername binding
+                        isLoggedIn: $isLoggedIn,
+                        currentUsername: $username,
                         profileImage: Binding<Image?>(
                             get: {
                                 if let data = profileImageData, let uiImage = UIImage(data: data) {
@@ -59,7 +58,6 @@ struct PawsomeApp: App {
                     }
                 }
             } else {
-                // Ensure only necessary parameters are passed to LoginView
                 LoginView(
                     isLoggedIn: $isLoggedIn,
                     username: $username,
@@ -85,9 +83,9 @@ extension Image {
     func asUIImage() -> UIImage? {
         let controller = UIHostingController(rootView: self)
         let view = controller.view
-
+        
         // Render the view to an image
-        let targetSize = controller.view.intrinsicContentSize
+        let targetSize = view?.intrinsicContentSize ?? .zero
         let renderer = UIGraphicsImageRenderer(size: targetSize)
         return renderer.image { _ in
             view?.drawHierarchy(in: CGRect(origin: .zero, size: targetSize), afterScreenUpdates: true)
