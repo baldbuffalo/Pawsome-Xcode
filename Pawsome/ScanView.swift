@@ -42,14 +42,20 @@ struct ScanView: View {
                         }
                     }
                 }
-                
-                // Navigation destination to FormView
-                .navigationDestination(isPresented: $showForm) {
-                    FormView(showForm: $showForm, navigateToHome: .constant(false), imageUI: selectedImage, videoURL: nil, username: username, catPost: .constant(CatPost()), onPostCreated: { _ in })
-                }
             }
             .navigationTitle("Scan View")
             .navigationBarTitleDisplayMode(.inline)
+            .navigationDestination(isPresented: $showForm) {
+                FormView(
+                    showForm: $showForm,
+                    navigateToHome: .constant(false),
+                    imageUI: selectedImage,
+                    videoURL: nil,
+                    username: username,
+                    catPost: .constant(CatPost(context: viewContext)), // Ensure CatPost is initialized with the context
+                    onPostCreated: { _ in }
+                )
+            }
         }
     }
 
