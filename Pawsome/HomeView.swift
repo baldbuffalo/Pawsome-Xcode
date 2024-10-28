@@ -87,11 +87,11 @@ struct HomeView: View {
 
                 Spacer()
 
-                // Button to show the form
+                // Show the form when the button is pressed
                 Button(action: {
                     showForm = true
                 }) {
-                    Text("Add Post")
+                    Text("Create Post")
                         .padding()
                         .background(Color.blue)
                         .foregroundColor(.white)
@@ -103,9 +103,9 @@ struct HomeView: View {
             .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showForm) {
                 FormView(showForm: $showForm, currentUsername: currentUsername, onPostCreated: { newPost in
-                    // The new post will automatically appear in the list
+                    // Handle the new post and update the list
                     print("New post created: \(newPost)")
-                }, selectedImage: .constant(nil)) // Replace with your image binding if needed
+                }, selectedImage: .constant(nil)) // Bind image as needed
             }
         }
     }
