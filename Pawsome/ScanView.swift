@@ -13,37 +13,44 @@ struct ScanView: View {
     var username: String // Add username as a parameter
 
     var body: some View {
-        VStack {
-            // Button to open the media type selection action sheet
-            Button("Open Camera") {
-                showMediaTypeSelection = true // Show action sheet
-            }
-            .actionSheet(isPresented: $showMediaTypeSelection) {
-                ActionSheet(
-                    title: Text("Choose Media Type"),
-                    buttons: [
-                        .default(Text("Camera")) {
-                            mediaType = .camera
-                            showingImagePicker = true
-                        },
-                        .default(Text("Gallery")) {
-                            mediaType = .photoLibrary
-                            showingImagePicker = true
-                        },
-                        .cancel()
-                    ]
-                )
-            }
-            .sheet(isPresented: $showingImagePicker) {
-                if let mediaType = mediaType {
-                    ImagePicker(sourceType: mediaType, selectedImage: $imageUI, onImageSelected: { image in
-                        // Create a new CatPost instance and set its properties
-                        let newCatPost = CatPost(context: viewContext)
-                        newCatPost.imageData = image.pngData() // Set image data
-                        newCatPost.username = username // Set username or any other properties as needed
-                        catPost = newCatPost // Assign it to state variable if needed
-                        navigateToForm() // Navigate to FormView
-                    })
+        NavigationView {
+            VStack {
+                // Button to open the media type selection action sheet
+                Button("Open Camera") {
+                    showMediaTypeSelection = true // Show action sheet
+                }
+                .actionSheet(isPresented: $showMediaTypeSelection) {
+                    ActionSheet(
+                        title: Text("Choose Media Type"),
+                        buttons: [
+                            .default(Text("Camera")) {
+                                mediaType = .camera
+                                showingImagePicker = true
+                            },
+                            .default(Text("Gallery")) {
+                                mediaType = .photoLibrary
+                                showingImagePicker = true
+                            },
+                            .cancel()
+                        ]
+                    )
+                }
+                .sheet(isPresented: $showingImagePicker) {
+                    if let mediaType = mediaType {
+                        ImagePicker(sourceType: mediaType, selectedImage: $imageUI, onImageSelected: { image in
+                            // Create a new CatPost instance and set its properties
+                            let newCatPost = CatPost(context: viewContext)
+                            newCatPost.imageData = image.pngData() // Set image data
+                            newCatPost.username = username // Set username or any other properties as needed
+                            catPost = newCatPost // Assign it to state variable if needed
+                            navigateToForm() // Navigate to FormView
+                        })
+                    }
+                }
+                
+                // NavigationLink to FormView
+                NavigationLink(destination: FormView(catPost: catPost), isActive: $showForm) {
+                    EmptyView() // This can be hidden
                 }
             }
         }
@@ -94,5 +101,14 @@ struct ImagePicker: UIViewControllerRepresentable {
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
             picker.dismiss(animated: true)
         }
+    }
+}
+
+// Dummy FormView for illustration purposes
+struct FormView: View {
+    var catPost: CatPost? // Use your actual CatPost model
+
+    var body: some View {
+        Text("Form View")
     }
 }
