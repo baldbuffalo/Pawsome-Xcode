@@ -32,7 +32,7 @@ struct FormView: View {
                 ))
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .onChange(of: catPost.catName) { _ in
-                    // No additional action needed; the button state is evaluated in isPostButtonEnabled
+                    updatePostButtonState()
                 }
 
                 TextField("Breed", text: Binding(
@@ -41,7 +41,7 @@ struct FormView: View {
                 ))
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .onChange(of: catPost.catBreed) { _ in
-                    // No additional action needed; the button state is evaluated in isPostButtonEnabled
+                    updatePostButtonState()
                 }
 
                 TextField("Age", text: Binding(
@@ -51,7 +51,7 @@ struct FormView: View {
                 .keyboardType(.numberPad)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .onChange(of: catPost.catAge) { _ in
-                    // No additional action needed; the button state is evaluated in isPostButtonEnabled
+                    updatePostButtonState()
                 }
 
                 TextField("Location", text: Binding(
@@ -60,7 +60,7 @@ struct FormView: View {
                 ))
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .onChange(of: catPost.location) { _ in
-                    // No additional action needed; the button state is evaluated in isPostButtonEnabled
+                    updatePostButtonState()
                 }
 
                 TextField("Description", text: Binding(
@@ -69,20 +69,21 @@ struct FormView: View {
                 ))
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .onChange(of: catPost.postDescription) { _ in
-                    // No additional action needed; the button state is evaluated in isPostButtonEnabled
+                    updatePostButtonState()
                 }
 
                 // Post Button
                 Button(action: {
-                    catPost.timestamp = Date() // Set timestamp for the post
-                    onPostCreated(catPost) // Trigger the closure
-                    showForm = false // Dismiss the form
+                    // Create a new post and call the provided closure
+                    createPost()
                 }) {
                     Text("Post")
-                        .foregroundColor(isPostButtonEnabled() ? .blue : .gray) // Change color based on button state
+                        .foregroundColor(.blue) // Always set to blue
                 }
-                .buttonStyle(PlainButtonStyle()) // Prevent default styling from affecting the button color
                 .disabled(!isPostButtonEnabled()) // Disable the button if not all fields are filled
+                .padding()
+                .background(isPostButtonEnabled() ? Color.blue.opacity(0.2) : Color.gray.opacity(0.2)) // Light background color for visibility
+                .cornerRadius(8)
             }
             .padding()
             .navigationTitle("Post a Cat")
@@ -90,13 +91,26 @@ struct FormView: View {
         }
     }
 
-    // Function to check if the post button should be enabled
+    // Check if the post button should be enabled
     private func isPostButtonEnabled() -> Bool {
-        // Ensure all fields are filled appropriately
         return !(catPost.catName?.isEmpty ?? true) &&
                !(catPost.catBreed?.isEmpty ?? true) &&
-               catPost.catAge > 0 && // Ensure cat age is greater than 0
+               catPost.catAge > 0 &&
                !(catPost.location?.isEmpty ?? true) &&
                !(catPost.postDescription?.isEmpty ?? true)
+    }
+
+    // Handle post creation
+    private func createPost() {
+        catPost.timestamp = Date() // Set timestamp for the post
+        onPostCreated(catPost) // Trigger the closure to create the post
+        showForm = false // Dismiss the form
+        navigateToHome = true // Navigate to the home view after posting
+    }
+
+    // Update the button state whenever a text field changes
+    private func updatePostButtonState() {
+        // This function is currently not necessary since `isPostButtonEnabled()` is already being checked in the button's disabled modifier.
+        // However, you can call it to refresh UI if you plan to add more logic.
     }
 }
