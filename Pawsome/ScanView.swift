@@ -60,9 +60,9 @@ struct ScanView: View {
                 // Pass the selected image to FormView
                 FormView(
                     showForm: $showForm,
-                    currentUsername: username, // Update the parameter name to match your FormView
+                    currentUsername: username,
                     onPostCreated: { _ in },
-                    selectedImage: selectedImage // Pass the selected image directly
+                    selectedImage: $selectedImage // Pass the selected image as a binding
                 )
             }
         }
