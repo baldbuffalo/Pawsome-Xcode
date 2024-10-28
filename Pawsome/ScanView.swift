@@ -35,24 +35,30 @@ struct ScanView: View {
                 .sheet(isPresented: $showingImagePicker) {
                     if let mediaType = mediaType {
                         ImagePicker(sourceType: mediaType, selectedImage: $imageUI) { image in
-                            // Handle the selected image here
-                            // Pass the image to the form view or perform any logic you need
-                            navigateToForm()
+                            // Navigate to the FormView with the selected image
+                            navigateToForm(with: image)
                         }
                     }
                 }
-
-                // Display a placeholder when no image is selected
-                Text("Select an image to post")
-                    .padding()
+                
+                // Optional: Display the selected image in the view
+                if let selectedImage = imageUI {
+                    Image(uiImage: selectedImage)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 200)
+                        .padding()
+                }
             }
             .navigationTitle("Scan View")
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
 
-    private func navigateToForm() {
-        // Set showForm to true to navigate to FormView
+    private func navigateToForm(with image: UIImage) {
+        // Navigate to FormView with the selected image
         showForm = true
+        imageUI = image // Temporarily store the image for navigation
     }
 }
 
