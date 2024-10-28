@@ -8,6 +8,7 @@ struct ScanView: View {
     @State private var mediaType: UIImagePickerController.SourceType? = nil
     @State private var showMediaTypeSelection = false
     @Binding var showForm: Bool
+    @Binding var selectedImage: UIImage? // Binding to hold the selected image
     var username: String
 
     var body: some View {
@@ -35,19 +36,11 @@ struct ScanView: View {
                 .sheet(isPresented: $showingImagePicker) {
                     if let mediaType = mediaType {
                         ImagePicker(sourceType: mediaType, selectedImage: $imageUI) { image in
-                            // Navigate to the FormView with the selected image
-                            navigateToForm(with: image)
+                            // Set the selected image and navigate to FormView
+                            selectedImage = image
+                            navigateToForm()
                         }
                     }
-                }
-                
-                // Optional: Display the selected image in the view
-                if let selectedImage = imageUI {
-                    Image(uiImage: selectedImage)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 200)
-                        .padding()
                 }
             }
             .navigationTitle("Scan View")
@@ -55,10 +48,9 @@ struct ScanView: View {
         }
     }
 
-    private func navigateToForm(with image: UIImage) {
-        // Navigate to FormView with the selected image
+    private func navigateToForm() {
+        // Set showForm to true to navigate to FormView
         showForm = true
-        imageUI = image // Temporarily store the image for navigation
     }
 }
 

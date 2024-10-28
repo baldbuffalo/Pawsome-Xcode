@@ -8,6 +8,7 @@ struct PawsomeApp: App {
     @State private var profileImageData: Data? = nil // Use Data to store image
     @State private var showForm: Bool = false // For form visibility
     @State private var navigateToHome: Bool = false // For navigation
+    @State private var selectedImage: UIImage? = nil // Add selectedImage property
 
     // Shared PersistenceController instance for Core Data
     let persistenceController = PersistenceController.shared
@@ -30,8 +31,10 @@ struct PawsomeApp: App {
                     }
                     .environment(\.managedObjectContext, persistenceController.container.viewContext)
 
+                    // Pass the selectedImage binding to ScanView
                     ScanView(
                         showForm: $showForm,
+                        selectedImage: $selectedImage, // New binding for selectedImage
                         username: username
                     )
                     .tabItem {
