@@ -2,22 +2,21 @@ import SwiftUI
 import CoreData
 
 struct ScanView: View {
-    @Environment(\.managedObjectContext) private var viewContext // Access the managed object context
-    @State private var imageUI: UIImage? // State variable for the captured image
+    @Environment(\.managedObjectContext) private var viewContext
+    @State private var imageUI: UIImage?
     @State private var showingImagePicker = false
-    @State private var mediaType: UIImagePickerController.SourceType? = nil // Track the selected media type
-    @State private var showMediaTypeSelection = false // Control the action sheet display
+    @State private var mediaType: UIImagePickerController.SourceType? = nil
+    @State private var showMediaTypeSelection = false
     @Binding var showForm: Bool
     @Binding var navigateToHome: Bool
-    @State private var catPost: CatPost? // Optional CatPost instance
-    var username: String // Add username as a parameter
+    @State private var catPost: CatPost?
+    var username: String
 
     var body: some View {
         NavigationView {
             VStack {
-                // Button to open the media type selection action sheet
                 Button("Open Camera") {
-                    showMediaTypeSelection = true // Show action sheet
+                    showMediaTypeSelection = true
                 }
                 .actionSheet(isPresented: $showMediaTypeSelection) {
                     ActionSheet(
@@ -38,36 +37,45 @@ struct ScanView: View {
                 .sheet(isPresented: $showingImagePicker) {
                     if let mediaType = mediaType {
                         ImagePicker(sourceType: mediaType, selectedImage: $imageUI, onImageSelected: { image in
-                            // Create a new CatPost instance and set its properties
+                            // Create a new CatPost instance without saving
                             let newCatPost = CatPost(context: viewContext)
-                            newCatPost.imageData = image.pngData() // Set image data
-                            newCatPost.username = username // Set username or any other properties as needed
-                            catPost = newCatPost // Assign it to state variable if needed
-                            navigateToForm() // Navigate to FormView
+                            newCatPost.imageData = image.pngData()
+                            newCatPost.username = username
+                            catPost = newCatPost // Keep the catPost instance for later use
+
+                            // Navigate to FormView after selecting an image
+                            navigateToForm()
                         })
                     }
                 }
-                
-                // NavigationLink to FormView
-                NavigationLink(destination: FormView(catPost: catPost), isActive: $showForm) {
-                    EmptyView() // This can be hidden
+
+                // Show a preview of the selected image
+                if let image = imageUI {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 200)
+                        .padding()
+                } else {
+                    Text("No Image Selected")
+                        .padding()
                 }
             }
+            .navigationTitle("Scan View")
         }
     }
 
     private func navigateToForm() {
-        // Navigate to FormView
+        // Set showForm to true to navigate to FormView
         showForm = true
-        // Additional logic to navigate can be placed here if needed
     }
 }
 
-// ImagePicker Struct (remains unchanged)
+// ImagePicker Struct
 struct ImagePicker: UIViewControllerRepresentable {
     var sourceType: UIImagePickerController.SourceType
     @Binding var selectedImage: UIImage?
-    var onImageSelected: (UIImage) -> Void // Callback to handle selected image
+    var onImageSelected: (UIImage) -> Void
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
@@ -77,7 +85,7 @@ struct ImagePicker: UIViewControllerRepresentable {
         let picker = UIImagePickerController()
         picker.delegate = context.coordinator
         picker.sourceType = sourceType
-        picker.mediaTypes = ["public.image"] // Set to only pick images
+        picker.mediaTypes = ["public.image"]
         return picker
     }
 
@@ -93,7 +101,7 @@ struct ImagePicker: UIViewControllerRepresentable {
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
             if let image = info[.originalImage] as? UIImage {
                 parent.selectedImage = image
-                parent.onImageSelected(image) // Call the callback with the selected image
+                parent.onImageSelected(image)
             }
             picker.dismiss(animated: true)
         }
@@ -101,14 +109,5 @@ struct ImagePicker: UIViewControllerRepresentable {
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
             picker.dismiss(animated: true)
         }
-    }
-}
-
-// Dummy FormView for illustration purposes
-struct FormView: View {
-    var catPost: CatPost? // Use your actual CatPost model
-
-    var body: some View {
-        Text("Form View")
     }
 }
