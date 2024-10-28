@@ -5,10 +5,10 @@ import CoreData
 struct PawsomeApp: App {
     @State private var isLoggedIn: Bool = false
     @State private var username: String = ""
-    @State private var profileImageData: Data? = nil // Use Data to store image
-    @State private var showForm: Bool = false // For form visibility
-    @State private var navigateToHome: Bool = false // For navigation
-    @State private var selectedImage: UIImage? = nil // Add selectedImage property
+    @State private var profileImageData: Data? = nil
+    @State private var showForm: Bool = false
+    @State private var navigateToHome: Bool = false
+    @State private var selectedImage: UIImage? = nil // This will hold the selected image
 
     // Shared PersistenceController instance for Core Data
     let persistenceController = PersistenceController.shared
@@ -31,10 +31,10 @@ struct PawsomeApp: App {
                     }
                     .environment(\.managedObjectContext, persistenceController.container.viewContext)
 
-                    // Pass the selectedImage binding to ScanView
+                    // Correct order of arguments in ScanView initializer
                     ScanView(
-                        showForm: $showForm,
-                        selectedImage: $selectedImage, // New binding for selectedImage
+                        selectedImage: $selectedImage, // This should come first
+                        showForm: $showForm, // Then showForm
                         username: username
                     )
                     .tabItem {

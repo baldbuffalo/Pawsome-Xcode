@@ -6,7 +6,7 @@ import AVFoundation
 
 class AppDelegate: NSObject, UIApplicationDelegate {
     var window: UIWindow?
-    var photoOutput: AVCapturePhotoOutput? // Add this line to declare photoOutput
+    var photoOutput: AVCapturePhotoOutput? // Declare photoOutput
 
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {

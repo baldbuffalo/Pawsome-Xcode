@@ -3,28 +3,31 @@ import CoreData
 
 struct ScanView: View {
     @Environment(\.managedObjectContext) private var viewContext
-    @State private var imageUI: UIImage?
-    @State private var showingImagePicker = false
-    @State private var mediaType: UIImagePickerController.SourceType? = nil
-    @State private var showMediaTypeSelection = false
-    @Binding var showForm: Bool
     @Binding var selectedImage: UIImage? // Binding to hold the selected image
+    @Binding var showForm: Bool // Binding to control form visibility
     var username: String
+    
+    @State private var showingImagePicker = false // State to show the image picker
+    @State private var mediaType: UIImagePickerController.SourceType? = nil // State for media type selection
+    @State private var showMediaTypeSelection = false // State for media type selection action sheet
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 20) {
-                if let image = selectedImage {
-                    Image(uiImage: image)
+                // Display selected image if available
+                if let selectedImage = selectedImage {
+                    Image(uiImage: selectedImage)
                         .resizable()
                         .scaledToFit()
-                        .frame(height: 200)
-                        .cornerRadius(10)
+                        .frame(height: 300)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .padding()
                 } else {
-                    Text("No image selected.")
+                    Text("No image selected")
                         .foregroundColor(.gray)
                 }
-                
+
+                // Button to initiate image selection
                 Button("Select Image") {
                     showMediaTypeSelection = true
                 }
@@ -46,21 +49,31 @@ struct ScanView: View {
                 }
                 .sheet(isPresented: $showingImagePicker) {
                     if let mediaType = mediaType {
-                        ImagePicker(sourceType: mediaType, selectedImage: $imageUI) { image in
-                            selectedImage = image
-                            navigateToForm()
+                        ImagePicker(sourceType: mediaType, selectedImage: $selectedImage) { image in
+                            navigateToForm() // Navigate to Form.swift after image selection
                         }
                     }
+                }
+
+                // Proceed to Form.swift Button
+                if selectedImage != nil {
+                    Button("Proceed to Form") {
+                        navigateToForm()
+                    }
+                    .padding()
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(8)
                 }
             }
             .navigationTitle("Scan View")
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(isPresented: $showForm) {
+                // Pass all required arguments to FormView
                 FormView(
                     showForm: $showForm,
-                    navigateToHome: .constant(false),
-                    imageUI: selectedImage,  // Pass the selected image here
-                    videoURL: nil,
+                    navigateToHome: .constant(false), // Assuming you want to pass a constant here
+                    imageUI: selectedImage,
                     username: username,
                     onPostCreated: { _ in },
                     catPost: .constant(CatPost(context: viewContext))
@@ -71,5 +84,45 @@ struct ScanView: View {
 
     private func navigateToForm() {
         showForm = true
+    }
+}
+
+// ImagePicker Struct for Image Selection
+struct ImagePicker: UIViewControllerRepresentable {
+    var sourceType: UIImagePickerController.SourceType
+    @Binding var selectedImage: UIImage?
+    var onImageSelected: (UIImage) -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.delegate = context.coordinator
+        picker.sourceType = sourceType
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+
+    class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
+        let parent: ImagePicker
+
+        init(_ parent: ImagePicker) {
+            self.parent = parent
+        }
+
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+            if let image = info[.originalImage] as? UIImage {
+                parent.selectedImage = image
+                parent.onImageSelected(image)
+            }
+            picker.dismiss(animated: true)
+        }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            picker.dismiss(animated: true)
+        }
     }
 }
