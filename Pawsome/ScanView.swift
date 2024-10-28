@@ -13,7 +13,7 @@ struct ScanView: View {
     var body: some View {
         VStack {
             // Button to open the media type selection action sheet
-            Button("Open Camera") {
+            Button("Open Camera or Gallery") {
                 showMediaTypeSelection = true // Show action sheet
             }
             .actionSheet(isPresented: $showMediaTypeSelection) {
@@ -58,10 +58,6 @@ struct ScanView: View {
                         .cornerRadius(10)
                 }
                 .padding(.top)
-            } else {
-                Text("No image captured.")
-                    .foregroundColor(.gray)
-                    .padding(.top)
             }
         }
     }
