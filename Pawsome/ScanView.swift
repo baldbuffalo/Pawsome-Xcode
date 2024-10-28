@@ -3,13 +3,11 @@ import CoreData
 
 struct ScanView: View {
     @Environment(\.managedObjectContext) private var viewContext
-    @State private var imageUI: UIImage?
     @State private var showingImagePicker = false
     @State private var mediaType: UIImagePickerController.SourceType? = nil
     @State private var showMediaTypeSelection = false
-    @Binding var showForm: Bool
-    @Binding var navigateToHome: Bool
-    @State private var catPost: CatPost?
+    @Binding var showForm: Bool // Binding to control form visibility
+    @State private var selectedImage: UIImage? // Store the selected image
     var username: String
 
     var body: some View {
@@ -36,38 +34,22 @@ struct ScanView: View {
                 }
                 .sheet(isPresented: $showingImagePicker) {
                     if let mediaType = mediaType {
-                        ImagePicker(sourceType: mediaType, selectedImage: $imageUI, onImageSelected: { image in
-                            // Create a new CatPost instance without saving
-                            let newCatPost = CatPost(context: viewContext)
-                            newCatPost.imageData = image.pngData()
-                            newCatPost.username = username
-                            catPost = newCatPost // Keep the catPost instance for later use
-
-                            // Navigate to FormView after selecting an image
-                            navigateToForm()
+                        ImagePicker(sourceType: mediaType, selectedImage: $selectedImage, onImageSelected: { image in
+                            // Pass the selected image to the form and navigate
+                            navigateToForm(with: image)
                         })
                     }
-                }
-
-                // Show a preview of the selected image
-                if let image = imageUI {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 200)
-                        .padding()
-                } else {
-                    Text("No Image Selected")
-                        .padding()
                 }
             }
             .navigationTitle("Scan View")
         }
     }
 
-    private func navigateToForm() {
-        // Set showForm to true to navigate to FormView
-        showForm = true
+    private func navigateToForm(with image: UIImage) {
+        // Set the selected image and show the form
+        // You can implement any logic here to navigate to FormView and pass the image
+        showForm = true // This will trigger the form to appear
+        // Optionally, you could also create an instance of FormView and pass the image to it
     }
 }
 
