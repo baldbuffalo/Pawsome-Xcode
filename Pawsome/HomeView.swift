@@ -14,10 +14,10 @@ struct HomeView: View {
     var body: some View {
         NavigationStack {
             VStack {
-                        Text("Welcome to Pawsome!")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                            .padding()
+                Text("Welcome to Pawsome!")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                    .padding()
 
                 // Display a message if no posts are available
                 if posts.isEmpty {
@@ -57,16 +57,11 @@ struct HomeView: View {
                                     }
                                 }
 
-                                // Displaying image or video
+                                // Displaying image
                                 if let imageData = post.imageData, let uiImage = UIImage(data: imageData) {
                                     Image(uiImage: uiImage)
                                         .resizable()
                                         .scaledToFit()
-                                        .frame(height: 200)
-                                        .cornerRadius(10)
-                                        .padding(.top)
-                                } else if let videoURLString = post.videoURL, let videoURL = URL(string: videoURLString) {
-                                    VideoPlayerView(videoURL: videoURL)
                                         .frame(height: 200)
                                         .cornerRadius(10)
                                         .padding(.top)
@@ -85,6 +80,7 @@ struct HomeView: View {
                             .padding(.vertical, 8)
                         }
                     }
+                    .listStyle(PlainListStyle()) // Optional for performance
                 }
 
                 Spacer()
@@ -109,19 +105,7 @@ struct HomeView: View {
         } catch {
             let nsError = error as NSError
             print("Unresolved error \(nsError), \(nsError.userInfo)")
+            // Provide feedback to the user if needed
         }
-    }
-}
-
-// Placeholder VideoPlayer view (you can use AVKit for actual video playback)
-struct VideoPlayerView: View {
-    let videoURL: URL
-
-    var body: some View {
-        Text("Video: \(videoURL.lastPathComponent)")
-            .frame(height: 200)
-            .background(Color.black)
-            .foregroundColor(.white)
-            .cornerRadius(8)
     }
 }
