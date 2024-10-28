@@ -57,6 +57,7 @@ struct FormView: View {
                 ))
                 .textFieldStyle(RoundedBorderTextFieldStyle())
 
+                // Post Button
                 Button(action: {
                     catPost.timestamp = Date() // Set timestamp for the post
                     onPostCreated(catPost) // Trigger the closure
@@ -65,6 +66,7 @@ struct FormView: View {
                     Text("Post")
                         .foregroundColor(isPostButtonEnabled() ? .blue : .gray) // Change color based on button state
                 }
+                .buttonStyle(PlainButtonStyle()) // Prevent default styling from affecting the button color
                 .disabled(!isPostButtonEnabled()) // Disable the button if not all fields are filled
             }
             .padding()
@@ -73,10 +75,12 @@ struct FormView: View {
         }
     }
 
+    // Function to check if the post button should be enabled
     private func isPostButtonEnabled() -> Bool {
+        // Ensure all fields are filled appropriately
         return !(catPost.catName?.isEmpty ?? true) &&
                !(catPost.catBreed?.isEmpty ?? true) &&
-               catPost.catAge > 0 &&
+               catPost.catAge > 0 && // Ensure cat age is greater than 0
                !(catPost.location?.isEmpty ?? true) &&
                !(catPost.postDescription?.isEmpty ?? true)
     }
