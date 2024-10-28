@@ -13,8 +13,19 @@ struct ScanView: View {
 
     var body: some View {
         NavigationStack {
-            VStack {
-                Button("Open Camera") {
+            VStack(spacing: 20) {
+                if let image = selectedImage {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 200)
+                        .cornerRadius(10)
+                } else {
+                    Text("No image selected.")
+                        .foregroundColor(.gray)
+                }
+                
+                Button("Select Image") {
                     showMediaTypeSelection = true
                 }
                 .actionSheet(isPresented: $showMediaTypeSelection) {
@@ -25,7 +36,7 @@ struct ScanView: View {
                                 mediaType = .camera
                                 showingImagePicker = true
                             },
-                            .default(Text("Gallery")) {
+                            .default(Text("Photo Library")) {
                                 mediaType = .photoLibrary
                                 showingImagePicker = true
                             },
@@ -36,7 +47,6 @@ struct ScanView: View {
                 .sheet(isPresented: $showingImagePicker) {
                     if let mediaType = mediaType {
                         ImagePicker(sourceType: mediaType, selectedImage: $imageUI) { image in
-                            // Set the selected image
                             selectedImage = image
                             navigateToForm()
                         }
@@ -49,59 +59,17 @@ struct ScanView: View {
                 FormView(
                     showForm: $showForm,
                     navigateToHome: .constant(false),
-                    imageUI: selectedImage,
+                    imageUI: selectedImage,  // Pass the selected image here
                     videoURL: nil,
                     username: username,
-                    catPost: .constant(CatPost(context: viewContext)), // Ensure CatPost is initialized with the context
-                    onPostCreated: { _ in }
+                    onPostCreated: { _ in },
+                    catPost: .constant(CatPost(context: viewContext))
                 )
             }
         }
     }
 
     private func navigateToForm() {
-        // Set showForm to true to navigate to FormView
         showForm = true
-    }
-}
-
-// Integrated ImagePicker
-struct ImagePicker: UIViewControllerRepresentable {
-    var sourceType: UIImagePickerController.SourceType
-    @Binding var selectedImage: UIImage?
-    var onImageSelected: (UIImage) -> Void
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
-    }
-
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = UIImagePickerController()
-        picker.delegate = context.coordinator
-        picker.sourceType = sourceType
-        picker.mediaTypes = ["public.image"]
-        return picker
-    }
-
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
-
-    class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
-        let parent: ImagePicker
-
-        init(_ parent: ImagePicker) {
-            self.parent = parent
-        }
-
-        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-            if let image = info[.originalImage] as? UIImage {
-                parent.selectedImage = image
-                parent.onImageSelected(image)
-            }
-            picker.dismiss(animated: true)
-        }
-
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            picker.dismiss(animated: true)
-        }
     }
 }
