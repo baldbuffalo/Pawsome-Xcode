@@ -87,18 +87,6 @@ struct HomeView: View {
                 }
 
                 Spacer()
-                
-                // Show Form button
-                Button(action: {
-                    showForm = true
-                }) {
-                    Text("Create Post")
-                        .padding()
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
-                }
-                .padding()
             }
             .navigationTitle("Home")
             .navigationBarTitleDisplayMode(.inline)
