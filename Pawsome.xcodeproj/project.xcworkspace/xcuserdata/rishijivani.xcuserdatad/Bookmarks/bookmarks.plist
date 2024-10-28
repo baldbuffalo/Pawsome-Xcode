@@ -12,6 +12,7 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
+<<<<<<< HEAD
 					<string>147</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
@@ -19,6 +20,15 @@
 					<string>147</string>
 					<key>Timestamp</key>
 					<string>750851279.563022</string>
+=======
+					<string>114</string>
+					<key>StartingColumnNumber</key>
+					<string>0</string>
+					<key>StartingLineNumber</key>
+					<string>114</string>
+					<key>Timestamp</key>
+					<string>751807127.7869509</string>
+>>>>>>> 5eef0f8bd39986f9f45e071df446cc125709c1b6
 				</dict>
 				<key>rebasable-url</key>
 				<dict>

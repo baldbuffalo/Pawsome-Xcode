@@ -2,6 +2,7 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+<<<<<<< HEAD
     <!-- Background Modes -->
     <key>UIBackgroundModes</key>
     <array>
@@ -34,5 +35,26 @@
     <!-- Google Client ID -->
     <key>GIDClientID</key>
     <string>70386804757-8dp73qcfvb5coce3hh8me5cju47v75hq.apps.googleusercontent.com</string>
+=======
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>GoogleSignIn</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.70386804757-8dp73qcfvb5coce3hh8me5cju47v75hq</string>
+			</array>
+		</dict>
+	</array>
+	<key>GIDClientID</key>
+	<string>70386804757-8dp73qcfvb5coce3hh8me5cju47v75hq.apps.googleusercontent.com</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
+>>>>>>> 5eef0f8bd39986f9f45e071df446cc125709c1b6
 </dict>
 </plist>

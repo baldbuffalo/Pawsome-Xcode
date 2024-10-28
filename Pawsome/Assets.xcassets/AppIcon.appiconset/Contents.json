@@ -13,7 +13,11 @@
           "value" : "dark"
         }
       ],
+<<<<<<< HEAD
       "filename" : "inverted_pawsome_image (1).jpeg",
+=======
+      "filename" : "inverted_pawsome_image (2).jpeg",
+>>>>>>> 5eef0f8bd39986f9f45e071df446cc125709c1b6
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
