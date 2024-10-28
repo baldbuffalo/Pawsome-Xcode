@@ -8,6 +8,7 @@ struct FormView: View {
     @Binding var selectedImage: UIImage? // Binding to hold the selected image
 
     @Environment(\.managedObjectContext) private var viewContext
+    @Environment(\.presentationMode) private var presentationMode // Add this to dismiss the view
 
     // Properties for your CatPost
     @State private var catName: String = ""
@@ -74,6 +75,7 @@ struct FormView: View {
             try viewContext.save()
             onPostCreated(newPost) // Trigger the closure with the new post
             showForm = false // Close the form
+            presentationMode.wrappedValue.dismiss() // Dismiss the form view
         } catch {
             print("Error saving post: \(error.localizedDescription)")
         }

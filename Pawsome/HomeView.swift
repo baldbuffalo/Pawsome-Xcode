@@ -31,8 +31,56 @@ struct HomeView: View {
                     // List to display CatPosts
                     List {
                         ForEach(posts) { post in
-                            PostView(post: post, currentUsername: currentUsername)
-                                .padding(.vertical, 8)
+                            VStack(alignment: .leading) {
+                                HStack {
+                                    Text("Posted by \(post.username ?? currentUsername)")
+                                        .font(.headline)
+                                        .foregroundColor(.blue)
+                                    Spacer()
+                                    // Menu for Edit and Delete options
+                                    Menu {
+                                        Button(action: {
+                                            // Handle Edit action
+                                            print("Edit post with ObjectID: \(post.objectID)")
+                                        }) {
+                                            Text("Edit")
+                                        }
+                                        Button(action: {
+                                            // Handle Delete action
+                                            deletePost(post: post)
+                                        }) {
+                                            Text("Delete")
+                                                .foregroundColor(.red)
+                                        }
+                                    } label: {
+                                        Image(systemName: "ellipsis")
+                                            .foregroundColor(.blue)
+                                            .padding(8)
+                                            .background(Circle().fill(Color.gray.opacity(0.2)))
+                                    }
+                                }
+
+                                // Displaying image
+                                if let imageData = post.imageData, let uiImage = UIImage(data: imageData) {
+                                    Image(uiImage: uiImage)
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(height: 200)
+                                        .cornerRadius(10)
+                                        .padding(.top)
+                                } else {
+                                    Text("No media available.")
+                                        .foregroundColor(.gray)
+                                        .padding(.top)
+                                }
+
+                                // Display the user's input under the media
+                                Text(post.content ?? "No content")
+                                    .font(.subheadline)
+                                    .padding(.top, 5)
+                                    .foregroundColor(.black)
+                            }
+                            .padding(.vertical, 8)
                         }
                     }
                     .listStyle(PlainListStyle()) // Optional for performance
@@ -42,20 +90,11 @@ struct HomeView: View {
             }
             .navigationTitle("Home")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        showForm.toggle() // Show the form when the button is tapped
-                    }) {
-                        Text("New Post")
-                    }
-                }
-            }
             .sheet(isPresented: $showForm) {
                 FormView(showForm: $showForm, currentUsername: currentUsername, onPostCreated: { newPost in
-                    // The new post will automatically appear in the list
+                    // FetchRequest will automatically update the list
                     print("New post created: \(newPost)")
-                }, selectedImage: $selectedImage) // Pass the selected image binding if needed
+                }, selectedImage: $selectedImage)
             }
         }
     }
@@ -76,65 +115,6 @@ struct HomeView: View {
             let nsError = error as NSError
             print("Unresolved error \(nsError), \(nsError.userInfo)")
             // Provide feedback to the user if needed
-        }
-    }
-}
-
-// A separate view for displaying individual posts
-struct PostView: View {
-    var post: CatPost
-    var currentUsername: String
-
-    var body: some View {
-        VStack(alignment: .leading) {
-            HStack {
-                Text("Posted by \(post.username ?? currentUsername)")
-                    .font(.headline)
-                    .foregroundColor(.blue)
-                Spacer()
-                // Menu for Edit and Delete options
-                Menu {
-                    Button(action: {
-                        // Handle Edit action
-                        print("Edit post with ObjectID: \(post.objectID)")
-                    }) {
-                        Text("Edit")
-                    }
-                    Button(action: {
-                        // Handle Delete action
-                        // Call the deletePost function from HomeView
-                        // Assuming HomeView has access to this function
-                    }) {
-                        Text("Delete")
-                            .foregroundColor(.red)
-                    }
-                } label: {
-                    Image(systemName: "ellipsis")
-                        .foregroundColor(.blue)
-                        .padding(8)
-                        .background(Circle().fill(Color.gray.opacity(0.2)))
-                }
-            }
-
-            // Displaying image
-            if let imageData = post.imageData, let uiImage = UIImage(data: imageData) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: 200)
-                    .cornerRadius(10)
-                    .padding(.top)
-            } else {
-                Text("No media available.")
-                    .foregroundColor(.gray)
-                    .padding(.top)
-            }
-
-            // Display the user's input under the media
-            Text(post.content ?? "No content")
-                .font(.subheadline)
-                .padding(.top, 5)
-                .foregroundColor(.black)
         }
     }
 }
