@@ -43,6 +43,9 @@ struct ScanView: View {
                     .foregroundColor(.gray)
                     .padding(.top)
             }
+        }
+    }
+}
 
 // ImagePicker Struct
 struct ImagePicker: UIViewControllerRepresentable {
