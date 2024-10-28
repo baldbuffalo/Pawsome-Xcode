@@ -14,19 +14,6 @@ struct ScanView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 20) {
-                // Display selected image if available
-                if let selectedImage = selectedImage {
-                    Image(uiImage: selectedImage)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 300)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                        .padding()
-                } else {
-                    Text("No image selected")
-                        .foregroundColor(.gray)
-                }
-
                 // Button to initiate image selection
                 Button("Select Image") {
                     showMediaTypeSelection = true
@@ -50,20 +37,9 @@ struct ScanView: View {
                 .sheet(isPresented: $showingImagePicker) {
                     if let mediaType = mediaType {
                         ImagePicker(sourceType: mediaType, selectedImage: $selectedImage) { image in
-                            navigateToForm() // Navigate to Form.swift after image selection
+                            navigateToForm() // Navigate to FormView after image selection
                         }
                     }
-                }
-
-                // Proceed to Form.swift Button
-                if selectedImage != nil {
-                    Button("Proceed to Form") {
-                        navigateToForm()
-                    }
-                    .padding()
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(8)
                 }
             }
             .navigationTitle("Scan View")
