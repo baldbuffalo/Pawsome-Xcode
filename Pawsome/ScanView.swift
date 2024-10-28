@@ -42,6 +42,12 @@ struct ScanView: View {
                         }
                     }
                 }
+                
+                // Navigate to FormView when showForm is true
+                NavigationLink(destination: FormView(showForm: $showForm, navigateToHome: .constant(false), imageUI: selectedImage, videoURL: nil, username: username, catPost: .constant(CatPost()), onPostCreated: { _ in })) {
+                    EmptyView() // Empty view, navigation occurs through the button
+                }
+                .hidden()
             }
             .navigationTitle("Scan View")
             .navigationBarTitleDisplayMode(.inline)
