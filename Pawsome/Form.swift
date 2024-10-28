@@ -63,7 +63,7 @@ struct FormView: View {
                     showForm = false // Dismiss the form
                 }) {
                     Text("Post")
-                        .foregroundColor(isPostButtonEnabled() ? .blue : .gray)
+                        .foregroundColor(isPostButtonEnabled() ? .blue : .gray) // Change color based on button state
                 }
                 .disabled(!isPostButtonEnabled())
             }
