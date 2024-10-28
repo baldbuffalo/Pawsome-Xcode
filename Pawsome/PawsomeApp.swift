@@ -18,13 +18,7 @@ struct PawsomeApp: App {
             if isLoggedIn {
                 TabView {
                     HomeView(
-                        currentUsername: username,
-                        profileImage: Binding<UIImage?>(
-                            get: { profileImageData.flatMap { UIImage(data: $0) } },
-                            set: { newImage in
-                                profileImageData = newImage?.pngData()
-                            }
-                        )
+                       
                     )
                     .tabItem {
                         Label("Home", systemImage: "house")
