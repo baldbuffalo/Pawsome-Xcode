@@ -13,62 +13,64 @@ struct FormView: View {
     @Binding var catPost: CatPost
 
     var body: some View {
-        VStack(spacing: 16) {
-            // Display the selected image at the top
-            if let image = imageUI {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: 300)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                    .padding()
+        ScrollView { // Wrap the entire content in a ScrollView
+            VStack(spacing: 16) {
+                // Display the selected image at the top
+                if let image = imageUI {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 300)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .padding()
+                }
+
+                // Text fields for the form
+                TextField("Cat Name", text: Binding(
+                    get: { catPost.catName ?? "" },
+                    set: { catPost.catName = $0 }
+                ))
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+
+                TextField("Breed", text: Binding(
+                    get: { catPost.catBreed ?? "" },
+                    set: { catPost.catBreed = $0 }
+                ))
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+
+                TextField("Age", text: Binding(
+                    get: { catPost.catAge > 0 ? String(catPost.catAge) : "" },
+                    set: { catPost.catAge = Int32($0) ?? 0 }
+                ))
+                .keyboardType(.numberPad)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+
+                TextField("Location", text: Binding(
+                    get: { catPost.location ?? "" },
+                    set: { catPost.location = $0 }
+                ))
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+
+                TextField("Description", text: Binding(
+                    get: { catPost.postDescription ?? "" },
+                    set: { catPost.postDescription = $0 }
+                ))
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+
+                Button(action: {
+                    catPost.timestamp = Date() // Set timestamp for the post
+                    onPostCreated(catPost) // Trigger the closure
+                    showForm = false // Dismiss the form
+                }) {
+                    Text("Post")
+                        .foregroundColor(isPostButtonEnabled() ? .blue : .gray)
+                }
+                .disabled(!isPostButtonEnabled())
             }
-
-            // Text fields for the form
-            TextField("Cat Name", text: Binding(
-                get: { catPost.catName ?? "" },
-                set: { catPost.catName = $0 }
-            ))
-            .textFieldStyle(RoundedBorderTextFieldStyle())
-
-            TextField("Breed", text: Binding(
-                get: { catPost.catBreed ?? "" },
-                set: { catPost.catBreed = $0 }
-            ))
-            .textFieldStyle(RoundedBorderTextFieldStyle())
-
-            TextField("Age", text: Binding(
-                get: { catPost.catAge > 0 ? String(catPost.catAge) : "" },
-                set: { catPost.catAge = Int32($0) ?? 0 }
-            ))
-            .keyboardType(.numberPad)
-            .textFieldStyle(RoundedBorderTextFieldStyle())
-
-            TextField("Location", text: Binding(
-                get: { catPost.location ?? "" },
-                set: { catPost.location = $0 }
-            ))
-            .textFieldStyle(RoundedBorderTextFieldStyle())
-
-            TextField("Description", text: Binding(
-                get: { catPost.postDescription ?? "" },
-                set: { catPost.postDescription = $0 }
-            ))
-            .textFieldStyle(RoundedBorderTextFieldStyle())
-
-            Button(action: {
-                catPost.timestamp = Date() // Set timestamp for the post
-                onPostCreated(catPost) // Trigger the closure
-                showForm = false // Dismiss the form
-            }) {
-                Text("Post")
-                    .foregroundColor(isPostButtonEnabled() ? .blue : .gray)
-            }
-            .disabled(!isPostButtonEnabled())
+            .padding()
+            .navigationTitle("Post a Cat")
+            .navigationBarTitleDisplayMode(.inline)
         }
-        .padding()
-        .navigationTitle("Post a Cat")
-        .navigationBarTitleDisplayMode(.inline)
     }
 
     private func isPostButtonEnabled() -> Bool {
