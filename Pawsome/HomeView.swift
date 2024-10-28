@@ -9,11 +9,18 @@ struct HomeView: View {
     private var posts: FetchedResults<CatPost>
 
     var currentUsername: String
-    @Binding var profileImage: UIImage? // Change this to UIImage?
+    @Binding var profileImage: UIImage?
 
     var body: some View {
         NavigationStack {
             VStack {
+                // Welcome message
+                Text("Welcome to Pawsome!")
+                    .font(.largeTitle)
+                    .bold()
+                    .foregroundColor(.blue)
+                    .padding(.top, 20)
+
                 // Display a message if no posts are available
                 if posts.isEmpty {
                     Text("No posts yet! Start by creating a new one.")
@@ -25,15 +32,15 @@ struct HomeView: View {
                         ForEach(posts) { post in
                             VStack(alignment: .leading) {
                                 HStack {
-                                    Text("Posted by \(post.username ?? currentUsername)") // Use currentUsername
+                                    Text("Posted by \(post.username ?? currentUsername)")
                                         .font(.headline)
                                         .foregroundColor(.blue)
                                     Spacer()
                                     // Menu for Edit and Delete options
                                     Menu {
                                         Button(action: {
-                                            // Handle Edit action using objectID directly
-                                            print("Edit post with ObjectID: \(post.objectID)") // Use objectID
+                                            // Handle Edit action
+                                            print("Edit post with ObjectID: \(post.objectID)")
                                         }) {
                                             Text("Edit")
                                         }
@@ -71,11 +78,11 @@ struct HomeView: View {
                                         .padding(.top)
                                 }
 
-                                // Display the user's input (new post content) under the media
+                                // Display the user's input under the media
                                 Text(post.content ?? "No content")
                                     .font(.subheadline)
                                     .padding(.top, 5)
-                                    .foregroundColor(.black) // Customize color as needed
+                                    .foregroundColor(.black)
                             }
                             .padding(.vertical, 8)
                         }
@@ -85,7 +92,7 @@ struct HomeView: View {
                 Spacer()
             }
             .navigationTitle("Home")
-            .navigationBarTitleDisplayMode(.inline) // Optional: For a cleaner title display
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
 
@@ -113,7 +120,7 @@ struct VideoPlayerView: View {
     let videoURL: URL
 
     var body: some View {
-        Text("Video: \(videoURL.lastPathComponent)") // Replace with AVKit player if needed
+        Text("Video: \(videoURL.lastPathComponent)")
             .frame(height: 200)
             .background(Color.black)
             .foregroundColor(.white)

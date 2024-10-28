@@ -43,16 +43,6 @@ struct ScanView: View {
                     .foregroundColor(.gray)
                     .padding(.top)
             }
-            
-            // Placeholder for scan functionality
-            Button("Scan Image") {
-                // Implement scanning functionality here
-            }
-        }
-        .navigationTitle("Scan or Select Image")
-        .padding()
-    }
-}
 
 // ImagePicker Struct
 struct ImagePicker: UIViewControllerRepresentable {
