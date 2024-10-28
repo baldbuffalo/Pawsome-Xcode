@@ -45,11 +45,11 @@ struct ScanView: View {
             .navigationTitle("Scan View")
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(isPresented: $showForm) {
-                // Pass all required arguments to FormView
+                // Pass the selected image to FormView
                 FormView(
                     showForm: $showForm,
                     navigateToHome: .constant(false), // Assuming you want to pass a constant here
-                    imageUI: selectedImage,
+                    imageUI: selectedImage, // Pass the selected image
                     username: username,
                     onPostCreated: { _ in },
                     catPost: .constant(CatPost(context: viewContext))

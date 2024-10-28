@@ -4,7 +4,7 @@ import CoreData
 struct FormView: View {
     @Binding var showForm: Bool
     @Binding var navigateToHome: Bool
-    var imageUI: UIImage?
+    var imageUI: UIImage? // The selected image to display
     var videoURL: URL?
     var username: String
     var onPostCreated: (CatPost) -> Void
@@ -14,6 +14,17 @@ struct FormView: View {
 
     var body: some View {
         VStack(spacing: 16) {
+            // Display the selected image at the top
+            if let image = imageUI {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 300)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .padding()
+            }
+
+            // Text fields for the form
             TextField("Cat Name", text: Binding(
                 get: { catPost.catName ?? "" },
                 set: { catPost.catName = $0 }
@@ -56,6 +67,8 @@ struct FormView: View {
             .disabled(!isPostButtonEnabled())
         }
         .padding()
+        .navigationTitle("Post a Cat")
+        .navigationBarTitleDisplayMode(.inline)
     }
 
     private func isPostButtonEnabled() -> Bool {
