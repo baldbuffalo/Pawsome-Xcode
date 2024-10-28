@@ -31,12 +31,18 @@ struct FormView: View {
                     set: { catPost.catName = $0 }
                 ))
                 .textFieldStyle(RoundedBorderTextFieldStyle())
+                .onChange(of: catPost.catName) { _ in
+                    // No additional action needed; the button state is evaluated in isPostButtonEnabled
+                }
 
                 TextField("Breed", text: Binding(
                     get: { catPost.catBreed ?? "" },
                     set: { catPost.catBreed = $0 }
                 ))
                 .textFieldStyle(RoundedBorderTextFieldStyle())
+                .onChange(of: catPost.catBreed) { _ in
+                    // No additional action needed; the button state is evaluated in isPostButtonEnabled
+                }
 
                 TextField("Age", text: Binding(
                     get: { catPost.catAge > 0 ? String(catPost.catAge) : "" },
@@ -44,18 +50,27 @@ struct FormView: View {
                 ))
                 .keyboardType(.numberPad)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
+                .onChange(of: catPost.catAge) { _ in
+                    // No additional action needed; the button state is evaluated in isPostButtonEnabled
+                }
 
                 TextField("Location", text: Binding(
                     get: { catPost.location ?? "" },
                     set: { catPost.location = $0 }
                 ))
                 .textFieldStyle(RoundedBorderTextFieldStyle())
+                .onChange(of: catPost.location) { _ in
+                    // No additional action needed; the button state is evaluated in isPostButtonEnabled
+                }
 
                 TextField("Description", text: Binding(
                     get: { catPost.postDescription ?? "" },
                     set: { catPost.postDescription = $0 }
                 ))
                 .textFieldStyle(RoundedBorderTextFieldStyle())
+                .onChange(of: catPost.postDescription) { _ in
+                    // No additional action needed; the button state is evaluated in isPostButtonEnabled
+                }
 
                 // Post Button
                 Button(action: {
