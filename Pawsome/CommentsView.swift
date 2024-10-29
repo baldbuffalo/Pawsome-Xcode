@@ -1,11 +1,4 @@
 import SwiftUI
-<<<<<<< HEAD
-
-struct CommentsView: View {
-    @Binding var showComments: Bool
-    @Binding var post: CatPost // Use Binding to update the post with new comments
-    
-=======
 import CoreData
 
 // View to display the list of comments
@@ -34,7 +27,7 @@ struct CommentsListView: View {
                     .listRowSeparator(.hidden)
                 }
             } else {
-                // Handle the case where comments is nil or cannot be cast
+                // Handle the case where comments are nil or cannot be cast
                 Text("No comments available.")
                     .foregroundColor(.gray)
                     .padding()
@@ -76,7 +69,8 @@ struct CommentInputView: View {
     private func postComment() {
         guard !newComment.isEmpty else { return }
 
-        let comment = Comment(context: viewContext) // This Comment refers to your Core Data model
+        // Create a new Comment entity in Core Data
+        let comment = Comment(context: viewContext)
         comment.text = newComment
         comment.timestamp = Date()
         comment.username = "YourUsername" // Replace with the actual username
@@ -102,54 +96,28 @@ struct CommentsView: View {
     @Binding var showComments: Bool
     var post: CatPost // Use the CatPost class from CatPost+CoreDataClass.swift
 
->>>>>>> 5eef0f8bd39986f9f45e071df446cc125709c1b6
+    // State for managing the new comment input
     @State private var newComment: String = ""
 
     var body: some View {
         NavigationStack {
             VStack {
-<<<<<<< HEAD
-                List(post.comments, id: \.self) { comment in
-                    Text(comment)
-                }
-
-                HStack {
-                    TextField("Add a comment...", text: $newComment)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-
-                    Button("Post") {
-                        if !newComment.isEmpty {
-                            post.comments.append(newComment) // Append the new comment
-                            newComment = "" // Clear the text field
-                        }
-                    }
-                }
-                .padding()
-=======
                 // Use the CommentsListView to display comments
                 CommentsListView(post: post)
 
                 // Comment input section
                 CommentInputView(newComment: $newComment, post: post)
->>>>>>> 5eef0f8bd39986f9f45e071df446cc125709c1b6
             }
             .navigationTitle("Comments")
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Back") {
-<<<<<<< HEAD
-                        showComments = false // Close the comments view
-=======
                         showComments = false
->>>>>>> 5eef0f8bd39986f9f45e071df446cc125709c1b6
                     }
                 }
             }
         }
-<<<<<<< HEAD
-=======
         .background(Color(.systemGroupedBackground))
         .edgesIgnoringSafeArea(.bottom)
->>>>>>> 5eef0f8bd39986f9f45e071df446cc125709c1b6
     }
 }
