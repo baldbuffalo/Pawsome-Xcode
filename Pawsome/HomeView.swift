@@ -1,17 +1,22 @@
 import SwiftUI
-<<<<<<< HEAD
+import CoreData
 
 struct HomeView: View {
     @Binding var isLoggedIn: Bool
     @Binding var currentUsername: String
     @Binding var profileImage: Image?
 
-    @State private var catPosts: [CatPost] = []
-    @State private var selectedImage: UIImage? = nil
     @State private var showForm: Bool = false
+    @State private var selectedImage: UIImage? = nil
     @State private var navigateToHome: Bool = false
     @State private var showComments: Bool = false
     @State private var selectedPost: CatPost? = nil
+
+    // Fetch existing CatPosts from Core Data
+    @FetchRequest(
+        entity: CatPost.entity(),
+        sortDescriptors: [NSSortDescriptor(keyPath: \CatPost.timestamp, ascending: false)]
+    ) private var posts: FetchedResults<CatPost>
 
     var body: some View {
         TabView {
@@ -22,13 +27,14 @@ struct HomeView: View {
                     Spacer()
                 }
                 .navigationTitle("Pawsome")
-                .onAppear(perform: loadPosts)
                 .sheet(isPresented: $showForm) {
-                    if let selectedImage = selectedImage {
-                        FormView(showForm: $showForm, navigateToHome: $navigateToHome, imageUI: selectedImage, username: currentUsername) { newPost in
-                            catPosts.append(newPost)
-                            savePosts()
-                        }
+                    FormView(
+                        showForm: $showForm,
+                        navigateToHome: $navigateToHome,
+                        imageUI: selectedImage,
+                        username: currentUsername
+                    ) { newPost in
+                        savePost(newPost) // Save the new post
                     }
                 }
                 .sheet(isPresented: $showComments) {
@@ -36,20 +42,18 @@ struct HomeView: View {
                         CommentsView(showComments: $showComments, post: Binding(
                             get: { selectedPost },
                             set: { newPost in
-                                if let index = catPosts.firstIndex(where: { $0.id == newPost.id }) {
-                                    catPosts[index] = newPost
-                                }
+                                updatePost(newPost) // Update the post when comments are changed
                             }
                         ))
                     }
                 }
                 .onChange(of: navigateToHome) {
-                                    if navigateToHome {
-                                        showForm = false // Dismiss the form
-                                        navigateToHome = false // Reset the navigation state
-                                    }
-                                }
-                            }
+                    if $0 {
+                        showForm = false // Dismiss the form
+                        navigateToHome = false // Reset the navigation state
+                    }
+                }
+            }
             .tabItem {
                 Label("Home", systemImage: "house")
             }
@@ -59,8 +63,7 @@ struct HomeView: View {
                     capturedImage: $selectedImage,
                     username: currentUsername,
                     onPostCreated: { post in
-                        catPosts.append(post)
-                        savePosts()
+                        savePost(post) // Save the post created in ScanView
                     }
                 )
             }
@@ -101,34 +104,32 @@ struct HomeView: View {
     }
 
     private var postListView: some View {
-        List {
-            ForEach(catPosts) { post in
-                LazyVStack(alignment: .leading) {
-                    VStack(alignment: .leading) {
-                        Text("Posted by: \(post.username)")
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
-                            .padding(.bottom, 2)
+        List(posts, id: \.self) { post in
+            LazyVStack(alignment: .leading) {
+                VStack(alignment: .leading) {
+                    Text("Posted by: \(post.username ?? "Unknown")")
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                        .padding(.bottom, 2)
 
-                        if let imageData = post.imageData, let image = UIImage(data: imageData) {
-                            Image(uiImage: image)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(height: 200)
-                                .cornerRadius(12)
-                        }
-
-                        Text(post.name)
-                            .font(.headline)
-                        Text("Breed: \(post.breed)")
-                        Text("Age: \(post.age)")
-                        Text("Location: \(post.location)")
-                        Text("Description: \(post.description)")
-                        
-                        postActionButtons(for: post)
+                    if let imageData = post.imageData, let image = UIImage(data: imageData) {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 200)
+                            .cornerRadius(12)
                     }
-                    .padding(.vertical)
+
+                    Text(post.name ?? "Unknown")
+                        .font(.headline)
+                    Text("Breed: \(post.breed ?? "N/A")")
+                    Text("Age: \(post.age ?? "N/A")")
+                    Text("Location: \(post.location ?? "N/A")")
+                    Text("Description: \(post.description ?? "N/A")")
+                    
+                    postActionButtons(for: post)
                 }
+                .padding(.vertical)
             }
         }
     }
@@ -165,73 +166,39 @@ struct HomeView: View {
     }
 
     private func toggleLike(for post: CatPost) {
-        if let index = catPosts.firstIndex(where: { $0.id == post.id }) {
+        if let index = posts.firstIndex(where: { $0.id == post.id }) {
             DispatchQueue.main.async {
-                catPosts[index].likes = catPosts[index].likes > 0 ? 0 : 1
+                posts[index].likes = posts[index].likes > 0 ? 0 : 1
             }
-            savePosts()
+            savePosts() // Save changes after toggling like
         }
     }
 
-    private func loadPosts() {
-        DispatchQueue.global(qos: .background).async {
-            if let data = UserDefaults.standard.data(forKey: "catPosts") {
-                if let decodedPosts = try? JSONDecoder().decode([CatPost].self, from: data) {
-                    DispatchQueue.main.async {
-                        catPosts = decodedPosts
-                    }
-                }
-            }
-        }
+    private func savePost(_ post: CatPost) {
+        let newPost = CatPost(context: viewContext) // Create a new CatPost in Core Data
+        newPost.username = currentUsername
+        newPost.imageData = post.imageData // Assuming you're passing the image data
+        newPost.name = post.name
+        newPost.breed = post.breed
+        newPost.age = post.age
+        newPost.location = post.location
+        newPost.description = post.description
+        newPost.timestamp = Date()
+
+        savePosts() // Save the context to persist the new post
+    }
+
+    private func updatePost(_ post: CatPost) {
+        // Implement logic to update the post in Core Data if needed
+        savePosts() // Call save to persist updates
     }
 
     private func savePosts() {
-        DispatchQueue.global(qos: .background).async {
-            if let encodedPosts = try? JSONEncoder().encode(catPosts) {
-                UserDefaults.standard.set(encodedPosts, forKey: "catPosts")
-                DispatchQueue.main.async {
-                    print("Posts saved successfully")
-                }
-=======
-import CoreData
-
-struct HomeView: View {
-    @Environment(\.managedObjectContext) private var viewContext
-    @State private var showForm = false
-    @State private var selectedImage: UIImage? = nil
-
-    // Fetch existing CatPosts
-    @FetchRequest(
-        entity: CatPost.entity(),
-        sortDescriptors: [NSSortDescriptor(keyPath: \CatPost.timestamp, ascending: false)]
-    ) private var posts: FetchedResults<CatPost>
-
-    var body: some View {
-        NavigationView {
-            List(posts) { post in
-                // Configure how each post is displayed
-                Text(post.catName ?? "Unknown Cat")
-            }
-            .navigationTitle("Home")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { showForm.toggle() }) {
-                        Image(systemName: "plus")
-                    }
-                }
-            }
-            .sheet(isPresented: $showForm) {
-                FormView(
-                    showForm: $showForm,
-                    currentUsername: "YourUsername",
-                    onPostCreated: { newPost in
-                        // Refresh or trigger any needed update in HomeView if necessary
-                    },
-                    selectedImage: $selectedImage
-                )
-                .environment(\.managedObjectContext, viewContext)
->>>>>>> 5eef0f8bd39986f9f45e071df446cc125709c1b6
-            }
+        do {
+            try viewContext.save() // Save the context to persist changes
+            print("Posts saved successfully")
+        } catch {
+            print("Error saving posts: \(error.localizedDescription)")
         }
     }
 }

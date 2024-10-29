@@ -1,13 +1,15 @@
 import SwiftUI
-<<<<<<< HEAD
+import CoreData
 
 struct FormView: View {
     @Binding var showForm: Bool
-    @Binding var navigateToHome: Bool // Binding to control navigation
+    @Binding var navigateToHome: Bool
     var imageUI: UIImage?
-    var videoURL: URL? // Keeping this for future use, but won't be displayed
+    var videoURL: URL?
     var username: String
     var onPostCreated: (CatPost) -> Void
+
+    @Environment(\.managedObjectContext) private var viewContext
 
     @State private var catName: String = ""
     @State private var breed: String = ""
@@ -59,18 +61,7 @@ struct FormView: View {
                     .padding()
 
                 Button(action: {
-                    let catPost = CatPost(
-                        username: username, // Correct order for initialization
-                        name: catName,
-                        breed: breed,
-                        age: age,
-                        location: location,
-                        description: description,
-                        imageData: imageUI?.pngData() // Move this to the end
-                    )
-                    onPostCreated(catPost)
-                    showForm = false
-                    navigateToHome = true // Navigate to HomeView
+                    createPost()
                 }) {
                     Text("Post")
                         .foregroundColor(catName.isEmpty || breed.isEmpty || age.isEmpty || location.isEmpty || description.isEmpty ? .gray : .blue)
@@ -81,83 +72,29 @@ struct FormView: View {
             .padding()
         }
         .onTapGesture {
-            // Dismiss the keyboard when tapping outside the text fields
-            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-        }
-    }
-}
-=======
-import CoreData
-
-struct FormView: View {
-    @Binding var showForm: Bool
-    var currentUsername: String
-    var onPostCreated: (CatPost) -> Void
-    @Binding var selectedImage: UIImage?
-
-    @Environment(\.managedObjectContext) private var viewContext
-
-    @State private var catName: String = ""
-    @State private var catBreed: String = ""
-    @State private var catAge: String = ""
-    @State private var location: String = ""
-    @State private var content: String = ""
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section(header: Text("Cat Details")) {
-                    TextField("Cat Name", text: $catName)
-                    TextField("Breed", text: $catBreed)
-                    TextField("Age", text: $catAge)
-                        .keyboardType(.numberPad)
-                    TextField("Location", text: $location)
-                    TextField("Description", text: $content)
-                }
-
-                Section {
-                    if let image = selectedImage {
-                        Image(uiImage: image)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(height: 200)
-                            .cornerRadius(10)
-                    }
-                }
-
-                Button(action: {
-                    createPost()
-                }) {
-                    Text("Post")
-                        .foregroundColor(.blue)
-                }
-            }
-            .navigationTitle("Create Post")
-            .background(Color.white)
-            .onTapGesture {
-                hideKeyboard()
-            }
+            hideKeyboard()
         }
     }
 
     private func createPost() {
         let newPost = CatPost(context: viewContext)
-        newPost.username = currentUsername
+        newPost.username = username
         newPost.catName = catName
-        newPost.catBreed = catBreed
-        newPost.catAge = Int32(catAge) ?? 0
+        newPost.catBreed = breed
+        newPost.catAge = Int32(age) ?? 0
         newPost.location = location
-        newPost.content = content
+        newPost.content = description
         newPost.timestamp = Date()
 
-        if let image = selectedImage {
+        if let image = imageUI {
             newPost.imageData = image.pngData()
         }
 
         do {
             try viewContext.save()
-            onPostCreated(newPost) // Notify HomeView about the new post
-            showForm = false // Close the form
+            onPostCreated(newPost)
+            showForm = false
+            navigateToHome = true
         } catch {
             print("Error saving post: \(error.localizedDescription)")
         }
@@ -170,4 +107,3 @@ extension View {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 }
->>>>>>> 5eef0f8bd39986f9f45e071df446cc125709c1b6
