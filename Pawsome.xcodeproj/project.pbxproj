@@ -9,8 +9,10 @@
 /* Begin PBXBuildFile section */
 		6221FE882CA1EA1C00C55851 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 6221FE872CA1EA1C00C55851 /* GoogleSignIn */; };
 		6221FE8A2CA1EA1C00C55851 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 6221FE892CA1EA1C00C55851 /* GoogleSignInSwift */; };
-		627B86502CD0AD750034004F /* Comment+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 627B864F2CD0AD750034004F /* Comment+CoreDataProperties.swift */; };
-		627B86522CD0AD850034004F /* CatPost+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 627B86512CD0AD850034004F /* CatPost+CoreDataProperties.swift */; };
+		627B86562CD0B0010034004F /* Comment+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 627B86542CD0B0010034004F /* Comment+CoreDataClass.swift */; };
+		627B86572CD0B0010034004F /* Comment+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 627B86552CD0B0010034004F /* Comment+CoreDataProperties.swift */; };
+		627B865A2CD0B0150034004F /* CatPost+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 627B86582CD0B0150034004F /* CatPost+CoreDataClass.swift */; };
+		627B865B2CD0B0150034004F /* CatPost+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 627B86592CD0B0150034004F /* CatPost+CoreDataProperties.swift */; };
 		629E680A2CC6F53B0018ACEF /* CoreData.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 629E68092CC6F53B0018ACEF /* CoreData.framework */; };
 		62D8049F2CAD1F6B00D13EFA /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 62D8049E2CAD1F6B00D13EFA /* FirebaseAnalytics */; };
 		62D804A12CAD1F6B00D13EFA /* FirebaseAnalyticsOnDeviceConversion in Frameworks */ = {isa = PBXBuildFile; productRef = 62D804A02CAD1F6B00D13EFA /* FirebaseAnalyticsOnDeviceConversion */; };
@@ -52,8 +54,10 @@
 		624652B52CCD2351000B3F46 /* ScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanView.swift; sourceTree = "<group>"; };
 		624652B72CCD2351000B3F46 /* CatPostModel.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = CatPostModel.xcdatamodel; sourceTree = "<group>"; };
 		6268EC362CCD7F7400238C8F /* PersistenceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceController.swift; sourceTree = "<group>"; };
-		627B864F2CD0AD750034004F /* Comment+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Comment+CoreDataProperties.swift"; sourceTree = "<group>"; };
-		627B86512CD0AD850034004F /* CatPost+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CatPost+CoreDataProperties.swift"; sourceTree = "<group>"; };
+		627B86542CD0B0010034004F /* Comment+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Comment+CoreDataClass.swift"; sourceTree = "<group>"; };
+		627B86552CD0B0010034004F /* Comment+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Comment+CoreDataProperties.swift"; sourceTree = "<group>"; };
+		627B86582CD0B0150034004F /* CatPost+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CatPost+CoreDataClass.swift"; sourceTree = "<group>"; };
+		627B86592CD0B0150034004F /* CatPost+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CatPost+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		629E68092CC6F53B0018ACEF /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.1.sdk/System/Library/Frameworks/CoreData.framework; sourceTree = DEVELOPER_DIR; };
 /* End PBXFileReference section */
 
@@ -110,8 +114,10 @@
 		62355CBC2C84CC5400560D69 = {
 			isa = PBXGroup;
 			children = (
-				627B86512CD0AD850034004F /* CatPost+CoreDataProperties.swift */,
-				627B864F2CD0AD750034004F /* Comment+CoreDataProperties.swift */,
+				627B86582CD0B0150034004F /* CatPost+CoreDataClass.swift */,
+				627B86592CD0B0150034004F /* CatPost+CoreDataProperties.swift */,
+				627B86542CD0B0010034004F /* Comment+CoreDataClass.swift */,
+				627B86552CD0B0010034004F /* Comment+CoreDataProperties.swift */,
 				62355CC72C84CC5400560D69 /* Pawsome */,
 				62355CDC2C84CC5600560D69 /* PawsomeTests */,
 				62355CE62C84CC5600560D69 /* PawsomeUITests */,
@@ -256,8 +262,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				627B86502CD0AD750034004F /* Comment+CoreDataProperties.swift in Sources */,
-				627B86522CD0AD850034004F /* CatPost+CoreDataProperties.swift in Sources */,
+				627B865A2CD0B0150034004F /* CatPost+CoreDataClass.swift in Sources */,
+				627B865B2CD0B0150034004F /* CatPost+CoreDataProperties.swift in Sources */,
+				627B86562CD0B0010034004F /* Comment+CoreDataClass.swift in Sources */,
+				627B86572CD0B0010034004F /* Comment+CoreDataProperties.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
