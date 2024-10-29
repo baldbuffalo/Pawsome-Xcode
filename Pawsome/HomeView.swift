@@ -18,6 +18,9 @@ struct HomeView: View {
         sortDescriptors: [NSSortDescriptor(keyPath: \CatPost.timestamp, ascending: false)]
     ) private var posts: FetchedResults<CatPost>
 
+    // Add this line to define viewContext
+    @Environment(\.managedObjectContext) private var viewContext
+
     var body: some View {
         TabView {
             NavigationStack {
@@ -39,12 +42,7 @@ struct HomeView: View {
                 }
                 .sheet(isPresented: $showComments) {
                     if let selectedPost = selectedPost {
-                        CommentsView(showComments: $showComments, post: Binding(
-                            get: { selectedPost },
-                            set: { newPost in
-                                updatePost(newPost) // Update the post when comments are changed
-                            }
-                        ))
+                        CommentsView(showComments: $showComments, post: selectedPost) // Pass CatPost directly
                     }
                 }
                 .onChange(of: navigateToHome) {
