@@ -7,7 +7,7 @@ struct FormView: View {
     var imageUI: UIImage?
     var videoURL: URL?
     var username: String
-    var onPostCreated: (CatPost) -> Void
+    var onPostCreated: (CatPost) -> Void // Make sure this is referring to the correct CatPost
 
     @Environment(\.managedObjectContext) private var viewContext
 
@@ -39,27 +39,14 @@ struct FormView: View {
                 }
                 */
 
-                TextField("Cat Name", text: $catName)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .padding()
+                // Create text fields for user input
+                inputField(placeholder: "Cat Name", text: $catName)
+                inputField(placeholder: "Breed", text: $breed)
+                inputField(placeholder: "Age", text: $age, keyboardType: .numberPad)
+                inputField(placeholder: "Location", text: $location)
+                inputField(placeholder: "Description", text: $description)
 
-                TextField("Breed", text: $breed)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .padding()
-
-                TextField("Age", text: $age)
-                    .keyboardType(.numberPad)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .padding()
-
-                TextField("Location", text: $location)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .padding()
-
-                TextField("Description", text: $description)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .padding()
-
+                // Post Button
                 Button(action: {
                     createPost()
                 }) {
@@ -77,6 +64,7 @@ struct FormView: View {
     }
 
     private func createPost() {
+        // Ensure you're using the correct CatPost context
         let newPost = CatPost(context: viewContext)
         newPost.username = username
         newPost.catName = catName
@@ -99,6 +87,14 @@ struct FormView: View {
             print("Error saving post: \(error.localizedDescription)")
         }
     }
+}
+
+// Helper function to create text fields
+private func inputField(placeholder: String, text: Binding<String>, keyboardType: UIKeyboardType = .default) -> some View {
+    TextField(placeholder, text: text)
+        .keyboardType(keyboardType)
+        .textFieldStyle(RoundedBorderTextFieldStyle())
+        .padding()
 }
 
 // Extension to hide the keyboard
