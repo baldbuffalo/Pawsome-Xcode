@@ -18,7 +18,7 @@ struct HomeView: View {
         sortDescriptors: [NSSortDescriptor(keyPath: \CatPost.timestamp, ascending: false)]
     ) private var posts: FetchedResults<CatPost>
 
-    // Add this line to define viewContext
+    // Environment context for Core Data
     @Environment(\.managedObjectContext) private var viewContext
 
     var body: some View {
@@ -184,11 +184,6 @@ struct HomeView: View {
         newPost.timestamp = Date()
 
         savePosts() // Save the context to persist the new post
-    }
-
-    private func updatePost(_ post: CatPost) {
-        // Implement logic to update the post in Core Data if needed
-        savePosts() // Call save to persist updates
     }
 
     private func savePosts() {

@@ -9,16 +9,6 @@ struct ProfileView: View {
     @State private var selectedItem: PhotosPickerItem? // State for selected item
     @FocusState private var isUsernameFocused: Bool // State to track focus on the username TextField
     @State private var joinDate: String = "" // State to hold join date
-<<<<<<< HEAD
-
-    var body: some View {
-        VStack {
-            Text("Your Profile")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-                .padding()
-            
-=======
     @State private var isEditing: Bool = false // State to manage edit mode
 
     var body: some View {
@@ -50,7 +40,6 @@ struct ProfileView: View {
             }
             .padding(.top)
 
->>>>>>> 5eef0f8bd39986f9f45e071df446cc125709c1b6
             ZStack {
                 // Profile Picture: Display the profile image from login or default placeholder
                 if let profileImage = profileImage {
@@ -69,22 +58,6 @@ struct ProfileView: View {
                         .padding(.top, 20)
                 }
                 
-<<<<<<< HEAD
-                // Pencil icon button
-                Button(action: {
-                    showImagePicker.toggle()
-                }) {
-                    Image(systemName: "pencil.circle.fill")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 30, height: 30)
-                        .foregroundColor(.blue)
-                        .background(Color.white.opacity(0.7)) // Optional background
-                        .clipShape(Circle())
-                        .padding(5)
-                }
-                .offset(x: 40, y: -40) // Adjust position as needed
-=======
                 // Pencil icon button (shown only in edit mode)
                 if isEditing {
                     Button(action: {
@@ -101,7 +74,6 @@ struct ProfileView: View {
                     }
                     .offset(x: 40, y: -40) // Adjust position as needed
                 }
->>>>>>> 5eef0f8bd39986f9f45e071df446cc125709c1b6
             }
             
             // Editable username field
@@ -171,11 +143,7 @@ struct ProfileView: View {
             loadUsername() // Load username on appear
             loadJoinDate() // Load join date on appear
         }
-<<<<<<< HEAD
         .onChange(of: currentUsername) { newValue in
-=======
-        .onChange(of: currentUsername) { oldValue, newValue in
->>>>>>> 5eef0f8bd39986f9f45e071df446cc125709c1b6
             // Save the updated username to UserDefaults
             UserDefaults.standard.set(newValue, forKey: "currentUsername")
         }
@@ -183,11 +151,7 @@ struct ProfileView: View {
         .onTapGesture {
             isUsernameFocused = false // Dismiss keyboard when tapping outside
         }
-<<<<<<< HEAD
         .onChange(of: selectedItem) { newItem in
-=======
-        .onChange(of: selectedItem) { oldItem, newItem in
->>>>>>> 5eef0f8bd39986f9f45e071df446cc125709c1b6
             if let newItem = newItem {
                 Task {
                     if let data = try? await newItem.loadTransferable(type: Data.self),

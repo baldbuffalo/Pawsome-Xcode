@@ -1,28 +1,10 @@
 import SwiftUI
-<<<<<<< HEAD
-import SwiftData
-=======
-import CoreData
->>>>>>> 5eef0f8bd39986f9f45e071df446cc125709c1b6
+import CoreData // Use CoreData as the persistence layer
 
 @main
 struct PawsomeApp: App {
     @State private var isLoggedIn: Bool = false
     @State private var username: String = ""
-<<<<<<< HEAD
-    @State private var profileImage: Image? = nil // Add @State for profileImage
-
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([Item.self])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
-=======
     @State private var profileImageData: Data? = nil
     @State private var showForm: Bool = false
     @State private var navigateToHome: Bool = false
@@ -30,23 +12,25 @@ struct PawsomeApp: App {
 
     // Shared PersistenceController instance for Core Data
     let persistenceController = PersistenceController.shared
->>>>>>> 5eef0f8bd39986f9f45e071df446cc125709c1b6
 
     var body: some Scene {
         WindowGroup {
             if isLoggedIn {
-<<<<<<< HEAD
-                // Pass profileImage to HomeView
-                HomeView(isLoggedIn: $isLoggedIn, currentUsername: $username, profileImage: $profileImage)
-                    .modelContainer(sharedModelContainer)
-            } else {
-                // Pass all the required bindings, including profileImage
-                LoginView(isLoggedIn: $isLoggedIn, username: $username, profileImage: $profileImage)
-                    .modelContainer(sharedModelContainer)
-=======
                 TabView {
                     HomeView(
-                       
+                        isLoggedIn: $isLoggedIn,
+                        currentUsername: $username,
+                        profileImage: Binding<Image?>(
+                            get: {
+                                if let data = profileImageData, let uiImage = UIImage(data: data) {
+                                    return Image(uiImage: uiImage)
+                                }
+                                return nil
+                            },
+                            set: { newImage in
+                                profileImageData = newImage?.asUIImage()?.pngData()
+                            }
+                        )
                     )
                     .tabItem {
                         Label("Home", systemImage: "house")
@@ -98,13 +82,10 @@ struct PawsomeApp: App {
                         }
                     )
                 )
->>>>>>> 5eef0f8bd39986f9f45e071df446cc125709c1b6
             }
         }
     }
 }
-<<<<<<< HEAD
-=======
 
 // Extension to convert Image to UIImage
 extension Image {
@@ -120,4 +101,3 @@ extension Image {
         }
     }
 }
->>>>>>> 5eef0f8bd39986f9f45e071df446cc125709c1b6
