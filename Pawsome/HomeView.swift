@@ -118,10 +118,10 @@ struct HomeView: View {
                             .cornerRadius(12)
                     }
 
-                    Text(post.name ?? "Unknown")
+                    Text(post.catName ?? "Unknown") // Changed from name to catName
                         .font(.headline)
-                    Text("Breed: \(post.breed ?? "N/A")")
-                    Text("Age: \(post.age ?? "N/A")")
+                    Text("Breed: \(post.catBreed ?? "N/A")") // Changed from breed to catBreed
+                    Text("Age: \(post.catAge ?? "N/A")") // Changed from age to catAge
                     Text("Location: \(post.location ?? "N/A")")
                     Text("Description: \(post.description ?? "N/A")")
                     
@@ -164,21 +164,19 @@ struct HomeView: View {
     }
 
     private func toggleLike(for post: CatPost) {
-        if let index = posts.firstIndex(where: { $0.id == post.id }) {
-            DispatchQueue.main.async {
-                posts[index].likes = posts[index].likes > 0 ? 0 : 1
-            }
-            savePosts() // Save changes after toggling like
-        }
+        // Toggle the like count directly
+        post.likes = post.likes > 0 ? 0 : 1
+        
+        savePosts() // Save changes after toggling like
     }
 
     private func savePost(_ post: CatPost) {
         let newPost = CatPost(context: viewContext) // Create a new CatPost in Core Data
         newPost.username = currentUsername
         newPost.imageData = post.imageData // Assuming you're passing the image data
-        newPost.name = post.name
-        newPost.breed = post.breed
-        newPost.age = post.age
+        newPost.catName = post.catName // Changed from name to catName
+        newPost.catBreed = post.catBreed // Changed from breed to catBreed
+        newPost.catAge = post.catAge // Changed from age to catAge
         newPost.location = post.location
         newPost.description = post.description
         newPost.timestamp = Date()
