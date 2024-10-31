@@ -3,25 +3,6 @@ import AVKit
 import PhotosUI
 import CoreData
 
-struct MediaPicker {
-    enum MediaType: String, CaseIterable {
-        case library // For selecting from the photo library
-        case photo   // For capturing a photo using the camera
-        case video   // For capturing a video using the camera
-
-        var displayName: String {
-            switch self {
-            case .library:
-                return "Photo Library"
-            case .photo:
-                return "Camera (Photo)"
-            case .video:
-                return "Camera (Video)"
-            }
-        }
-    }
-}
-
 struct ScanView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Binding var capturedImage: UIImage?
@@ -61,7 +42,7 @@ struct ScanView: View {
                 .sheet(isPresented: $isImagePickerPresented) {
                     ImagePicker(sourceType: sourceTypeForMediaType(mediaType),
                                 selectedImage: $capturedImage,
-                                capturedVideoURL: $capturedVideoURL, // Pass the video URL binding
+                                capturedVideoURL: $capturedVideoURL,
                                 onImageCaptured: {
                                     navigateToForm = true // Set to true to trigger navigation
                                 },
@@ -72,7 +53,7 @@ struct ScanView: View {
             .navigationDestination(isPresented: $navigateToForm) {
                 // Pass the captured image and video URL to FormView
                 FormView(showForm: $navigateToForm,
-                         navigateToHome: $navigateToHome, // Pass the navigateToHome binding
+                         navigateToHome: $navigateToHome,
                          imageUI: capturedImage,
                          videoURL: capturedVideoURL,
                          username: username,
@@ -143,6 +124,26 @@ struct ScanView: View {
 
             func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
                 picker.dismiss(animated: true)
+            }
+        }
+    }
+}
+
+// Define MediaPicker as a separate struct for better organization
+struct MediaPicker {
+    enum MediaType: String, CaseIterable {
+        case library // For selecting from the photo library
+        case photo   // For capturing a photo using the camera
+        case video   // For capturing a video using the camera
+
+        var displayName: String {
+            switch self {
+            case .library:
+                return "Photo Library"
+            case .photo:
+                return "Camera (Photo)"
+            case .video:
+                return "Camera (Video)"
             }
         }
     }
