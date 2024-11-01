@@ -121,9 +121,9 @@ struct HomeView: View {
                     Text(post.catName ?? "Unknown") // Changed from name to catName
                         .font(.headline)
                     Text("Breed: \(post.catBreed ?? "N/A")") // Changed from breed to catBreed
-                    Text("Age: \(post.catAge ?? "N/A")") // Changed from age to catAge
+                    Text("Age: \(post.catAge)") // Directly display Int32 catAge
                     Text("Location: \(post.location ?? "N/A")")
-                    Text("Description: \(post.description ?? "N/A")")
+                    Text("Description: \(post.postDescription ?? "N/A")") // Changed from description to postDescription
                     
                     postActionButtons(for: post)
                 }
@@ -176,9 +176,14 @@ struct HomeView: View {
         newPost.imageData = post.imageData // Assuming you're passing the image data
         newPost.catName = post.catName // Changed from name to catName
         newPost.catBreed = post.catBreed // Changed from breed to catBreed
-        newPost.catAge = post.catAge // Changed from age to catAge
+
+        // Assign catAge directly since it's already an Int32
+        newPost.catAge = post.catAge // Directly assign the Int32 value
+
         newPost.location = post.location
-        newPost.description = post.description
+
+        // Use postDescription instead of description
+        newPost.postDescription = post.postDescription // Changed from description to postDescription
         newPost.timestamp = Date()
 
         savePosts() // Save the context to persist the new post

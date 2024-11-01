@@ -1,13 +1,11 @@
 import SwiftUI
-import CoreData // Use CoreData as the persistence layer
+import CoreData
 
 @main
 struct PawsomeApp: App {
     @State private var isLoggedIn: Bool = false
     @State private var username: String = ""
     @State private var profileImageData: Data? = nil
-    @State private var showForm: Bool = false
-    @State private var navigateToHome: Bool = false
     @State private var selectedImage: UIImage? = nil // This will hold the selected image
 
     // Shared PersistenceController instance for Core Data
@@ -37,11 +35,14 @@ struct PawsomeApp: App {
                     }
                     .environment(\.managedObjectContext, persistenceController.container.viewContext)
 
-                    // Correct order of arguments in ScanView initializer
+                    // Pass the Core Data context and handle post creation directly
                     ScanView(
-                        selectedImage: $selectedImage, // This should come first
-                        showForm: $showForm, // Then showForm
-                        username: username
+                        capturedImage: $selectedImage, // Pass the selected image binding
+                        username: username,
+                        onPostCreated: { catPost in
+                            // Handle the created post using Core Data here
+                            savePostToCoreData(capturedImage: selectedImage, username: username)
+                        }
                     )
                     .tabItem {
                         Label("Post", systemImage: "plus.app")
@@ -83,6 +84,25 @@ struct PawsomeApp: App {
                     )
                 )
             }
+        }
+    }
+
+    // Function to save post data to Core Data
+    private func savePostToCoreData(capturedImage: UIImage?, username: String) {
+        let context = persistenceController.container.viewContext
+        let newPost = CatPost(context: context) // Use the CatPost entity
+        newPost.username = username
+        newPost.timestamp = Date()
+
+        // Convert UIImage to Data for Core Data
+        if let image = capturedImage, let imageData = image.jpegData(compressionQuality: 1.0) {
+            newPost.imageData = imageData
+        }
+
+        do {
+            try context.save()
+        } catch {
+            print("Failed to save post: \(error.localizedDescription)")
         }
     }
 }
