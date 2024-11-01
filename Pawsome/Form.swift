@@ -7,7 +7,7 @@ struct FormView: View {
     var imageUI: UIImage?
     var videoURL: URL?
     var username: String
-    var onPostCreated: (CatPost) -> Void // Make sure this is referring to the correct CatPost
+    var onPostCreated: (CatPost) -> Void
 
     @Environment(\.managedObjectContext) private var viewContext
 
@@ -30,14 +30,6 @@ struct FormView: View {
                     Text("No image captured.")
                         .foregroundColor(.gray)
                 }
-
-                // Commented out the display of video URL
-                /*
-                if let videoURL = videoURL {
-                    Text("Video URL: \(videoURL.absoluteString)")
-                        .padding()
-                }
-                */
 
                 // Create text fields for user input
                 inputField(placeholder: "Cat Name", text: $catName)
@@ -64,7 +56,6 @@ struct FormView: View {
     }
 
     private func createPost() {
-        // Ensure you're using the correct CatPost context
         let newPost = CatPost(context: viewContext)
         newPost.username = username
         newPost.catName = catName
@@ -78,9 +69,13 @@ struct FormView: View {
             newPost.imageData = image.pngData()
         }
 
+        savePostToCoreData(post: newPost)
+    }
+
+    private func savePostToCoreData(post: CatPost) {
         do {
             try viewContext.save()
-            onPostCreated(newPost)
+            onPostCreated(post)
             showForm = false
             navigateToHome = true
         } catch {
