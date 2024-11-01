@@ -22,62 +22,35 @@ struct HomeView: View {
     @Environment(\.managedObjectContext) private var viewContext
 
     var body: some View {
-        TabView {
-            NavigationStack {
-                VStack(spacing: 0) {
-                    headerView
-                    postListView
-                    Spacer()
-                }
-                .navigationTitle("Pawsome")
-                .sheet(isPresented: $showForm) {
-                    FormView(
-                        showForm: $showForm,
-                        navigateToHome: $navigateToHome,
-                        imageUI: selectedImage,
-                        username: currentUsername
-                    ) { newPost in
-                        savePost(newPost) // Save the new post
-                    }
-                }
-                .sheet(isPresented: $showComments) {
-                    if let selectedPost = selectedPost {
-                        CommentsView(showComments: $showComments, post: selectedPost) // Pass CatPost directly
-                    }
-                }
-                .onChange(of: navigateToHome) {
-                    if $0 {
-                        showForm = false // Dismiss the form
-                        navigateToHome = false // Reset the navigation state
-                    }
+        NavigationStack {
+            VStack(spacing: 0) {
+                headerView
+                postListView
+                Spacer()
+            }
+            .navigationTitle("Pawsome")
+            .sheet(isPresented: $showForm) {
+                FormView(
+                    showForm: $showForm,
+                    navigateToHome: $navigateToHome,
+                    imageUI: selectedImage,
+                    username: currentUsername
+                ) { newPost in
+                    savePost(newPost) // Save the new post
                 }
             }
-            .tabItem {
-                Label("Home", systemImage: "house")
+            .sheet(isPresented: $showComments) {
+                if let selectedPost = selectedPost {
+                    CommentsView(showComments: $showComments, post: selectedPost) // Pass CatPost directly
+                }
             }
-
-            NavigationStack {
-                ScanView(
-                    capturedImage: $selectedImage,
-                    username: currentUsername,
-                    onPostCreated: { post in
-                        savePost(post) // Save the post created in ScanView
-                    }
-                )
-            }
-            .tabItem {
-                Label("Post", systemImage: "camera")
-            }
-
-            NavigationStack {
-                ProfileView(isLoggedIn: $isLoggedIn, currentUsername: $currentUsername, profileImage: $profileImage)
-                    .navigationTitle("Profile")
-            }
-            .tabItem {
-                Label("Profile", systemImage: "person")
+            .onChange(of: navigateToHome) {
+                if $0 {
+                    showForm = false // Dismiss the form
+                    navigateToHome = false // Reset the navigation state
+                }
             }
         }
-        .tabViewStyle(DefaultTabViewStyle())
     }
 
     private var headerView: some View {
@@ -89,7 +62,6 @@ struct HomeView: View {
                 .font(.subheadline)
                 .padding(.bottom)
 
-            // Display the profile image if available
             if let profileImage = profileImage {
                 profileImage
                     .resizable()
@@ -164,9 +136,7 @@ struct HomeView: View {
     }
 
     private func toggleLike(for post: CatPost) {
-        // Toggle the like count directly
         post.likes = post.likes > 0 ? 0 : 1
-        
         savePosts() // Save changes after toggling like
     }
 
@@ -176,22 +146,17 @@ struct HomeView: View {
         newPost.imageData = post.imageData // Assuming you're passing the image data
         newPost.catName = post.catName // Changed from name to catName
         newPost.catBreed = post.catBreed // Changed from breed to catBreed
-
-        // Assign catAge directly since it's already an Int32
         newPost.catAge = post.catAge // Directly assign the Int32 value
-
         newPost.location = post.location
-
-        // Use postDescription instead of description
         newPost.postDescription = post.postDescription // Changed from description to postDescription
         newPost.timestamp = Date()
-
+        
         savePosts() // Save the context to persist the new post
     }
 
     private func savePosts() {
         do {
-            try viewContext.save() // Save the context to persist changes
+            try viewContext.save()
             print("Posts saved successfully")
         } catch {
             print("Error saving posts: \(error.localizedDescription)")

@@ -7,8 +7,8 @@ import UIKit
 
 struct LoginView: View {
     @Binding var isLoggedIn: Bool
-    @Binding var username: String // Binding for the username
-    @Binding var profileImage: Image? // Binding for the profile image
+    @Binding var username: String
+    @Binding var profileImage: Image?
 
     var body: some View {
         VStack(spacing: 20) {
@@ -29,24 +29,7 @@ struct LoginView: View {
                 onCompletion: { result in
                     switch result {
                     case .success(let authResults):
-                        if let appleIDCredential = authResults.credential as? ASAuthorizationAppleIDCredential {
-                            if let fullName = appleIDCredential.fullName {
-                                // Set the username
-                                username = "\(fullName.givenName ?? "") \(fullName.familyName ?? "")"
-                                print("Signed in with Apple: \(username)") // Debug output
-                            }
-                            // No profile image is provided by Apple, so set to nil or a default
-                            profileImage = Image(systemName: "person.circle") // Default image or nil
-                        }
-                        // Store join date if it doesn't exist
-                        if UserDefaults.standard.string(forKey: "joinDate") == nil {
-                            let dateFormatter = DateFormatter()
-                            dateFormatter.dateStyle = .medium
-                            let joinDate = dateFormatter.string(from: Date())
-                            UserDefaults.standard.set(joinDate, forKey: "joinDate") // Save join date
-                        }
-                        UserDefaults.standard.set(true, forKey: "isLoggedIn")
-                        isLoggedIn = true // Mark as logged in
+                        handleAppleSignIn(result: authResults)
                     case .failure(let error):
                         print("Apple sign-in failed: \(error.localizedDescription)")
                     }
@@ -59,41 +42,7 @@ struct LoginView: View {
             // Google Sign-In Button (iOS only)
             #if canImport(UIKit)
             Button(action: {
-                guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                      let rootViewController = scene.windows.first?.rootViewController else {
-                    print("Root view controller not found")
-                    return
-                }
-                
-                GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController) { result, error in
-                    if let error = error {
-                        print("Google Sign-In failed: \(error.localizedDescription)")
-                    } else if let user = result?.user {
-                        // Set the username from Google
-                        username = user.profile?.name ?? ""
-                        print("Signed in with Google: \(username)") // Debug output
-                        
-                        if let profileURL = user.profile?.imageURL(withDimension: 100) {
-                            // Load the profile image
-                            loadImage(from: profileURL) { image in
-                                profileImage = image // Pass the image to the ProfileView later
-                            }
-                        } else {
-                            profileImage = nil // Handle no profile image
-                            print("No profile image URL available from Google.")
-                        }
-                        
-                        // Store join date if it doesn't exist
-                        if UserDefaults.standard.string(forKey: "joinDate") == nil {
-                            let dateFormatter = DateFormatter()
-                            dateFormatter.dateStyle = .medium
-                            let joinDate = dateFormatter.string(from: Date())
-                            UserDefaults.standard.set(joinDate, forKey: "joinDate") // Save join date
-                        }
-                        UserDefaults.standard.set(true, forKey: "isLoggedIn")
-                        isLoggedIn = true // Mark as logged in
-                    }
-                }
+                googleSignIn()
             }) {
                 HStack {
                     Image(systemName: "globe")
@@ -110,7 +59,6 @@ struct LoginView: View {
             
             Spacer()
             
-            // Navigate to ProfileView if logged in
             if isLoggedIn {
                 NavigationLink(destination: ProfileView(isLoggedIn: $isLoggedIn, currentUsername: $username, profileImage: $profileImage)) {
                     Text("Go to Profile")
@@ -121,29 +69,69 @@ struct LoginView: View {
             }
         }
     }
+
+    private func handleAppleSignIn(result: ASAuthorization) {
+        if let appleIDCredential = result.credential as? ASAuthorizationAppleIDCredential {
+            if let fullName = appleIDCredential.fullName {
+                username = "\(fullName.givenName ?? "") \(fullName.familyName ?? "")"
+                print("Signed in with Apple: \(username)")
+            }
+            profileImage = Image(systemName: "person.circle")
+            saveJoinDate()
+            UserDefaults.standard.set(true, forKey: "isLoggedIn")
+            isLoggedIn = true
+        }
+    }
+
+    private func googleSignIn() {
+        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let rootViewController = scene.windows.first?.rootViewController else {
+            print("Root view controller not found")
+            return
+        }
+        
+        GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController) { result, error in
+            DispatchQueue.main.async {
+                if let error = error {
+                    print("Google Sign-In failed: \(error.localizedDescription)")
+                } else if let user = result?.user {
+                    handleGoogleSignIn(user: user)
+                }
+            }
+        }
+    }
+
+    private func handleGoogleSignIn(user: GIDGoogleUser) {
+        username = user.profile?.name ?? ""
+        if let profileURL = user.profile?.imageURL(withDimension: 100) {
+            loadImage(from: profileURL) { image in
+                profileImage = image
+            }
+        }
+        saveJoinDate()
+        UserDefaults.standard.set(true, forKey: "isLoggedIn")
+        isLoggedIn = true
+    }
+    
+    private func saveJoinDate() {
+        if UserDefaults.standard.string(forKey: "joinDate") == nil {
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateStyle = .medium
+            let joinDate = dateFormatter.string(from: Date())
+            UserDefaults.standard.set(joinDate, forKey: "joinDate")
+        }
+    }
 }
 
 // Function to load the profile image asynchronously
 func loadImage(from url: URL, completion: @escaping (Image?) -> Void) {
-    let task = URLSession.shared.dataTask(with: url) { data, response, error in
-        if let error = error {
-            print("Error fetching image: \(error.localizedDescription)")
-            DispatchQueue.main.async {
-                completion(nil)
-            }
+    let task = URLSession.shared.dataTask(with: url) { data, _, error in
+        if error != nil || data == nil {
+            DispatchQueue.main.async { completion(nil) }
             return
         }
-
-        guard let data = data, let uiImage = UIImage(data: data) else {
-            print("No data or image creation failed.")
-            DispatchQueue.main.async {
-                completion(nil)
-            }
-            return
-        }
-
         DispatchQueue.main.async {
-            completion(Image(uiImage: uiImage))
+            completion(data.flatMap { Image(uiImage: UIImage(data: $0)!) })
         }
     }
     task.resume()
