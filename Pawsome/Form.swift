@@ -56,7 +56,8 @@ struct FormView: View {
     }
 
     private func createPost() {
-        let newPost = CatPost(context: viewContext)
+        let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+        let newPost = CatPost(context: context)
         newPost.username = username
         newPost.catName = catName
         newPost.catBreed = breed
@@ -73,8 +74,9 @@ struct FormView: View {
     }
 
     private func savePostToCoreData(post: CatPost) {
+        let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
         do {
-            try viewContext.save()
+            try context.save()
             onPostCreated(post)
             showForm = false
             navigateToHome = true
