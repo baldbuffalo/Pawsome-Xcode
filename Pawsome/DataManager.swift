@@ -1,42 +1,44 @@
 import CoreData
-import SwiftUI
+import Combine
 
 class DataManager: ObservableObject {
-    @Published var catPosts: [CatPost] = []
+    @Published var posts: [CatPost] = []
+    private var context: NSManagedObjectContext
     
-    private let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
-
-    init() {
+    init(context: NSManagedObjectContext) {
+        self.context = context
         fetchPosts()
     }
-
+    
     func fetchPosts() {
         let request: NSFetchRequest<CatPost> = CatPost.fetchRequest()
         do {
-            catPosts = try context.fetch(request)
+            posts = try context.fetch(request)
         } catch {
-            print("Failed to fetch posts: \(error.localizedDescription)")
+            print("Failed to fetch posts: \(error)")
         }
     }
 
-    func savePost(catName: String, breed: String, age: String, location: String, description: String, image: UIImage?) {
+    func addPost(username: String, catName: String, catBreed: String, catAge: Int32, location: String, content: String, imageData: Data?) {
         let newPost = CatPost(context: context)
+        newPost.username = username
         newPost.catName = catName
-        newPost.catBreed = breed
-        newPost.catAge = Int32(age) ?? 0
+        newPost.catBreed = catBreed
+        newPost.catAge = catAge
         newPost.location = location
-        newPost.content = description
+        newPost.content = content
         newPost.timestamp = Date()
+        newPost.imageData = imageData
 
-        if let image = image {
-            newPost.imageData = image.pngData()
-        }
+        savePost()
+    }
 
+    private func savePost() {
         do {
             try context.save()
-            fetchPosts() // Refresh the list of posts after saving
+            fetchPosts() // Refresh the posts after saving
         } catch {
-            print("Error saving post: \(error.localizedDescription)")
+            print("Failed to save post: \(error)")
         }
     }
 }

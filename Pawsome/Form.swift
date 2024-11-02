@@ -7,16 +7,13 @@ struct FormView: View {
     var imageUI: UIImage?
     var videoURL: URL?
     var username: String
-    var onPostCreated: (CatPost) -> Void
-
-    @Environment(\.managedObjectContext) private var viewContext
+    @ObservedObject var dataManager: DataManager // Using DataManager here
 
     @State private var catName: String = ""
     @State private var breed: String = ""
     @State private var age: String = ""
     @State private var location: String = ""
     @State private var description: String = ""
-    @State private var comments: String = ""
 
     var body: some View {
         ScrollView {
@@ -31,14 +28,12 @@ struct FormView: View {
                         .foregroundColor(.gray)
                 }
 
-                // Create text fields for user input
                 inputField(placeholder: "Cat Name", text: $catName)
                 inputField(placeholder: "Breed", text: $breed)
                 inputField(placeholder: "Age", text: $age, keyboardType: .numberPad)
                 inputField(placeholder: "Location", text: $location)
                 inputField(placeholder: "Description", text: $description)
 
-                // Post Button
                 Button(action: {
                     createPost()
                 }) {
@@ -56,37 +51,14 @@ struct FormView: View {
     }
 
     private func createPost() {
-        let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
-        let newPost = CatPost(context: context)
-        newPost.username = username
-        newPost.catName = catName
-        newPost.catBreed = breed
-        newPost.catAge = Int32(age) ?? 0
-        newPost.location = location
-        newPost.content = description
-        newPost.timestamp = Date()
-
-        if let image = imageUI {
-            newPost.imageData = image.pngData()
-        }
-
-        savePostToCoreData(post: newPost)
-    }
-
-    private func savePostToCoreData(post: CatPost) {
-        let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
-        do {
-            try context.save()
-            onPostCreated(post)
-            showForm = false
-            navigateToHome = true
-        } catch {
-            print("Error saving post: \(error.localizedDescription)")
-        }
+        guard let ageValue = Int32(age) else { return }
+        dataManager.addPost(username: username, catName: catName, catBreed: breed, catAge: ageValue, location: location, content: description, imageData: imageUI?.pngData())
+        showForm = false
+        navigateToHome = true
     }
 }
 
-// Helper function to create text fields
+// Helper function for text fields
 private func inputField(placeholder: String, text: Binding<String>, keyboardType: UIKeyboardType = .default) -> some View {
     TextField(placeholder, text: text)
         .keyboardType(keyboardType)

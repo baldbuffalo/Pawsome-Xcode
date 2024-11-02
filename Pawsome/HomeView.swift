@@ -12,14 +12,14 @@ struct HomeView: View {
     @State private var showComments: Bool = false
     @State private var selectedPost: CatPost? = nil
 
+    // Environment context for Core Data
+    @Environment(\.managedObjectContext) private var viewContext
+
     // Fetch existing CatPosts from Core Data
     @FetchRequest(
         entity: CatPost.entity(),
         sortDescriptors: [NSSortDescriptor(keyPath: \CatPost.timestamp, ascending: false)]
     ) private var posts: FetchedResults<CatPost>
-
-    // Environment context for Core Data
-    @Environment(\.managedObjectContext) private var viewContext
 
     var body: some View {
         NavigationStack {
@@ -34,10 +34,9 @@ struct HomeView: View {
                     showForm: $showForm,
                     navigateToHome: $navigateToHome,
                     imageUI: selectedImage,
-                    username: currentUsername
-                ) { newPost in
-                    savePost(newPost) // Save the new post
-                }
+                    username: currentUsername,
+                    dataManager: DataManager(context: viewContext) // Initialize DataManager here
+                )
             }
             .sheet(isPresented: $showComments) {
                 if let selectedPost = selectedPost {
