@@ -8,7 +8,6 @@ struct CommentsView: View {
     var post: CatPost // The post to which comments belong
 
     @State private var commentText: String = ""
-    @State private var comments: [Comment] = []
 
     var body: some View {
         NavigationView {
@@ -16,6 +15,7 @@ struct CommentsView: View {
                 List {
                     ForEach(post.commentsArray, id: \.self) { comment in
                         HStack {
+                            // Display profile image or default image
                             if let imageData = comment.profileImageData, let profileImage = UIImage(data: imageData) {
                                 Image(uiImage: profileImage)
                                     .resizable()
@@ -24,7 +24,7 @@ struct CommentsView: View {
                                     .clipShape(Circle())
                                     .padding(.trailing, 8)
                             } else if let userProfileImageData = userProfile.profileImageData, let profileImage = UIImage(data: userProfileImageData) {
-                                // Use user's profile image data if comment has no image
+                                // Use user's profile image data if no image in the comment
                                 Image(uiImage: profileImage)
                                     .resizable()
                                     .scaledToFit()
@@ -69,27 +69,14 @@ struct CommentsView: View {
                 showComments = false
             })
         }
-        .onAppear {
-            fetchComments()
-        }
-    }
-
-    private func fetchComments() {
-        // Fetch comments associated with the post
-        let request: NSFetchRequest<Comment> = Comment.fetchRequest()
-        request.predicate = NSPredicate(format: "post == %@", post)
-        
-        do {
-            comments = try viewContext.fetch(request)
-        } catch {
-            print("Failed to fetch comments: \(error.localizedDescription)")
-        }
     }
 
     private func saveComment() {
+        guard !commentText.isEmpty else { return }
+
         let newComment = Comment(context: viewContext)
         newComment.text = commentText
-        newComment.username = "Your Username" // Replace with the actual username
+        newComment.username = "Your Username" // Replace with actual username (e.g., from UserProfile)
         newComment.timestamp = Date()
 
         // Store the user's profile image data from the shared UserProfile object
@@ -101,7 +88,6 @@ struct CommentsView: View {
             try viewContext.save()
             print("Comment saved successfully")
             commentText = "" // Clear the text field after saving
-            fetchComments() // Refresh comments list
         } catch {
             print("Error saving comment: \(error.localizedDescription)")
         }

@@ -175,36 +175,82 @@ struct HomeView: View {
     }
 
     private func uploadCatPostToFirebase(post: CatPost) {
-        // Here you can call the Firebase upload function
-        // Example: uploadCatPostToFirebase(username: post.username, imageData: post.imageData, ...)
-        
+        // Uploading the post to Firebase Storage and Firestore
         guard let profileImage = profileImage else { return }
         
         // Convert profile image to Data
-        let profileImageData = profileImage.asData() // Create a function to convert Image to Data if necessary
+        guard let profileImageData = profileImage.asData() else { return }
         
-        // Upload the post data
-        uploadCatPostToFirebase(
-            profileName: currentUsername,
-            profileImage: profileImageData, // Assuming you have the image data
-            catName: post.catName ?? "Unknown",
-            catBreed: post.catBreed ?? "N/A",
-            location: post.location ?? "N/A",
-            description: post.postDescription ?? "N/A",
-            postImage: postImage // This is the post image you saved in Core Data
-        )
+        // Upload profile image to Firebase Storage
+        let profileImageRef = Storage.storage().reference().child("profileImages/\(currentUsername).jpg")
+        profileImageRef.putData(profileImageData, metadata: nil) { metadata, error in
+            if let error = error {
+                print("Error uploading profile image: \(error.localizedDescription)")
+                return
+            }
+
+            profileImageRef.downloadURL { url, error in
+                if let error = error {
+                    print("Error fetching profile image URL: \(error.localizedDescription)")
+                    return
+                }
+
+                guard let profileImageURL = url else { return }
+
+                // Upload post image
+                if let postImageData = post.imageData {
+                    let postImageRef = Storage.storage().reference().child("postImages/\(UUID().uuidString).jpg")
+                    postImageRef.putData(postImageData, metadata: nil) { metadata, error in
+                        if let error = error {
+                            print("Error uploading post image: \(error.localizedDescription)")
+                            return
+                        }
+
+                        postImageRef.downloadURL { url, error in
+                            if let error = error {
+                                print("Error fetching post image URL: \(error.localizedDescription)")
+                                return
+                            }
+
+                            guard let postImageURL = url else { return }
+
+                            // Store the post details in Firestore
+                            let db = Firestore.firestore()
+                            let postData: [String: Any] = [
+                                "profileName": currentUsername,
+                                "profileImageURL": profileImageURL.absoluteString,
+                                "catName": post.catName ?? "Unknown",
+                                "catBreed": post.catBreed ?? "N/A",
+                                "location": post.location ?? "N/A",
+                                "description": post.postDescription ?? "N/A",
+                                "postImageURL": postImageURL.absoluteString,
+                                "timestamp": FieldValue.serverTimestamp()
+                            ]
+
+                            db.collection("posts").addDocument(data: postData) { error in
+                                if let error = error {
+                                    print("Error saving post data: \(error.localizedDescription)")
+                                } else {
+                                    print("Post saved to Firestore")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
 // Extension to convert SwiftUI Image to Data
 extension Image {
-    func asData() -> Data? {
-        let uiImage = self.asUIImage() // You may need to implement this
-        return uiImage?.pngData()
-    }
-
     func asUIImage() -> UIImage? {
         let renderer = ImageRenderer(content: self)
         return renderer.uiImage
+    }
+
+    func asData() -> Data? {
+        guard let uiImage = asUIImage() else { return nil }
+        return uiImage.pngData()
     }
 }
