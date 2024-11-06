@@ -1,123 +1,109 @@
 import SwiftUI
 import CoreData
 
-// View to display the list of comments
-struct CommentsListView: View {
-    @ObservedObject var post: CatPost // ObservedObject for the CatPost
-
-    var body: some View {
-        List {
-            // Accessing comments directly from the CatPost entity
-            if let commentsSet = post.comments as? Set<Comment> {
-                let commentsArray = Array(commentsSet).sorted { ($0.timestamp ?? Date()) < ($1.timestamp ?? Date()) }
-                ForEach(commentsArray, id: \.self) { comment in
-                    VStack(alignment: .leading) {
-                        Text(comment.username ?? "Anonymous") // Display username
-                            .font(.subheadline)
-                            .fontWeight(.bold)
-                            .foregroundColor(.black)
-                        Text(comment.text ?? "No text") // Display each comment's text
-                            .font(.body)
-                            .foregroundColor(.gray)
-                    }
-                    .padding(10)
-                    .background(Color.white)
-                    .cornerRadius(12)
-                    .shadow(radius: 1)
-                    .listRowSeparator(.hidden)
-                }
-            } else {
-                // Handle the case where comments are nil or cannot be cast
-                Text("No comments available.")
-                    .foregroundColor(.gray)
-                    .padding()
-            }
-        }
-        .listStyle(PlainListStyle())
-        .padding(.top)
-    }
-}
-
-// View for adding a new comment
-struct CommentInputView: View {
-    @Binding var newComment: String
-    var post: CatPost // Reference to the CatPost to link the comment
-
+struct CommentsView: View {
     @Environment(\.managedObjectContext) private var viewContext
+    @EnvironmentObject var userProfile: UserProfile // Inject the UserProfile object
+    @Binding var showComments: Bool
+    var post: CatPost // The post to which comments belong
+
+    @State private var commentText: String = ""
+    @State private var comments: [Comment] = []
 
     var body: some View {
-        HStack {
-            TextField("Add a comment...", text: $newComment)
-                .padding(10)
-                .background(Color(.systemGray6))
-                .cornerRadius(20)
-                .padding(.trailing, 8)
+        NavigationView {
+            VStack {
+                List {
+                    ForEach(post.commentsArray, id: \.self) { comment in
+                        HStack {
+                            if let imageData = comment.profileImageData, let profileImage = UIImage(data: imageData) {
+                                Image(uiImage: profileImage)
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 40, height: 40)
+                                    .clipShape(Circle())
+                                    .padding(.trailing, 8)
+                            } else if let userProfileImageData = userProfile.profileImageData, let profileImage = UIImage(data: userProfileImageData) {
+                                // Use user's profile image data if comment has no image
+                                Image(uiImage: profileImage)
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 40, height: 40)
+                                    .clipShape(Circle())
+                                    .padding(.trailing, 8)
+                            } else {
+                                // Default image if no profile image is available
+                                Image("defaultProfileImage") // Replace with your default image asset
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 40, height: 40)
+                                    .clipShape(Circle())
+                                    .padding(.trailing, 8)
+                            }
 
-            Button(action: postComment) {
-                Text("Post")
-                    .fontWeight(.bold)
-                    .foregroundColor(.blue)
-                    .padding(10)
-                    .background(Color.clear)
-                    .cornerRadius(20)
+                            VStack(alignment: .leading) {
+                                Text(comment.username ?? "Unknown")
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                                Text(comment.text ?? "")
+                                    .font(.body)
+                            }
+                        }
+                    }
+                }
+
+                HStack {
+                    TextField("Add a comment...", text: $commentText)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .padding()
+
+                    Button(action: saveComment) {
+                        Text("Send")
+                            .bold()
+                    }
+                    .padding()
+                }
             }
-            .disabled(newComment.isEmpty)
+            .navigationTitle("Comments")
+            .navigationBarItems(trailing: Button("Close") {
+                showComments = false
+            })
         }
-        .padding()
+        .onAppear {
+            fetchComments()
+        }
     }
 
-    private func postComment() {
-        guard !newComment.isEmpty else { return }
+    private func fetchComments() {
+        // Fetch comments associated with the post
+        let request: NSFetchRequest<Comment> = Comment.fetchRequest()
+        request.predicate = NSPredicate(format: "post == %@", post)
+        
+        do {
+            comments = try viewContext.fetch(request)
+        } catch {
+            print("Failed to fetch comments: \(error.localizedDescription)")
+        }
+    }
 
-        // Create a new Comment entity in Core Data
-        let comment = Comment(context: viewContext)
-        comment.text = newComment
-        comment.timestamp = Date()
-        comment.username = "YourUsername" // Replace with the actual username
-        comment.profilePicture = nil // Replace with actual image data if available
-        comment.catPost = post // Link the comment to the post
+    private func saveComment() {
+        let newComment = Comment(context: viewContext)
+        newComment.text = commentText
+        newComment.username = "Your Username" // Replace with the actual username
+        newComment.timestamp = Date()
 
-        // Add the comment to the CatPost's comments set
-        var commentsSet = post.comments as? Set<Comment> ?? []
-        commentsSet.insert(comment)
-        post.comments = NSSet(set: commentsSet)
+        // Store the user's profile image data from the shared UserProfile object
+        newComment.profileImageData = userProfile.profileImageData
+
+        newComment.post = post // Set the relationship
 
         do {
-            try viewContext.save() // Save the new comment to Core Data
-            newComment = "" // Clear the text field after saving
+            try viewContext.save()
+            print("Comment saved successfully")
+            commentText = "" // Clear the text field after saving
+            fetchComments() // Refresh comments list
         } catch {
             print("Error saving comment: \(error.localizedDescription)")
         }
-    }
-}
-
-// Main view for comments
-struct CommentsView: View {
-    @Binding var showComments: Bool
-    var post: CatPost // Use the CatPost class from CatPost+CoreDataClass.swift
-
-    // State for managing the new comment input
-    @State private var newComment: String = ""
-
-    var body: some View {
-        NavigationStack {
-            VStack {
-                // Use the CommentsListView to display comments
-                CommentsListView(post: post)
-
-                // Comment input section
-                CommentInputView(newComment: $newComment, post: post)
-            }
-            .navigationTitle("Comments")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Back") {
-                        showComments = false
-                    }
-                }
-            }
-        }
-        .background(Color(.systemGroupedBackground))
-        .edgesIgnoringSafeArea(.bottom)
     }
 }

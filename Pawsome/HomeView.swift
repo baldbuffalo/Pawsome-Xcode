@@ -1,4 +1,5 @@
 import SwiftUI
+import Firebase
 import CoreData
 
 struct HomeView: View {
@@ -89,13 +90,13 @@ struct HomeView: View {
                             .cornerRadius(12)
                     }
 
-                    Text(post.catName ?? "Unknown") // Changed from name to catName
+                    Text(post.catName ?? "Unknown")
                         .font(.headline)
-                    Text("Breed: \(post.catBreed ?? "N/A")") // Changed from breed to catBreed
+                    Text("Breed: \(post.catBreed ?? "N/A")")
                     Text("Age: \(post.catAge)") // Directly display Int32 catAge
                     Text("Location: \(post.location ?? "N/A")")
-                    Text("Description: \(post.postDescription ?? "N/A")") // Changed from description to postDescription
-                    
+                    Text("Description: \(post.postDescription ?? "N/A")")
+
                     postActionButtons(for: post)
                 }
                 .padding(.vertical)
@@ -139,17 +140,28 @@ struct HomeView: View {
         savePosts() // Save changes after toggling like
     }
 
-    private func savePost(_ post: CatPost) {
-        let newPost = CatPost(context: viewContext) // Create a new CatPost in Core Data
+    private func savePost(
+        catName: String,
+        catBreed: String,
+        catAge: Int32,
+        location: String,
+        postDescription: String,
+        postImage: UIImage // Assuming you're getting the post image from the form
+    ) {
+        // Create a new CatPost in Core Data
+        let newPost = CatPost(context: viewContext)
         newPost.username = currentUsername
-        newPost.imageData = post.imageData // Assuming you're passing the image data
-        newPost.catName = post.catName // Changed from name to catName
-        newPost.catBreed = post.catBreed // Changed from breed to catBreed
-        newPost.catAge = post.catAge // Directly assign the Int32 value
-        newPost.location = post.location
-        newPost.postDescription = post.postDescription // Changed from description to postDescription
+        newPost.imageData = postImage.pngData() // Save the post image as data
+        newPost.catName = catName
+        newPost.catBreed = catBreed
+        newPost.catAge = catAge
+        newPost.location = location
+        newPost.postDescription = postDescription
         newPost.timestamp = Date()
-        
+
+        // Upload the post to Firebase
+        uploadCatPostToFirebase(post: newPost)
+
         savePosts() // Save the context to persist the new post
     }
 
@@ -160,5 +172,39 @@ struct HomeView: View {
         } catch {
             print("Error saving posts: \(error.localizedDescription)")
         }
+    }
+
+    private func uploadCatPostToFirebase(post: CatPost) {
+        // Here you can call the Firebase upload function
+        // Example: uploadCatPostToFirebase(username: post.username, imageData: post.imageData, ...)
+        
+        guard let profileImage = profileImage else { return }
+        
+        // Convert profile image to Data
+        let profileImageData = profileImage.asData() // Create a function to convert Image to Data if necessary
+        
+        // Upload the post data
+        uploadCatPostToFirebase(
+            profileName: currentUsername,
+            profileImage: profileImageData, // Assuming you have the image data
+            catName: post.catName ?? "Unknown",
+            catBreed: post.catBreed ?? "N/A",
+            location: post.location ?? "N/A",
+            description: post.postDescription ?? "N/A",
+            postImage: postImage // This is the post image you saved in Core Data
+        )
+    }
+}
+
+// Extension to convert SwiftUI Image to Data
+extension Image {
+    func asData() -> Data? {
+        let uiImage = self.asUIImage() // You may need to implement this
+        return uiImage?.pngData()
+    }
+
+    func asUIImage() -> UIImage? {
+        let renderer = ImageRenderer(content: self)
+        return renderer.uiImage
     }
 }
