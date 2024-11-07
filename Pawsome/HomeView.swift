@@ -218,12 +218,12 @@ struct HomeView: View {
                             let db = Firestore.firestore()
                             let postData: [String: Any] = [
                                 "profileName": currentUsername,
-                                "profileImageURL": profileImageURL.absoluteString,
+                                "profilepicture": profileImageURL.absoluteString, // Changed from profileImageURL
                                 "catName": post.catName ?? "Unknown",
                                 "catBreed": post.catBreed ?? "N/A",
                                 "location": post.location ?? "N/A",
-                                "description": post.postDescription ?? "N/A",
-                                "postImageURL": postImageURL.absoluteString,
+                                "postdescription": post.postDescription ?? "N/A", // Changed from description
+                                "postImage": postImageURL.absoluteString, // Changed from postImageURL
                                 "timestamp": FieldValue.serverTimestamp()
                             ]
 

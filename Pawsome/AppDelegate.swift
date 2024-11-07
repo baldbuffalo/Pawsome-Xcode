@@ -11,7 +11,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 
     // Core Data stack
     lazy var persistentContainer: NSPersistentContainer = {
-        let container = NSPersistentContainer(name: "YourModelName") // Replace with your model name
+        let container = NSPersistentContainer(name: "CatPostModel") // Replace with your model name
         container.loadPersistentStores(completionHandler: { (storeDescription, error) in
             if let error = error as NSError? {
                 fatalError("Unresolved error \(error), \(error.userInfo)")
