@@ -6,7 +6,7 @@ struct PawsomeApp: App {
     @State private var isLoggedIn: Bool = false
     @State private var username: String = ""
     @State private var profileImageData: Data? = nil
-    @State private var selectedImage: UIImage? = nil // This will hold the selected image
+    @State private var selectedImage: UIImage? = nil
 
     // Shared PersistenceController instance for Core Data
     let persistenceController = PersistenceController.shared
@@ -18,15 +18,15 @@ struct PawsomeApp: App {
                     HomeView(
                         isLoggedIn: $isLoggedIn,
                         currentUsername: $username,
-                        profileImage: Binding<Image?>(
+                        profileImage: Binding<UIImage?>(
                             get: {
-                                if let data = profileImageData, let uiImage = UIImage(data: data) {
-                                    return Image(uiImage: uiImage)
+                                if let data = profileImageData {
+                                    return UIImage(data: data)
                                 }
                                 return nil
                             },
                             set: { newImage in
-                                profileImageData = newImage?.asUIImage()?.pngData()
+                                profileImageData = newImage?.jpegData(compressionQuality: 1.0)
                             }
                         )
                     )
@@ -35,12 +35,10 @@ struct PawsomeApp: App {
                     }
                     .environment(\.managedObjectContext, persistenceController.container.viewContext)
 
-                    // Pass the Core Data context and handle post creation directly
                     ScanView(
-                        capturedImage: $selectedImage, // Pass the selected image binding
+                        capturedImage: $selectedImage,
                         username: username,
                         onPostCreated: { catPost in
-                            // Handle the created post using Core Data here
                             savePostToCoreData(capturedImage: selectedImage, username: username)
                         }
                     )
@@ -51,15 +49,15 @@ struct PawsomeApp: App {
                     ProfileView(
                         isLoggedIn: $isLoggedIn,
                         currentUsername: $username,
-                        profileImage: Binding<Image?>(
+                        profileImage: Binding<UIImage?>(
                             get: {
-                                if let data = profileImageData, let uiImage = UIImage(data: data) {
-                                    return Image(uiImage: uiImage)
+                                if let data = profileImageData {
+                                    return UIImage(data: data)
                                 }
                                 return nil
                             },
                             set: { newImage in
-                                profileImageData = newImage?.asUIImage()?.pngData()
+                                profileImageData = newImage?.jpegData(compressionQuality: 1.0)
                             }
                         )
                     )
@@ -71,15 +69,15 @@ struct PawsomeApp: App {
                 LoginView(
                     isLoggedIn: $isLoggedIn,
                     username: $username,
-                    profileImage: Binding<Image?>(
+                    profileImage: Binding<UIImage?>(
                         get: {
-                            if let data = profileImageData, let uiImage = UIImage(data: data) {
-                                return Image(uiImage: uiImage)
+                            if let data = profileImageData {
+                                return UIImage(data: data)
                             }
                             return nil
                         },
                         set: { newImage in
-                            profileImageData = newImage?.asUIImage()?.pngData()
+                            profileImageData = newImage?.jpegData(compressionQuality: 1.0)
                         }
                     )
                 )
@@ -90,7 +88,7 @@ struct PawsomeApp: App {
     // Function to save post data to Core Data
     private func savePostToCoreData(capturedImage: UIImage?, username: String) {
         let context = persistenceController.container.viewContext
-        let newPost = CatPost(context: context) // Use the CatPost entity
+        let newPost = CatPost(context: context) // Make sure 'CatPost' is set up in your Core Data model
         newPost.username = username
         newPost.timestamp = Date()
 
@@ -103,21 +101,6 @@ struct PawsomeApp: App {
             try context.save()
         } catch {
             print("Failed to save post: \(error.localizedDescription)")
-        }
-    }
-}
-
-// Extension to convert Image to UIImage
-extension Image {
-    func asUIImage() -> UIImage? {
-        let controller = UIHostingController(rootView: self)
-        let view = controller.view
-        
-        // Render the view to an image
-        let targetSize = view?.intrinsicContentSize ?? .zero
-        let renderer = UIGraphicsImageRenderer(size: targetSize)
-        return renderer.image { _ in
-            view?.drawHierarchy(in: CGRect(origin: .zero, size: targetSize), afterScreenUpdates: true)
         }
     }
 }

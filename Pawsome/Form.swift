@@ -6,7 +6,7 @@ import FirebaseStorage
 struct FormView: View {
     @Binding var showForm: Bool
     @Binding var navigateToHome: Bool
-    var imageUI: UIImage?
+    var imageUIData: Data?
     var videoURL: URL?
     var username: String
 
@@ -19,8 +19,8 @@ struct FormView: View {
     var body: some View {
         ScrollView {
             VStack {
-                if let image = imageUI {
-                    Image(uiImage: image)
+                if let imageData = imageUIData, let uiImage = imageFromData(imageData) {
+                    uiImage
                         .resizable()
                         .scaledToFit()
                         .frame(height: 200)
@@ -33,7 +33,13 @@ struct FormView: View {
 
                 inputField(placeholder: "Cat Name", text: $catName)
                 inputField(placeholder: "Breed", text: $breed)
+                
+                #if os(iOS)
                 inputField(placeholder: "Age", text: $age, keyboardType: .numberPad)
+                #else
+                inputField(placeholder: "Age", text: $age)
+                #endif
+
                 inputField(placeholder: "Location", text: $location)
                 inputField(placeholder: "Description", text: $description)
 
@@ -49,38 +55,34 @@ struct FormView: View {
             .padding()
         }
         .onTapGesture {
+            #if os(iOS)
             hideKeyboard()
+            #endif
         }
     }
 
-    // Helper function to check if the form is complete
     private var isFormComplete: Bool {
         return !catName.isEmpty && !breed.isEmpty && !age.isEmpty && !location.isEmpty && !description.isEmpty
     }
 
-    // Function to create a post and save it to Firebase
     private func createPost() {
         guard let ageValue = Int32(age) else { return }
         
-        // Upload image to Firebase Storage (if available)
-        if let image = imageUI {
-            let imageData = image.pngData()
+        if let imageData = imageUIData {
             let storageRef = Storage.storage().reference().child("cat_images/\(UUID().uuidString).png")
             
-            storageRef.putData(imageData!, metadata: nil) { metadata, error in
+            storageRef.putData(imageData, metadata: nil) { metadata, error in
                 guard error == nil else {
                     print("Error uploading image: \(error!.localizedDescription)")
                     return
                 }
                 
-                // Get the image URL after successful upload
                 storageRef.downloadURL { url, error in
                     guard let downloadURL = url, error == nil else {
                         print("Error getting download URL: \(error!.localizedDescription)")
                         return
                     }
                     
-                    // Create a post object with the data
                     let postData: [String: Any] = [
                         "username": username,
                         "catName": catName,
@@ -89,16 +91,14 @@ struct FormView: View {
                         "location": location,
                         "description": description,
                         "imageURL": downloadURL.absoluteString,
-                        "timestamp": Timestamp(date: Date()) // Store the timestamp of the post
+                        "timestamp": Timestamp(date: Date())
                     ]
                     
-                    // Save to Firestore
                     Firestore.firestore().collection("posts").addDocument(data: postData) { error in
                         if let error = error {
                             print("Error saving post: \(error.localizedDescription)")
                         } else {
                             print("Post saved successfully!")
-                            // Update the UI and navigate home
                             showForm = false
                             navigateToHome = true
                         }
@@ -106,44 +106,64 @@ struct FormView: View {
                 }
             }
         } else {
-            // If no image, still create the post with text data only
-            let postData: [String: Any] = [
-                "username": username,
-                "catName": catName,
-                "catBreed": breed,
-                "catAge": ageValue,
-                "location": location,
-                "description": description,
-                "imageURL": "", // No image URL if no image is provided
-                "timestamp": Timestamp(date: Date()) // Store the timestamp of the post
-            ]
-            
-            // Save to Firestore
-            Firestore.firestore().collection("posts").addDocument(data: postData) { error in
-                if let error = error {
-                    print("Error saving post: \(error.localizedDescription)")
-                } else {
-                    print("Post saved successfully!")
-                    // Update the UI and navigate home
-                    showForm = false
-                    navigateToHome = true
-                }
+            savePostData(ageValue: ageValue, imageURL: "")
+        }
+    }
+    
+    private func savePostData(ageValue: Int32, imageURL: String) {
+        let postData: [String: Any] = [
+            "username": username,
+            "catName": catName,
+            "catBreed": breed,
+            "catAge": ageValue,
+            "location": location,
+            "description": description,
+            "imageURL": imageURL,
+            "timestamp": Timestamp(date: Date())
+        ]
+        
+        Firestore.firestore().collection("posts").addDocument(data: postData) { error in
+            if let error = error {
+                print("Error saving post: \(error.localizedDescription)")
+            } else {
+                print("Post saved successfully!")
+                showForm = false
+                navigateToHome = true
             }
         }
     }
+
+    private func inputField(placeholder: String, text: Binding<String>, keyboardType: UIKeyboardType = .default) -> some View {
+        #if os(iOS)
+        return TextField(placeholder, text: text)
+            .keyboardType(keyboardType)
+            .textFieldStyle(RoundedBorderTextFieldStyle())
+            .padding()
+        #else
+        return TextField(placeholder, text: text)
+            .textFieldStyle(RoundedBorderTextFieldStyle())
+            .padding()
+        #endif
+    }
+
+    private func imageFromData(_ data: Data) -> Image? {
+        #if os(iOS)
+        if let uiImage = UIImage(data: data) {
+            return Image(uiImage: uiImage)
+        }
+        #else
+        if let nsImage = NSImage(data: data) {
+            return Image(nsImage: nsImage)
+        }
+        #endif
+        return nil
+    }
 }
 
-// Helper function for text fields
-private func inputField(placeholder: String, text: Binding<String>, keyboardType: UIKeyboardType = .default) -> some View {
-    TextField(placeholder, text: text)
-        .keyboardType(keyboardType)
-        .textFieldStyle(RoundedBorderTextFieldStyle())
-        .padding()
-}
-
-// Extension to hide the keyboard
+#if os(iOS)
 extension View {
     func hideKeyboard() {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 }
+#endif
