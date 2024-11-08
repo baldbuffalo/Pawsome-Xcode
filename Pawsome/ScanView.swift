@@ -3,9 +3,15 @@ import AVKit
 import PhotosUI
 import CoreData
 
+#if os(iOS)
+import UIKit
+#elseif os(macOS)
+import AppKit
+#endif
+
 struct ScanView: View {
     @Environment(\.managedObjectContext) private var viewContext
-    @Binding var capturedImage: UIImage?
+    @Binding var capturedImage: PlatformImage?
     @State private var capturedVideoURL: URL?
     var username: String
     var onPostCreated: (CatPost) -> Void
@@ -49,7 +55,6 @@ struct ScanView: View {
                                 },
                                 mediaType: mediaType)
                     #else
-                    // macOS does not support UIImagePickerController, using NSOpenPanel instead
                     MacMediaPicker(selectedImage: $capturedImage, capturedVideoURL: $capturedVideoURL, mediaType: mediaType)
                     #endif
                 }
@@ -135,7 +140,7 @@ struct ScanView: View {
 
     #if os(macOS)
     struct MacMediaPicker: View {
-        @Binding var selectedImage: UIImage?
+        @Binding var selectedImage: NSImage?
         @Binding var capturedVideoURL: URL?
         var mediaType: MediaPicker.MediaType
 
@@ -147,7 +152,7 @@ struct ScanView: View {
                 if panel.runModal() == .OK, let url = panel.url {
                     if url.pathExtension == "jpg" || url.pathExtension == "png" {
                         if let image = NSImage(contentsOf: url) {
-                            selectedImage = UIImage(data: image.tiffRepresentation!)
+                            selectedImage = image
                         }
                     } else if url.pathExtension == "mov" || url.pathExtension == "mp4" {
                         capturedVideoURL = url
@@ -158,6 +163,12 @@ struct ScanView: View {
     }
     #endif
 }
+
+#if os(iOS)
+typealias PlatformImage = UIImage
+#elseif os(macOS)
+typealias PlatformImage = NSImage
+#endif
 
 struct MediaPicker {
     enum MediaType: String, CaseIterable {
