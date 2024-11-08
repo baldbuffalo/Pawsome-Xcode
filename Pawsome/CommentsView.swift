@@ -3,7 +3,7 @@ import CoreData
 
 struct CommentsView: View {
     @Environment(\.managedObjectContext) private var viewContext
-    @EnvironmentObject var userProfile: UserProfile // Inject the UserProfile object
+    @EnvironmentObject var profileView: ProfileView // Inject the ProfileView object
     @Binding var showComments: Bool
     var post: CatPost // The post to which comments belong
 
@@ -16,16 +16,16 @@ struct CommentsView: View {
                     ForEach(post.commentsArray, id: \.self) { comment in
                         HStack {
                             // Display profile image or default image
-                            if let imageData = comment.profileImageData, let profileImage = UIImage(data: imageData) {
-                                Image(uiImage: profileImage)
+                            if let imageData = comment.profileImageData, let profileImage = imageFromData(imageData) {
+                                profileImage
                                     .resizable()
                                     .scaledToFit()
                                     .frame(width: 40, height: 40)
                                     .clipShape(Circle())
                                     .padding(.trailing, 8)
-                            } else if let userProfileImageData = userProfile.profileImageData, let profileImage = UIImage(data: userProfileImageData) {
-                                // Use user's profile image data if no image in the comment
-                                Image(uiImage: profileImage)
+                            } else if let userProfileImageData = profileView.profileImageData, let profileImage = imageFromData(userProfileImageData) {
+                                // Use profile image data if no image in the comment
+                                profileImage
                                     .resizable()
                                     .scaledToFit()
                                     .frame(width: 40, height: 40)
@@ -42,7 +42,8 @@ struct CommentsView: View {
                             }
 
                             VStack(alignment: .leading) {
-                                Text(comment.username ?? "Unknown")
+                                // Use the username from ProfileView
+                                Text(profileView.username) // Get the username from ProfileView object
                                     .font(.subheadline)
                                     .foregroundColor(.gray)
                                 Text(comment.text ?? "")
@@ -76,11 +77,11 @@ struct CommentsView: View {
 
         let newComment = Comment(context: viewContext)
         newComment.text = commentText
-        newComment.username = "Your Username" // Replace with actual username (e.g., from UserProfile)
+        newComment.username = profileView.username // Use the username from ProfileView object
         newComment.timestamp = Date()
 
-        // Store the user's profile image data from the shared UserProfile object
-        newComment.profileImageData = userProfile.profileImageData
+        // Store the profile image data from the ProfileView object
+        newComment.profileImageData = profileView.profileImageData
 
         newComment.post = post // Set the relationship
 
@@ -91,5 +92,18 @@ struct CommentsView: View {
         } catch {
             print("Error saving comment: \(error.localizedDescription)")
         }
+    }
+
+    private func imageFromData(_ data: Data) -> Image? {
+        #if os(iOS)
+        if let uiImage = UIImage(data: data) {
+            return Image(uiImage: uiImage)
+        }
+        #else
+        if let nsImage = NSImage(data: data) {
+            return Image(nsImage: nsImage)
+        }
+        #endif
+        return nil
     }
 }

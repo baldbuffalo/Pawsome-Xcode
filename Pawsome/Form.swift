@@ -3,6 +3,10 @@ import Firebase
 import FirebaseFirestore
 import FirebaseStorage
 
+#if os(iOS)
+import UIKit
+#endif
+
 struct FormView: View {
     @Binding var showForm: Bool
     @Binding var navigateToHome: Bool
@@ -133,14 +137,21 @@ struct FormView: View {
         }
     }
 
-    private func inputField(placeholder: String, text: Binding<String>, keyboardType: UIKeyboardType = .default) -> some View {
+    @ViewBuilder
+    private func inputField(placeholder: String, text: Binding<String>, keyboardType: UIKeyboardType? = nil) -> some View {
         #if os(iOS)
-        return TextField(placeholder, text: text)
-            .keyboardType(keyboardType)
-            .textFieldStyle(RoundedBorderTextFieldStyle())
-            .padding()
+        if let keyboardType = keyboardType {
+            TextField(placeholder, text: text)
+                .keyboardType(keyboardType)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .padding()
+        } else {
+            TextField(placeholder, text: text)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .padding()
+        }
         #else
-        return TextField(placeholder, text: text)
+        TextField(placeholder, text: text)
             .textFieldStyle(RoundedBorderTextFieldStyle())
             .padding()
         #endif
