@@ -13,6 +13,7 @@ struct FormView: View {
     var imageUIData: Data?
     var videoURL: URL?
     var username: String
+    var onPostCreated: (() -> Void)?
 
     @State private var catName: String = ""
     @State private var breed: String = ""
@@ -37,7 +38,7 @@ struct FormView: View {
 
                 inputField(placeholder: "Cat Name", text: $catName)
                 inputField(placeholder: "Breed", text: $breed)
-                
+
                 #if os(iOS)
                 inputField(placeholder: "Age", text: $age, keyboardType: .numberPad)
                 #else
@@ -71,23 +72,24 @@ struct FormView: View {
 
     private func createPost() {
         guard let ageValue = Int32(age) else { return }
-        
+
         if let imageData = imageUIData {
             let storageRef = Storage.storage().reference().child("cat_images/\(UUID().uuidString).png")
-            
+
             storageRef.putData(imageData, metadata: nil) { metadata, error in
                 guard error == nil else {
                     print("Error uploading image: \(error!.localizedDescription)")
                     return
                 }
-                
+
                 storageRef.downloadURL { url, error in
                     guard let downloadURL = url, error == nil else {
                         print("Error getting download URL: \(error!.localizedDescription)")
                         return
                     }
-                    
-                    let postData: [String: Any] = [
+
+                    // Save the post data in Firestore
+                    Firestore.firestore().collection("posts").addDocument(data: [
                         "username": username,
                         "catName": catName,
                         "catBreed": breed,
@@ -96,9 +98,7 @@ struct FormView: View {
                         "description": description,
                         "imageURL": downloadURL.absoluteString,
                         "timestamp": Timestamp(date: Date())
-                    ]
-                    
-                    Firestore.firestore().collection("posts").addDocument(data: postData) { error in
+                    ]) { error in
                         if let error = error {
                             print("Error saving post: \(error.localizedDescription)")
                         } else {
@@ -110,53 +110,32 @@ struct FormView: View {
                 }
             }
         } else {
-            savePostData(ageValue: ageValue, imageURL: "")
-        }
-    }
-    
-    private func savePostData(ageValue: Int32, imageURL: String) {
-        let postData: [String: Any] = [
-            "username": username,
-            "catName": catName,
-            "catBreed": breed,
-            "catAge": ageValue,
-            "location": location,
-            "description": description,
-            "imageURL": imageURL,
-            "timestamp": Timestamp(date: Date())
-        ]
-        
-        Firestore.firestore().collection("posts").addDocument(data: postData) { error in
-            if let error = error {
-                print("Error saving post: \(error.localizedDescription)")
-            } else {
-                print("Post saved successfully!")
-                showForm = false
-                navigateToHome = true
+            // Save the post data without an image
+            Firestore.firestore().collection("posts").addDocument(data: [
+                "username": username,
+                "catName": catName,
+                "catBreed": breed,
+                "catAge": Int32(age)!,
+                "location": location,
+                "description": description,
+                "imageURL": "",
+                "timestamp": Timestamp(date: Date())
+            ]) { error in
+                if let error = error {
+                    print("Error saving post: \(error.localizedDescription)")
+                } else {
+                    print("Post saved successfully!")
+                    showForm = false
+                    navigateToHome = true
+                }
             }
         }
+
+        // Call the onPostCreated closure if it's set
+        onPostCreated?()
     }
 
-    @ViewBuilder
-    private func inputField(placeholder: String, text: Binding<String>, keyboardType: UIKeyboardType? = nil) -> some View {
-        #if os(iOS)
-        if let keyboardType = keyboardType {
-            TextField(placeholder, text: text)
-                .keyboardType(keyboardType)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding()
-        } else {
-            TextField(placeholder, text: text)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding()
-        }
-        #else
-        TextField(placeholder, text: text)
-            .textFieldStyle(RoundedBorderTextFieldStyle())
-            .padding()
-        #endif
-    }
-
+    // Helper function to convert image data to a SwiftUI Image
     private func imageFromData(_ data: Data) -> Image? {
         #if os(iOS)
         if let uiImage = UIImage(data: data) {
@@ -169,12 +148,25 @@ struct FormView: View {
         #endif
         return nil
     }
-}
 
-#if os(iOS)
-extension View {
+    #if os(iOS)
+    // This inputField method is now scoped within the iOS block
+    private func inputField(placeholder: String, text: Binding<String>, keyboardType: UIKeyboardType? = nil) -> some View {
+        if let keyboardType = keyboardType {
+            return AnyView(TextField(placeholder, text: text)
+                            .keyboardType(keyboardType)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .padding())
+        } else {
+            return AnyView(TextField(placeholder, text: text)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .padding())
+        }
+    }
+
+    // Helper function to hide keyboard on tap
     func hideKeyboard() {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
+    #endif
 }
-#endif

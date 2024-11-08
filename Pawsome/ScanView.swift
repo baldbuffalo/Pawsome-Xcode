@@ -44,14 +44,11 @@ struct ScanView: View {
                     ImagePicker(
                         sourceType: sourceTypeForMediaType(mediaType),
                         selectedImage: $capturedImage,
-                        capturedVideoURL: $capturedVideoURL,
-                        onImageCaptured: {
-                            navigateToForm = true
-                        },
-                        mediaType: mediaType
-                    )
+                        capturedVideoURL: $capturedVideoURL
+                    ) {
+                        navigateToForm = true
+                    }
                     #else
-                    // macOS does not support UIImagePickerController, using NSOpenPanel instead
                     MacMediaPicker(
                         selectedImage: $capturedImage,
                         capturedVideoURL: $capturedVideoURL,
@@ -65,7 +62,7 @@ struct ScanView: View {
                 FormView(
                     showForm: $navigateToForm,
                     navigateToHome: $navigateToHome,
-                    imageUI: capturedImage,
+                    imageUIData: capturedImage?.pngData(),  // Fix here: Convert UIImage to Data
                     videoURL: capturedVideoURL,
                     username: username,
                     onPostCreated: { catPost in
@@ -91,34 +88,11 @@ struct ScanView: View {
         @Binding var selectedImage: UIImage?
         @Binding var capturedVideoURL: URL?
         var onImageCaptured: () -> Void
-        var mediaType: MediaPicker.MediaType
-
-        init(sourceType: UIImagePickerController.SourceType,
-             selectedImage: Binding<UIImage?>,
-             capturedVideoURL: Binding<URL?>,
-             onImageCaptured: @escaping () -> Void,
-             mediaType: MediaPicker.MediaType) {
-            self.sourceType = sourceType
-            self._selectedImage = selectedImage
-            self._capturedVideoURL = capturedVideoURL
-            self.onImageCaptured = onImageCaptured
-            self.mediaType = mediaType
-        }
 
         func makeUIViewController(context: Context) -> UIImagePickerController {
             let picker = UIImagePickerController()
             picker.sourceType = sourceType
             picker.delegate = context.coordinator
-
-            switch mediaType {
-            case .photo:
-                picker.mediaTypes = ["public.image"]
-            case .video:
-                picker.mediaTypes = ["public.movie"]
-            case .library:
-                picker.mediaTypes = ["public.image", "public.movie"]
-            }
-
             return picker
         }
 
@@ -141,7 +115,6 @@ struct ScanView: View {
                 } else if let videoURL = info[.mediaURL] as? URL {
                     parent.capturedVideoURL = videoURL
                 }
-
                 parent.onImageCaptured()
                 picker.dismiss(animated: true)
             }
