@@ -6,7 +6,7 @@ import CoreData
 struct ScanView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Binding var capturedImage: UIImage?
-    @State private var capturedVideoURL: URL? // State variable for captured video
+    @State private var capturedVideoURL: URL?
     var username: String
     var onPostCreated: (CatPost) -> Void
 
@@ -14,7 +14,7 @@ struct ScanView: View {
     @State private var mediaType: MediaPicker.MediaType = .photo
     @State private var showMediaTypeActionSheet: Bool = false
     @State private var navigateToForm: Bool = false
-    @State private var navigateToHome: Bool = false // New state variable for navigation
+    @State private var navigateToHome: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -40,18 +40,22 @@ struct ScanView: View {
                     ])
                 }
                 .sheet(isPresented: $isImagePickerPresented) {
+                    #if os(iOS)
                     ImagePicker(sourceType: sourceTypeForMediaType(mediaType),
                                 selectedImage: $capturedImage,
                                 capturedVideoURL: $capturedVideoURL,
                                 onImageCaptured: {
-                                    navigateToForm = true // Set to true to trigger navigation
+                                    navigateToForm = true
                                 },
                                 mediaType: mediaType)
+                    #else
+                    // macOS does not support UIImagePickerController, using NSOpenPanel instead
+                    MacMediaPicker(selectedImage: $capturedImage, capturedVideoURL: $capturedVideoURL, mediaType: mediaType)
+                    #endif
                 }
             }
             .navigationTitle("Camera")
             .navigationDestination(isPresented: $navigateToForm) {
-                // Pass the captured image and video URL to FormView
                 FormView(showForm: $navigateToForm,
                          navigateToHome: $navigateToHome,
                          imageUI: capturedImage,
@@ -73,11 +77,11 @@ struct ScanView: View {
         }
     }
 
-    // Nested ImagePicker struct
+    #if os(iOS)
     struct ImagePicker: UIViewControllerRepresentable {
         var sourceType: UIImagePickerController.SourceType
         @Binding var selectedImage: UIImage?
-        @Binding var capturedVideoURL: URL? // New binding for video URL
+        @Binding var capturedVideoURL: URL?
         var onImageCaptured: () -> Void
         var mediaType: MediaPicker.MediaType
 
@@ -111,14 +115,14 @@ struct ScanView: View {
                 self.parent = parent
             }
 
-            func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+            func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
                 if let image = info[.originalImage] as? UIImage {
                     parent.selectedImage = image
                 } else if let videoURL = info[.mediaURL] as? URL {
-                    parent.capturedVideoURL = videoURL // Capture the video URL
+                    parent.capturedVideoURL = videoURL
                 }
 
-                parent.onImageCaptured() // Trigger the action for navigation
+                parent.onImageCaptured()
                 picker.dismiss(animated: true)
             }
 
@@ -127,14 +131,39 @@ struct ScanView: View {
             }
         }
     }
+    #endif
+
+    #if os(macOS)
+    struct MacMediaPicker: View {
+        @Binding var selectedImage: UIImage?
+        @Binding var capturedVideoURL: URL?
+        var mediaType: MediaPicker.MediaType
+
+        var body: some View {
+            Button("Choose File") {
+                let panel = NSOpenPanel()
+                panel.allowedFileTypes = ["public.image", "public.movie"]
+                panel.allowsMultipleSelection = false
+                if panel.runModal() == .OK, let url = panel.url {
+                    if url.pathExtension == "jpg" || url.pathExtension == "png" {
+                        if let image = NSImage(contentsOf: url) {
+                            selectedImage = UIImage(data: image.tiffRepresentation!)
+                        }
+                    } else if url.pathExtension == "mov" || url.pathExtension == "mp4" {
+                        capturedVideoURL = url
+                    }
+                }
+            }
+        }
+    }
+    #endif
 }
 
-// Define MediaPicker as a separate struct for better organization
 struct MediaPicker {
     enum MediaType: String, CaseIterable {
-        case library // For selecting from the photo library
-        case photo   // For capturing a photo using the camera
-        case video   // For capturing a video using the camera
+        case library
+        case photo
+        case video
 
         var displayName: String {
             switch self {
