@@ -13,14 +13,14 @@ struct FormView: View {
     var imageUIData: Data?
     var videoURL: URL?
     var username: String
-    var onPostCreated: ((Bool) -> Void)? // Add the onPostCreated closure here
-
+    var onPostCreated: ((Bool) -> Void)?
+    
     @State private var catName: String = ""
     @State private var breed: String = ""
     @State private var age: String = ""
     @State private var location: String = ""
     @State private var description: String = ""
-
+    
     var body: some View {
         ScrollView {
             VStack {
@@ -35,19 +35,19 @@ struct FormView: View {
                         .foregroundColor(.gray)
                         .padding()
                 }
-
+                
                 inputField(placeholder: "Cat Name", text: $catName)
                 inputField(placeholder: "Breed", text: $breed)
-
-                #if os(iOS)
+                
+#if os(iOS)
                 inputField(placeholder: "Age", text: $age, keyboardType: .numberPad)
-                #else
+#else
                 inputField(placeholder: "Age", text: $age)
-                #endif
-
+#endif
+                
                 inputField(placeholder: "Location", text: $location)
                 inputField(placeholder: "Description", text: $description)
-
+                
                 Button(action: {
                     createPost()
                 }) {
@@ -60,34 +60,34 @@ struct FormView: View {
             .padding()
         }
         .onTapGesture {
-            #if os(iOS)
+#if os(iOS)
             hideKeyboard()
-            #endif
+#endif
         }
     }
-
+    
     private var isFormComplete: Bool {
         return !catName.isEmpty && !breed.isEmpty && !age.isEmpty && !location.isEmpty && !description.isEmpty
     }
-
+    
     private func createPost() {
         guard let ageValue = Int32(age) else { return }
-
+        
         if let imageData = imageUIData {
             let storageRef = Storage.storage().reference().child("cat_images/\(UUID().uuidString).png")
-
+            
             storageRef.putData(imageData, metadata: nil) { metadata, error in
                 guard error == nil else {
                     print("Error uploading image: \(error!.localizedDescription)")
                     return
                 }
-
+                
                 storageRef.downloadURL { url, error in
                     guard let downloadURL = url, error == nil else {
                         print("Error getting download URL: \(error!.localizedDescription)")
                         return
                     }
-
+                    
                     let postData: [String: Any] = [
                         "username": username,
                         "catName": catName,
@@ -98,7 +98,7 @@ struct FormView: View {
                         "imageURL": downloadURL.absoluteString,
                         "timestamp": Timestamp(date: Date())
                     ]
-
+                    
                     Firestore.firestore().collection("posts").addDocument(data: postData) { error in
                         if let error = error {
                             print("Error saving post: \(error.localizedDescription)")
@@ -115,7 +115,7 @@ struct FormView: View {
             savePostData(ageValue: ageValue, imageURL: "")
         }
     }
-
+    
     private func savePostData(ageValue: Int32, imageURL: String) {
         let postData: [String: Any] = [
             "username": username,
@@ -127,7 +127,7 @@ struct FormView: View {
             "imageURL": imageURL,
             "timestamp": Timestamp(date: Date())
         ]
-
+        
         Firestore.firestore().collection("posts").addDocument(data: postData) { error in
             if let error = error {
                 print("Error saving post: \(error.localizedDescription)")
@@ -139,8 +139,22 @@ struct FormView: View {
             }
         }
     }
-
-    #if os(iOS)
+    
+    private func imageFromData(_ data: Data) -> Image? {
+#if os(iOS)
+        if let uiImage = UIImage(data: data) {
+            return Image(uiImage: uiImage)
+        }
+#else
+        if let nsImage = NSImage(data: data) {
+            return Image(nsImage: nsImage)
+        }
+#endif
+        return nil
+    }
+    
+    // iOS-specific inputField
+#if os(iOS)
     private func inputField(placeholder: String, text: Binding<String>, keyboardType: UIKeyboardType? = nil) -> some View {
         let actualKeyboardType = keyboardType ?? .default
         return TextField(placeholder, text: text)
@@ -148,26 +162,16 @@ struct FormView: View {
             .textFieldStyle(RoundedBorderTextFieldStyle())
             .padding()
     }
-    #else
-    private func inputField(placeholder: String, text: Binding<String>, keyboardType: UIKeyboardType? = nil) -> some View {
+#endif
+    
+    // macOS-specific inputField (no UIKeyboardType here)
+#if os(macOS)
+    private func inputField(placeholder: String, text: Binding<String>) -> some View {
         TextField(placeholder, text: text)
-            .textFieldStyle(RoundedBorderTextFieldStyle())
-            .padding()
+            .textFieldStyle(RoundedBorderTextFieldStyle()) // Standard macOS style
+            .padding() // Add padding for spacing
     }
-    #endif
-
-    private func imageFromData(_ data: Data) -> Image? {
-        #if os(iOS)
-        if let uiImage = UIImage(data: data) {
-            return Image(uiImage: uiImage)
-        }
-        #else
-        if let nsImage = NSImage(data: data) {
-            return Image(nsImage: nsImage)
-        }
-        #endif
-        return nil
-    }
+#endif
 }
 
 #if os(iOS)
