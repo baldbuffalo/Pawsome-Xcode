@@ -3,15 +3,9 @@ import AVKit
 import PhotosUI
 import CoreData
 
-#if os(iOS)
-import UIKit
-#elseif os(macOS)
-import AppKit
-#endif
-
 struct ScanView: View {
     @Environment(\.managedObjectContext) private var viewContext
-    @Binding var capturedImage: PlatformImage?
+    @Binding var capturedImage: UIImage?
     @State private var capturedVideoURL: URL?
     var username: String
     var onPostCreated: (CatPost) -> Void
@@ -47,28 +41,37 @@ struct ScanView: View {
                 }
                 .sheet(isPresented: $isImagePickerPresented) {
                     #if os(iOS)
-                    ImagePicker(sourceType: sourceTypeForMediaType(mediaType),
-                                selectedImage: $capturedImage,
-                                capturedVideoURL: $capturedVideoURL,
-                                onImageCaptured: {
-                                    navigateToForm = true
-                                },
-                                mediaType: mediaType)
+                    ImagePicker(
+                        sourceType: sourceTypeForMediaType(mediaType),
+                        selectedImage: $capturedImage,
+                        capturedVideoURL: $capturedVideoURL,
+                        onImageCaptured: {
+                            navigateToForm = true
+                        },
+                        mediaType: mediaType
+                    )
                     #else
-                    MacMediaPicker(selectedImage: $capturedImage, capturedVideoURL: $capturedVideoURL, mediaType: mediaType)
+                    // macOS does not support UIImagePickerController, using NSOpenPanel instead
+                    MacMediaPicker(
+                        selectedImage: $capturedImage,
+                        capturedVideoURL: $capturedVideoURL,
+                        mediaType: mediaType
+                    )
                     #endif
                 }
             }
             .navigationTitle("Camera")
             .navigationDestination(isPresented: $navigateToForm) {
-                FormView(showForm: $navigateToForm,
-                         navigateToHome: $navigateToHome,
-                         imageUI: capturedImage,
-                         videoURL: capturedVideoURL,
-                         username: username,
-                         onPostCreated: { catPost in
-                             onPostCreated(catPost)
-                         })
+                FormView(
+                    showForm: $navigateToForm,
+                    navigateToHome: $navigateToHome,
+                    imageUI: capturedImage,
+                    videoURL: capturedVideoURL,
+                    username: username,
+                    onPostCreated: { catPost in
+                        onPostCreated(catPost)
+                    }
+                )
             }
         }
     }
@@ -89,6 +92,18 @@ struct ScanView: View {
         @Binding var capturedVideoURL: URL?
         var onImageCaptured: () -> Void
         var mediaType: MediaPicker.MediaType
+
+        init(sourceType: UIImagePickerController.SourceType,
+             selectedImage: Binding<UIImage?>,
+             capturedVideoURL: Binding<URL?>,
+             onImageCaptured: @escaping () -> Void,
+             mediaType: MediaPicker.MediaType) {
+            self.sourceType = sourceType
+            self._selectedImage = selectedImage
+            self._capturedVideoURL = capturedVideoURL
+            self.onImageCaptured = onImageCaptured
+            self.mediaType = mediaType
+        }
 
         func makeUIViewController(context: Context) -> UIImagePickerController {
             let picker = UIImagePickerController()
@@ -140,7 +155,7 @@ struct ScanView: View {
 
     #if os(macOS)
     struct MacMediaPicker: View {
-        @Binding var selectedImage: NSImage?
+        @Binding var selectedImage: UIImage?
         @Binding var capturedVideoURL: URL?
         var mediaType: MediaPicker.MediaType
 
@@ -152,7 +167,7 @@ struct ScanView: View {
                 if panel.runModal() == .OK, let url = panel.url {
                     if url.pathExtension == "jpg" || url.pathExtension == "png" {
                         if let image = NSImage(contentsOf: url) {
-                            selectedImage = image
+                            selectedImage = UIImage(data: image.tiffRepresentation!)
                         }
                     } else if url.pathExtension == "mov" || url.pathExtension == "mp4" {
                         capturedVideoURL = url
@@ -163,12 +178,6 @@ struct ScanView: View {
     }
     #endif
 }
-
-#if os(iOS)
-typealias PlatformImage = UIImage
-#elseif os(macOS)
-typealias PlatformImage = NSImage
-#endif
 
 struct MediaPicker {
     enum MediaType: String, CaseIterable {
