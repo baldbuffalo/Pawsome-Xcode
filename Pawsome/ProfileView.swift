@@ -2,49 +2,15 @@ import SwiftUI
 import Firebase
 import FirebaseStorage
 import FirebaseFirestore
-import FirebaseAuth // Add this import to use Firebase Authentication
+import FirebaseAuth
 
-struct ProfileView: View {
-    @State private var selectedImage: NSImage?
-    @State private var profileImage: Image?
-    @State private var isImagePickerPresented = false
-
-    var body: some View {
-        VStack {
-            // Display the selected image or a placeholder
-            if let profileImage = profileImage {
-                profileImage
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 150, height: 150)
-            } else {
-                Text("No Profile Image")
-                    .frame(width: 150, height: 150)
-                    .background(Color.gray)
-            }
-            
-            // Button to pick an image
-            Button("Select Profile Picture") {
-                isImagePickerPresented.toggle()
-            }
-            
-            // Save button to upload the image and save the URL to Firestore
-            Button("Save") {
-                if let selectedImage = selectedImage {
-                    Task {
-                        await uploadProfileImageToFirebase(image: selectedImage)
-                    }
-                }
-            }
-            .disabled(selectedImage == nil) // Disable the button if no image is selected
-        }
-        .sheet(isPresented: $isImagePickerPresented) {
-            ImagePicker(selectedImage: $selectedImage, profileImage: $profileImage)
-        }
-    }
+class ProfileView: ObservableObject {
+    @Published var selectedImage: NSImage?
+    @Published var profileImage: Image?
+    @Published var isImagePickerPresented = false
     
     // Function to upload the profile image to Firebase Storage
-    private func uploadProfileImageToFirebase(image: NSImage) async {
+    func uploadProfileImageToFirebase(image: NSImage) async {
         let storageRef = Storage.storage().reference().child("profilePictures/\(UUID().uuidString).png")
         
         // Convert the NSImage to data
@@ -77,6 +43,44 @@ struct ProfileView: View {
             } else {
                 print("Profile picture URL successfully saved!")
             }
+        }
+    }
+}
+
+struct ProfileViewUI: View {
+    @StateObject var profileView = ProfileView()  // Create an instance of ProfileView
+    
+    var body: some View {
+        VStack {
+            // Display the selected image or a placeholder
+            if let profileImage = profileView.profileImage {
+                profileImage
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 150, height: 150)
+            } else {
+                Text("No Profile Image")
+                    .frame(width: 150, height: 150)
+                    .background(Color.gray)
+            }
+            
+            // Button to pick an image
+            Button("Select Profile Picture") {
+                profileView.isImagePickerPresented.toggle()
+            }
+            
+            // Save button to upload the image and save the URL to Firestore
+            Button("Save") {
+                if let selectedImage = profileView.selectedImage {
+                    Task {
+                        await profileView.uploadProfileImageToFirebase(image: selectedImage)
+                    }
+                }
+            }
+            .disabled(profileView.selectedImage == nil) // Disable the button if no image is selected
+        }
+        .sheet(isPresented: $profileView.isImagePickerPresented) {
+            ImagePicker(selectedImage: $profileView.selectedImage, profileImage: $profileView.profileImage)
         }
     }
 }
