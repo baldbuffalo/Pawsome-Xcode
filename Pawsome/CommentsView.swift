@@ -53,7 +53,9 @@ struct CommentsView: View {
                 .order(by: "timestamp", descending: false)
                 .getDocuments()
             
-            comments = snapshot.documents.compactMap { try? $0.data(as: Comment.self) }
+            comments = snapshot.documents.compactMap { document in
+                try? document.data(as: Comment.self)
+            }
         } catch {
             print("Failed to fetch comments: \(error.localizedDescription)")
         }
@@ -134,4 +136,12 @@ struct CommentRow: View {
         #endif
         return nil
     }
+}
+
+struct Comment: Identifiable {
+    @DocumentID var id: String?
+    var text: String
+    var username: String
+    var timestamp: Date
+    var profileImageData: Data? // Profile image as Data, can be nil
 }
