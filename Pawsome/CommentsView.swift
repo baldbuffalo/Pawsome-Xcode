@@ -1,55 +1,25 @@
 import SwiftUI
-import CoreData
+import FirebaseFirestore
 
 struct CommentsView: View {
-    @Environment(\.managedObjectContext) private var viewContext
-    @EnvironmentObject var profileView: ProfileView // Inject the ProfileView object
+    @EnvironmentObject var profileView: ProfileView // Injected ProfileView object
     @Binding var showComments: Bool
-    var post: CatPost // The post to which comments belong
+    var postID: String // The ID of the post to which comments belong
 
     @State private var commentText: String = ""
+    @State private var comments: [Comment] = []
+    @State private var isLoading = true
+
+    private let db = Firestore.firestore()
 
     var body: some View {
         NavigationView {
             VStack {
-                List {
-                    ForEach(post.commentsArray, id: \.self) { comment in
-                        HStack {
-                            // Display profile image or default image
-                            if let imageData = comment.profileImageData, let profileImage = imageFromData(imageData) {
-                                profileImage
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(width: 40, height: 40)
-                                    .clipShape(Circle())
-                                    .padding(.trailing, 8)
-                            } else if let userProfileImageData = profileView.profileImageData, let profileImage = imageFromData(userProfileImageData) {
-                                // Use profile image data if no image in the comment
-                                profileImage
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(width: 40, height: 40)
-                                    .clipShape(Circle())
-                                    .padding(.trailing, 8)
-                            } else {
-                                // Default image if no profile image is available
-                                Image("defaultProfileImage") // Replace with your default image asset
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(width: 40, height: 40)
-                                    .clipShape(Circle())
-                                    .padding(.trailing, 8)
-                            }
-
-                            VStack(alignment: .leading) {
-                                // Use the username from ProfileView
-                                Text(profileView.username) // Get the username from ProfileView object
-                                    .font(.subheadline)
-                                    .foregroundColor(.gray)
-                                Text(comment.text ?? "")
-                                    .font(.body)
-                            }
-                        }
+                if isLoading {
+                    ProgressView("Loading Comments...")
+                } else {
+                    List(comments) { comment in
+                        CommentRow(comment: comment, profileView: profileView)
                     }
                 }
 
@@ -65,6 +35,11 @@ struct CommentsView: View {
                     .padding()
                 }
             }
+            .onAppear {
+                Task {
+                    await loadComments()
+                }
+            }
             .navigationTitle("Comments")
             .navigationBarItems(trailing: Button("Close") {
                 showComments = false
@@ -72,25 +47,78 @@ struct CommentsView: View {
         }
     }
 
+    private func loadComments() async {
+        do {
+            let snapshot = try await db.collection("posts").document(postID).collection("comments")
+                .order(by: "timestamp", descending: false)
+                .getDocuments()
+            
+            comments = snapshot.documents.compactMap { try? $0.data(as: Comment.self) }
+        } catch {
+            print("Failed to fetch comments: \(error.localizedDescription)")
+        }
+        isLoading = false
+    }
+
     private func saveComment() {
         guard !commentText.isEmpty else { return }
 
-        let newComment = Comment(context: viewContext)
-        newComment.text = commentText
-        newComment.username = profileView.username // Use the username from ProfileView object
-        newComment.timestamp = Date()
+        let newComment = Comment(
+            text: commentText,
+            username: profileView.username,
+            timestamp: Date(),
+            profileImageData: profileView.profileImageData
+        )
 
-        // Store the profile image data from the ProfileView object
-        newComment.profileImageData = profileView.profileImageData
+        Task {
+            do {
+                let commentRef = db.collection("posts").document(postID).collection("comments")
+                _ = try commentRef.addDocument(from: newComment)
+                comments.append(newComment)
+                commentText = "" // Clear text field after adding
+            } catch {
+                print("Failed to save comment: \(error.localizedDescription)")
+            }
+        }
+    }
+}
 
-        newComment.post = post // Set the relationship
+struct CommentRow: View {
+    let comment: Comment
+    let profileView: ProfileView
 
-        do {
-            try viewContext.save()
-            print("Comment saved successfully")
-            commentText = "" // Clear the text field after saving
-        } catch {
-            print("Error saving comment: \(error.localizedDescription)")
+    var body: some View {
+        HStack {
+            if let imageData = comment.profileImageData, let image = imageFromData(imageData) {
+                image
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 40, height: 40)
+                    .clipShape(Circle())
+                    .padding(.trailing, 8)
+            } else if let userImageData = profileView.profileImageData, let image = imageFromData(userImageData) {
+                image
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 40, height: 40)
+                    .clipShape(Circle())
+                    .padding(.trailing, 8)
+            } else {
+                Image("defaultProfileImage") // Default profile image
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 40, height: 40)
+                    .clipShape(Circle())
+                    .padding(.trailing, 8)
+            }
+
+            VStack(alignment: .leading) {
+                Text(comment.username)
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+                Text(comment.text)
+                    .font(.body)
+            }
         }
     }
 
