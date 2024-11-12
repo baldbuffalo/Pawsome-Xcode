@@ -1,5 +1,6 @@
 import SwiftUI
 import FirebaseFirestore
+import FirebaseAuth
 
 struct CommentsView: View {
     @EnvironmentObject var profileView: ProfileView // Injected ProfileView object
@@ -69,7 +70,7 @@ struct CommentsView: View {
             text: commentText,
             username: profileView.username,
             timestamp: Date(),
-            profileImageData: profileView.profileImageData
+            profilePictureUrl: profileView.profilePictureUrl // Assuming you are storing the profile picture URL here
         )
 
         Task {
@@ -91,22 +92,17 @@ struct CommentRow: View {
 
     var body: some View {
         HStack {
-            if let imageData = comment.profileImageData, let image = imageFromData(imageData) {
-                image
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 40, height: 40)
-                    .clipShape(Circle())
-                    .padding(.trailing, 8)
-            } else if let userImageData = profileView.profileImageData, let image = imageFromData(userImageData) {
-                image
+            // Use profilePicture from ProfileView if available
+            if let profilePicture = profileView.profilePicture {
+                profilePicture
                     .resizable()
                     .scaledToFit()
                     .frame(width: 40, height: 40)
                     .clipShape(Circle())
                     .padding(.trailing, 8)
             } else {
-                Image("defaultProfileImage") // Default profile image
+                // Use default profile image if none exists
+                Image("defaultProfileImage")
                     .resizable()
                     .scaledToFit()
                     .frame(width: 40, height: 40)
@@ -123,25 +119,70 @@ struct CommentRow: View {
             }
         }
     }
-
-    private func imageFromData(_ data: Data) -> Image? {
-        #if os(iOS)
-        if let uiImage = UIImage(data: data) {
-            return Image(uiImage: uiImage)
-        }
-        #else
-        if let nsImage = NSImage(data: data) {
-            return Image(nsImage: nsImage)
-        }
-        #endif
-        return nil
-    }
 }
 
-struct Comment: Identifiable {
+struct Comment: Identifiable, Codable {
     @DocumentID var id: String?
     var text: String
     var username: String
     var timestamp: Date
-    var profileImageData: Data? // Profile image as Data, can be nil
+    var profilePictureUrl: String? // Store the profile picture URL here
+}
+
+struct ProfileView: View {
+    @State private var profilePicture: Image? // To store the profile image in memory
+    @State var profilePictureUrl: String? // URL for profile image from Firestore
+    var username: String = "User123" // Example username
+    
+    var body: some View {
+        VStack {
+            if let profilePicture = profilePicture {
+                profilePicture
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 100, height: 100)
+                    .clipShape(Circle())
+            } else {
+                // Default profile image if no picture is loaded
+                Image("defaultProfileImage")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 100, height: 100)
+                    .clipShape(Circle())
+            }
+
+            Text(username)
+                .font(.title)
+                .padding()
+        }
+        .onAppear {
+            Task {
+                await loadProfilePicture()
+            }
+        }
+    }
+
+    // Load the profile picture URL from Firestore
+    func loadProfilePicture() async {
+        let db = Firestore.firestore()
+        let userID = Auth.auth().currentUser?.uid ?? "unknownUserID"
+        let userRef = db.collection("users").document(userID)
+
+        // Fetch the profile picture URL from Firestore
+        do {
+            let document = try await userRef.getDocument()
+            if let data = document.data(), let imageUrlString = data["profileImageUrl"] as? String {
+                profilePictureUrl = imageUrlString
+
+                // Download the profile image from the URL
+                if let imageUrl = URL(string: imageUrlString) {
+                    if let imageData = try? Data(contentsOf: imageUrl), let uiImage = UIImage(data: imageData) {
+                        profilePicture = Image(uiImage: uiImage)
+                    }
+                }
+            }
+        } catch {
+            print("Failed to fetch profile image: \(error.localizedDescription)")
+        }
+    }
 }
