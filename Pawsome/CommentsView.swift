@@ -20,7 +20,7 @@ struct CommentsView: View {
                     ProgressView("Loading Comments...")
                 } else {
                     List(comments) { comment in
-                        CommentRow(comment: comment, profileView: profileView)
+                        CommentRow(comment: comment)
                     }
                 }
 
@@ -42,9 +42,13 @@ struct CommentsView: View {
                 }
             }
             .navigationTitle("Comments")
-            .navigationBarItems(trailing: Button("Close") {
-                showComments = false
-            })
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Close") {
+                        showComments = false
+                    }
+                }
+            }
         }
     }
 
@@ -70,7 +74,7 @@ struct CommentsView: View {
             text: commentText,
             username: profileView.username,
             timestamp: Date(),
-            profilePictureUrl: profileView.profilePictureUrl // Assuming you are storing the profile picture URL here
+            profilePictureUrl: profileView.profilePictureUrl // Uses data from ProfileView.swift
         )
 
         Task {
@@ -88,17 +92,26 @@ struct CommentsView: View {
 
 struct CommentRow: View {
     let comment: Comment
-    let profileView: ProfileView
 
     var body: some View {
         HStack {
-            if let profilePicture = profileView.profilePicture {
-                profilePicture
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 40, height: 40)
-                    .clipShape(Circle())
-                    .padding(.trailing, 8)
+            // Display profile picture URL or a default image
+            if let profilePictureUrl = comment.profilePictureUrl, let url = URL(string: profilePictureUrl) {
+                AsyncImage(url: url) { image in
+                    image
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 40, height: 40)
+                        .clipShape(Circle())
+                        .padding(.trailing, 8)
+                } placeholder: {
+                    Image("defaultProfileImage")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 40, height: 40)
+                        .clipShape(Circle())
+                        .padding(.trailing, 8)
+                }
             } else {
                 Image("defaultProfileImage")
                     .resizable()
@@ -124,59 +137,5 @@ struct Comment: Identifiable, Codable {
     var text: String
     var username: String
     var timestamp: Date
-    var profilePictureUrl: String?
-}
-
-struct ProfileView: View {
-    @State private var profilePicture: Image? // To store the profile image in memory
-    @State var profilePictureUrl: String? // URL for profile image from Firestore
-    var username: String = "User123" // Example username
-    
-    var body: some View {
-        VStack {
-            if let profilePicture = profilePicture {
-                profilePicture
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 100, height: 100)
-                    .clipShape(Circle())
-            } else {
-                Image("defaultProfileImage")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 100, height: 100)
-                    .clipShape(Circle())
-            }
-
-            Text(username)
-                .font(.title)
-                .padding()
-        }
-        .onAppear {
-            Task {
-                await loadProfilePicture()
-            }
-        }
-    }
-
-    func loadProfilePicture() async {
-        let db = Firestore.firestore()
-        let userID = Auth.auth().currentUser?.uid ?? "unknownUserID"
-        let userRef = db.collection("users").document(userID)
-
-        do {
-            let document = try await userRef.getDocument()
-            if let data = document.data(), let imageUrlString = data["profileImageUrl"] as? String {
-                profilePictureUrl = imageUrlString
-
-                if let imageUrl = URL(string: imageUrlString) {
-                    if let imageData = try? Data(contentsOf: imageUrl), let uiImage = UIImage(data: imageData) {
-                        profilePicture = Image(uiImage: uiImage)
-                    }
-                }
-            }
-        } catch {
-            print("Failed to fetch profile image: \(error.localizedDescription)")
-        }
-    }
+    var profilePictureUrl: String? // Store the profile picture URL here
 }

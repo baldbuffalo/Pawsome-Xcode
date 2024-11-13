@@ -1,5 +1,12 @@
 import SwiftUI
-import CoreData
+import FirebaseFirestore
+import FirebaseAuth
+
+#if os(iOS)
+import UIKit
+#elseif os(macOS)
+import AppKit
+#endif
 
 @main
 struct PawsomeApp: App {
@@ -7,9 +14,10 @@ struct PawsomeApp: App {
     @State private var username: String = ""
     @State private var profileImageData: Data? = nil
     @State private var selectedImage: UIImage? = nil
+    @State private var comments: [Comment] = [] // Array to store comments
+    @State private var commentText: String = "" // To hold the text of the comment
 
-    // Shared PersistenceController instance for Core Data
-    let persistenceController = PersistenceController.shared
+    private let db = Firestore.firestore() // Firestore instance
 
     var body: some Scene {
         WindowGroup {
@@ -21,25 +29,32 @@ struct PawsomeApp: App {
                         profileImage: Binding<UIImage?>(
                             get: {
                                 if let data = profileImageData {
+                                    #if os(iOS)
                                     return UIImage(data: data)
+                                    #elseif os(macOS)
+                                    return NSImage(data: data)
+                                    #endif
                                 }
                                 return nil
                             },
                             set: { newImage in
+                                #if os(iOS)
                                 profileImageData = newImage?.jpegData(compressionQuality: 1.0)
+                                #elseif os(macOS)
+                                profileImageData = newImage?.tiffRepresentation
+                                #endif
                             }
                         )
                     )
                     .tabItem {
                         Label("Home", systemImage: "house")
                     }
-                    .environment(\.managedObjectContext, persistenceController.container.viewContext)
 
                     ScanView(
                         capturedImage: $selectedImage,
                         username: username,
                         onPostCreated: { catPost in
-                            savePostToCoreData(capturedImage: selectedImage, username: username)
+                            savePostToFirebase(capturedImage: selectedImage, username: username)
                         }
                     )
                     .tabItem {
@@ -52,17 +67,35 @@ struct PawsomeApp: App {
                         profileImage: Binding<UIImage?>(
                             get: {
                                 if let data = profileImageData {
+                                    #if os(iOS)
                                     return UIImage(data: data)
+                                    #elseif os(macOS)
+                                    return NSImage(data: data)
+                                    #endif
                                 }
                                 return nil
                             },
                             set: { newImage in
+                                #if os(iOS)
                                 profileImageData = newImage?.jpegData(compressionQuality: 1.0)
+                                #elseif os(macOS)
+                                profileImageData = newImage?.tiffRepresentation
+                                #endif
                             }
                         )
                     )
                     .tabItem {
                         Label("Profile", systemImage: "person.circle")
+                    }
+
+                    // Comments View
+                    CommentsView(
+                        comments: $comments,  // Your existing comments array binding
+                        commentText: $commentText,
+                        saveComment: saveCommentToFirebase(postId: "samplePostId") // Pass postId dynamically
+                    )
+                    .tabItem {
+                        Label("Comments", systemImage: "message")
                     }
                 }
             } else {
@@ -72,12 +105,20 @@ struct PawsomeApp: App {
                     profileImage: Binding<UIImage?>(
                         get: {
                             if let data = profileImageData {
+                                #if os(iOS)
                                 return UIImage(data: data)
+                                #elseif os(macOS)
+                                return NSImage(data: data)
+                                #endif
                             }
                             return nil
                         },
                         set: { newImage in
+                            #if os(iOS)
                             profileImageData = newImage?.jpegData(compressionQuality: 1.0)
+                            #elseif os(macOS)
+                            profileImageData = newImage?.tiffRepresentation
+                            #endif
                         }
                     )
                 )
@@ -85,22 +126,45 @@ struct PawsomeApp: App {
         }
     }
 
-    // Function to save post data to Core Data
-    private func savePostToCoreData(capturedImage: UIImage?, username: String) {
-        let context = persistenceController.container.viewContext
-        let newPost = CatPost(context: context) // Make sure 'CatPost' is set up in your Core Data model
-        newPost.username = username
-        newPost.timestamp = Date()
-
-        // Convert UIImage to Data for Core Data
-        if let image = capturedImage, let imageData = image.jpegData(compressionQuality: 1.0) {
-            newPost.imageData = imageData
+    // Function to save a post to Firebase Firestore
+    private func savePostToFirebase(capturedImage: UIImage?, username: String) {
+        guard let capturedImage = capturedImage else { return }
+        let postRef = db.collection("posts").document() // Create a new post document
+        
+        let newPost = [
+            "username": username,
+            "timestamp": Date(),
+            "imageData": capturedImage.jpegData(compressionQuality: 1.0) as Any
+        ] as [String: Any]
+        
+        postRef.setData(newPost) { error in
+            if let error = error {
+                print("Failed to save post: \(error.localizedDescription)")
+            } else {
+                print("Post saved successfully!")
+            }
         }
+    }
+    
+    // Function to save a comment to Firebase Firestore
+    private func saveCommentToFirebase(postId: String) {
+        guard !commentText.isEmpty else { return }
 
-        do {
-            try context.save()
-        } catch {
-            print("Failed to save post: \(error.localizedDescription)")
+        let newComment = [
+            "postId": postId,
+            "commentText": commentText,
+            "username": username,
+            "timestamp": Date()
+        ] as [String: Any]
+
+        // Save the comment in the 'comments' collection
+        db.collection("comments").addDocument(data: newComment) { error in
+            if let error = error {
+                print("Failed to save comment: \(error.localizedDescription)")
+            } else {
+                print("Comment saved successfully!")
+                commentText = "" // Clear the comment field after saving
+            }
         }
     }
 }
