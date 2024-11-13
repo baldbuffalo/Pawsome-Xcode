@@ -3,10 +3,10 @@ import FirebaseFirestore
 import FirebaseAuth
 
 struct CommentsView: View {
-    @EnvironmentObject var profileView: ProfileView // Injected ProfileView object
+    @EnvironmentObject var profileView: ProfileView
     @Binding var showComments: Bool
-    var postID: String // The ID of the post to which comments belong
-    var saveCommentToFirebase: (String, String) -> Void // Closure to save comment to Firebase
+    var postID: String
+    var saveCommentToFirebase: (String, String) -> Void
 
     @State private var commentText: String = ""
     @State private var comments: [Comment] = []
@@ -43,7 +43,6 @@ struct CommentsView: View {
                 }
             }
             .navigationTitle("Comments")
-            #if os(iOS)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Close") {
@@ -51,11 +50,6 @@ struct CommentsView: View {
                     }
                 }
             }
-            #elseif os(macOS)
-            .navigationBarItems(trailing: Button("Close") {
-                showComments = false
-            })
-            #endif
         }
     }
 
@@ -130,15 +124,26 @@ struct CommentRow: View {
                     .foregroundColor(.gray)
                 Text(comment.text)
                     .font(.body)
+                Text(comment.timestamp, formatter: commentDateFormatter)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
         }
     }
 }
+
+// Define a date formatter for comment timestamps
+private let commentDateFormatter: DateFormatter = {
+    let formatter = DateFormatter()
+    formatter.dateStyle = .short
+    formatter.timeStyle = .short
+    return formatter
+}()
 
 struct Comment: Identifiable, Codable {
     @DocumentID var id: String?
     var text: String
     var username: String
     var timestamp: Date
-    var profilePictureUrl: String? // Store the profile picture URL here
+    var profilePictureUrl: String?
 }
