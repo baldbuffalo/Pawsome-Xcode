@@ -16,7 +16,9 @@ struct PawsomeApp: App {
     @State private var selectedImage: UIImage? = nil
     @State private var comments: [Comment] = [] // Array to store comments
     @State private var commentText: String = "" // To hold the text of the comment
-
+    
+    @StateObject private var profileView = ProfileView() // Create ProfileView as @StateObject
+    
     private let db = Firestore.firestore() // Firestore instance
 
     var body: some Scene {
@@ -98,6 +100,7 @@ struct PawsomeApp: App {
                         Label("Comments", systemImage: "message")
                     }
                 }
+                .environmentObject(profileView) // Inject ProfileView as an environment object here
             } else {
                 LoginView(
                     isLoggedIn: $isLoggedIn,
