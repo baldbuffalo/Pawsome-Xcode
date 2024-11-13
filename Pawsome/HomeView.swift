@@ -1,6 +1,5 @@
 import SwiftUI
 import Firebase
-import CoreData
 
 struct HomeView: View {
     @Binding var isLoggedIn: Bool
@@ -12,15 +11,7 @@ struct HomeView: View {
     @State private var navigateToHome: Bool = false
     @State private var showComments: Bool = false
     @State private var selectedPost: CatPost? = nil
-
-    // Environment context for Core Data
-    @Environment(\.managedObjectContext) private var viewContext
-
-    // Fetch existing CatPosts from Core Data
-    @FetchRequest(
-        entity: CatPost.entity(),
-        sortDescriptors: [NSSortDescriptor(keyPath: \CatPost.timestamp, ascending: false)]
-    ) private var posts: FetchedResults<CatPost>
+    @State private var posts: [CatPost] = [] // Array to hold posts fetched from Firebase
 
     var body: some View {
         NavigationStack {
@@ -30,13 +21,15 @@ struct HomeView: View {
                 Spacer()
             }
             .navigationTitle("Pawsome")
+            .onAppear {
+                fetchPostsFromFirebase() // Fetch posts when view appears
+            }
             .sheet(isPresented: $showForm) {
                 FormView(
                     showForm: $showForm,
                     navigateToHome: $navigateToHome,
                     imageUI: selectedImage,
-                    username: currentUsername,
-                    dataManager: DataManager(context: viewContext) // Initialize DataManager here
+                    username: currentUsername
                 )
             }
             .sheet(isPresented: $showComments) {
@@ -140,48 +133,36 @@ struct HomeView: View {
         savePosts() // Save changes after toggling like
     }
 
-    private func savePost(
-        catName: String,
-        catBreed: String,
-        catAge: Int32,
-        location: String,
-        postDescription: String,
-        postImage: UIImage // Assuming you're getting the post image from the form
-    ) {
-        // Create a new CatPost in Core Data
-        let newPost = CatPost(context: viewContext)
-        newPost.username = currentUsername
-        newPost.imageData = postImage.pngData() // Save the post image as data
-        newPost.catName = catName
-        newPost.catBreed = catBreed
-        newPost.catAge = catAge
-        newPost.location = location
-        newPost.postDescription = postDescription
-        newPost.timestamp = Date()
+    private func fetchPostsFromFirebase() {
+        let db = Firestore.firestore()
+        db.collection("posts").getDocuments { snapshot, error in
+            if let error = error {
+                print("Error fetching posts: \(error.localizedDescription)")
+                return
+            }
 
-        // Upload the post to Firebase
-        uploadCatPostToFirebase(post: newPost)
-
-        savePosts() // Save the context to persist the new post
-    }
-
-    private func savePosts() {
-        do {
-            try viewContext.save()
-            print("Posts saved successfully")
-        } catch {
-            print("Error saving posts: \(error.localizedDescription)")
+            posts = snapshot?.documents.compactMap { document in
+                let data = document.data()
+                return CatPost(
+                    id: document.documentID,
+                    username: data["username"] as? String ?? "Unknown",
+                    imageData: data["imageData"] as? Data,
+                    catName: data["catName"] as? String ?? "Unknown",
+                    catBreed: data["catBreed"] as? String ?? "N/A",
+                    catAge: data["catAge"] as? Int32 ?? 0,
+                    location: data["location"] as? String ?? "N/A",
+                    postDescription: data["postDescription"] as? String ?? "N/A",
+                    likes: data["likes"] as? Int32 ?? 0
+                )
+            } ?? []
         }
     }
 
     private func uploadCatPostToFirebase(post: CatPost) {
-        // Uploading the post to Firebase Storage and Firestore
         guard let profileImage = profileImage else { return }
         
-        // Convert profile image to Data
         guard let profileImageData = profileImage.asData() else { return }
         
-        // Upload profile image to Firebase Storage
         let profileImageRef = Storage.storage().reference().child("profileImages/\(currentUsername).jpg")
         profileImageRef.putData(profileImageData, metadata: nil) { metadata, error in
             if let error = error {
@@ -197,7 +178,6 @@ struct HomeView: View {
 
                 guard let profileImageURL = url else { return }
 
-                // Upload post image
                 if let postImageData = post.imageData {
                     let postImageRef = Storage.storage().reference().child("postImages/\(UUID().uuidString).jpg")
                     postImageRef.putData(postImageData, metadata: nil) { metadata, error in
@@ -214,16 +194,15 @@ struct HomeView: View {
 
                             guard let postImageURL = url else { return }
 
-                            // Store the post details in Firestore
                             let db = Firestore.firestore()
                             let postData: [String: Any] = [
                                 "profileName": currentUsername,
-                                "profilepicture": profileImageURL.absoluteString, // Changed from profileImageURL
+                                "profilepicture": profileImageURL.absoluteString,
                                 "catName": post.catName ?? "Unknown",
                                 "catBreed": post.catBreed ?? "N/A",
                                 "location": post.location ?? "N/A",
-                                "postdescription": post.postDescription ?? "N/A", // Changed from description
-                                "postImage": postImageURL.absoluteString, // Changed from postImageURL
+                                "postdescription": post.postDescription ?? "N/A",
+                                "postImage": postImageURL.absoluteString,
                                 "timestamp": FieldValue.serverTimestamp()
                             ]
 
@@ -239,18 +218,5 @@ struct HomeView: View {
                 }
             }
         }
-    }
-}
-
-// Extension to convert SwiftUI Image to Data
-extension Image {
-    func asUIImage() -> UIImage? {
-        let renderer = ImageRenderer(content: self)
-        return renderer.uiImage
-    }
-
-    func asData() -> Data? {
-        guard let uiImage = asUIImage() else { return nil }
-        return uiImage.pngData()
     }
 }
