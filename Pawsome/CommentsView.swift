@@ -6,6 +6,7 @@ struct CommentsView: View {
     @EnvironmentObject var profileView: ProfileView // Injected ProfileView object
     @Binding var showComments: Bool
     var postID: String // The ID of the post to which comments belong
+    var saveCommentToFirebase: (String, String) -> Void // Closure to save comment to Firebase
 
     @State private var commentText: String = ""
     @State private var comments: [Comment] = []
@@ -42,6 +43,7 @@ struct CommentsView: View {
                 }
             }
             .navigationTitle("Comments")
+            #if os(iOS)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Close") {
@@ -49,6 +51,11 @@ struct CommentsView: View {
                     }
                 }
             }
+            #elseif os(macOS)
+            .navigationBarItems(trailing: Button("Close") {
+                showComments = false
+            })
+            #endif
         }
     }
 
@@ -70,23 +77,19 @@ struct CommentsView: View {
     private func saveComment() {
         guard !commentText.isEmpty else { return }
 
+        // Save the comment using the passed closure
+        saveCommentToFirebase(postID, commentText)
+
+        // Optionally, update the local comments list
         let newComment = Comment(
             text: commentText,
             username: profileView.username,
             timestamp: Date(),
-            profilePictureUrl: profileView.profilePictureUrl // Uses data from ProfileView.swift
+            profilePictureUrl: profileView.profilePictureUrl
         )
 
-        Task {
-            do {
-                let commentRef = db.collection("posts").document(postID).collection("comments")
-                _ = try commentRef.addDocument(from: newComment)
-                comments.append(newComment)
-                commentText = "" // Clear text field after adding
-            } catch {
-                print("Failed to save comment: \(error.localizedDescription)")
-            }
-        }
+        comments.append(newComment)
+        commentText = "" // Clear text field after adding
     }
 }
 
