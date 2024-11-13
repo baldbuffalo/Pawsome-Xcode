@@ -1,5 +1,5 @@
 import Foundation
-import FirebaseFirestoreSwift
+import FirebaseFirestore
 
 struct CatPost: Identifiable, Codable {
     @DocumentID var id: String? // Use Firebase document ID as unique identifier
