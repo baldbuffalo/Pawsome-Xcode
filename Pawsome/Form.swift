@@ -39,11 +39,11 @@ struct FormView: View {
                 inputField(placeholder: "Cat Name", text: $catName)
                 inputField(placeholder: "Breed", text: $breed)
                 
-#if os(iOS)
+                #if os(iOS)
                 inputField(placeholder: "Age", text: $age, keyboardType: .numberPad)
-#else
+                #else
                 inputField(placeholder: "Age", text: $age)
-#endif
+                #endif
                 
                 inputField(placeholder: "Location", text: $location)
                 inputField(placeholder: "Description", text: $description)
@@ -60,9 +60,9 @@ struct FormView: View {
             .padding()
         }
         .onTapGesture {
-#if os(iOS)
+            #if os(iOS)
             hideKeyboard()
-#endif
+            #endif
         }
     }
     
@@ -141,37 +141,36 @@ struct FormView: View {
     }
     
     private func imageFromData(_ data: Data) -> Image? {
-#if os(iOS)
+        #if os(iOS)
         if let uiImage = UIImage(data: data) {
             return Image(uiImage: uiImage)
         }
-#else
+        #else
         if let nsImage = NSImage(data: data) {
             return Image(nsImage: nsImage)
         }
-#endif
+        #endif
         return nil
     }
     
     // iOS-specific inputField
-#if os(iOS)
+    #if os(iOS)
     private func inputField(placeholder: String, text: Binding<String>, keyboardType: UIKeyboardType? = nil) -> some View {
-        let actualKeyboardType = keyboardType ?? .default
-        return TextField(placeholder, text: text)
-            .keyboardType(actualKeyboardType)
+        TextField(placeholder, text: text)
+            .keyboardType(keyboardType ?? .default)
             .textFieldStyle(RoundedBorderTextFieldStyle())
             .padding()
     }
-#endif
+    #endif
     
     // macOS-specific inputField (no UIKeyboardType here)
-#if os(macOS)
+    #if os(macOS)
     private func inputField(placeholder: String, text: Binding<String>) -> some View {
         TextField(placeholder, text: text)
-            .textFieldStyle(RoundedBorderTextFieldStyle()) // Standard macOS style
-            .padding() // Add padding for spacing
+            .textFieldStyle(RoundedBorderTextFieldStyle())
+            .padding()
     }
-#endif
+    #endif
 }
 
 #if os(iOS)

@@ -92,7 +92,6 @@ struct CommentRow: View {
 
     var body: some View {
         HStack {
-            // Use profilePicture from ProfileView if available
             if let profilePicture = profileView.profilePicture {
                 profilePicture
                     .resizable()
@@ -101,7 +100,6 @@ struct CommentRow: View {
                     .clipShape(Circle())
                     .padding(.trailing, 8)
             } else {
-                // Use default profile image if none exists
                 Image("defaultProfileImage")
                     .resizable()
                     .scaledToFit()
@@ -126,7 +124,7 @@ struct Comment: Identifiable, Codable {
     var text: String
     var username: String
     var timestamp: Date
-    var profilePictureUrl: String? // Store the profile picture URL here
+    var profilePictureUrl: String?
 }
 
 struct ProfileView: View {
@@ -143,7 +141,6 @@ struct ProfileView: View {
                     .frame(width: 100, height: 100)
                     .clipShape(Circle())
             } else {
-                // Default profile image if no picture is loaded
                 Image("defaultProfileImage")
                     .resizable()
                     .scaledToFit()
@@ -162,19 +159,16 @@ struct ProfileView: View {
         }
     }
 
-    // Load the profile picture URL from Firestore
     func loadProfilePicture() async {
         let db = Firestore.firestore()
         let userID = Auth.auth().currentUser?.uid ?? "unknownUserID"
         let userRef = db.collection("users").document(userID)
 
-        // Fetch the profile picture URL from Firestore
         do {
             let document = try await userRef.getDocument()
             if let data = document.data(), let imageUrlString = data["profileImageUrl"] as? String {
                 profilePictureUrl = imageUrlString
 
-                // Download the profile image from the URL
                 if let imageUrl = URL(string: imageUrlString) {
                     if let imageData = try? Data(contentsOf: imageUrl), let uiImage = UIImage(data: imageData) {
                         profilePicture = Image(uiImage: uiImage)
