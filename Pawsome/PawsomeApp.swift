@@ -13,7 +13,7 @@ struct PawsomeApp: App {
     @State private var isLoggedIn: Bool = false
     @State private var username: String = ""
     @State private var profileImageData: Data? = nil
-    @State private var selectedImage: Any? = nil // This will handle both UIImage (iOS) and NSImage (macOS)
+    @State private var selectedImage: Any? = nil // Changed to Any for platform-specific image types
     @State private var comments: [Comment] = [] // Array to store comments
     @State private var commentText: String = "" // To hold the text of the comment
     
@@ -30,26 +30,20 @@ struct PawsomeApp: App {
                         currentUsername: $username,
                         profileImage: Binding<Any?>(
                             get: {
-                                #if os(iOS)
                                 if let data = profileImageData {
+                                    #if os(iOS)
                                     return UIImage(data: data)
-                                }
-                                #elseif os(macOS)
-                                if let data = profileImageData {
+                                    #elseif os(macOS)
                                     return NSImage(data: data)
+                                    #endif
                                 }
-                                #endif
                                 return nil
                             },
                             set: { newImage in
                                 #if os(iOS)
-                                if let uiImage = newImage as? UIImage {
-                                    profileImageData = uiImage.jpegData(compressionQuality: 1.0)
-                                }
+                                profileImageData = (newImage as? UIImage)?.jpegData(compressionQuality: 1.0)
                                 #elseif os(macOS)
-                                if let nsImage = newImage as? NSImage {
-                                    profileImageData = nsImage.tiffRepresentation
-                                }
+                                profileImageData = (newImage as? NSImage)?.tiffRepresentation
                                 #endif
                             }
                         )
@@ -74,26 +68,20 @@ struct PawsomeApp: App {
                         currentUsername: $username,
                         profileImage: Binding<Any?>(
                             get: {
-                                #if os(iOS)
                                 if let data = profileImageData {
+                                    #if os(iOS)
                                     return UIImage(data: data)
-                                }
-                                #elseif os(macOS)
-                                if let data = profileImageData {
+                                    #elseif os(macOS)
                                     return NSImage(data: data)
+                                    #endif
                                 }
-                                #endif
                                 return nil
                             },
                             set: { newImage in
                                 #if os(iOS)
-                                if let uiImage = newImage as? UIImage {
-                                    profileImageData = uiImage.jpegData(compressionQuality: 1.0)
-                                }
+                                profileImageData = (newImage as? UIImage)?.jpegData(compressionQuality: 1.0)
                                 #elseif os(macOS)
-                                if let nsImage = newImage as? NSImage {
-                                    profileImageData = nsImage.tiffRepresentation
-                                }
+                                profileImageData = (newImage as? NSImage)?.tiffRepresentation
                                 #endif
                             }
                         )
@@ -119,26 +107,20 @@ struct PawsomeApp: App {
                     username: $username,
                     profileImage: Binding<Any?>(
                         get: {
-                            #if os(iOS)
                             if let data = profileImageData {
+                                #if os(iOS)
                                 return UIImage(data: data)
-                            }
-                            #elseif os(macOS)
-                            if let data = profileImageData {
+                                #elseif os(macOS)
                                 return NSImage(data: data)
+                                #endif
                             }
-                            #endif
                             return nil
                         },
                         set: { newImage in
                             #if os(iOS)
-                            if let uiImage = newImage as? UIImage {
-                                profileImageData = uiImage.jpegData(compressionQuality: 1.0)
-                            }
+                            profileImageData = (newImage as? UIImage)?.jpegData(compressionQuality: 1.0)
                             #elseif os(macOS)
-                            if let nsImage = newImage as? NSImage {
-                                profileImageData = nsImage.tiffRepresentation
-                            }
+                            profileImageData = (newImage as? NSImage)?.tiffRepresentation
                             #endif
                         }
                     )
@@ -147,12 +129,14 @@ struct PawsomeApp: App {
         }
     }
 
-    // Function to save a post to Firebase Firestore
+    // Function to save a post to Firebase Firestore for iOS and macOS
     private func savePostToFirebase(capturedImage: Any?, username: String) {
         guard let capturedImage = capturedImage else { return }
-
+        
+        let postRef = db.collection("posts").document() // Create a new post document
+        
         var imageData: Data?
-
+        
         #if os(iOS)
         if let uiImage = capturedImage as? UIImage {
             imageData = uiImage.jpegData(compressionQuality: 1.0)
@@ -163,18 +147,16 @@ struct PawsomeApp: App {
         }
         #endif
         
-        // Ensure imageData is valid
-        guard let validImageData = imageData else {
-            print("Failed to convert image to data")
+        // Check if imageData is nil after attempting to set it
+        guard let finalImageData = imageData else {
+            print("Failed to process image")
             return
         }
 
-        let postRef = db.collection("posts").document() // Create a new post document
-        
         let newPost = [
             "username": username,
             "timestamp": Date(),
-            "imageData": validImageData as Any
+            "imageData": finalImageData
         ] as [String: Any]
         
         postRef.setData(newPost) { error in

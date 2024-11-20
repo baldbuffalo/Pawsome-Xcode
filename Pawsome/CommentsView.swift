@@ -55,7 +55,7 @@ struct CommentsView: View {
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding()
                 .disableAutocorrection(true)
-                .autocapitalization(.sentences)
+                .autocapitalization(.sentences)  // Correct placement of autocapitalization
 
             Button(action: saveComment) {
                 Text("Send")
