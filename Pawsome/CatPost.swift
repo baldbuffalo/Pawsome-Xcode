@@ -1,15 +1,13 @@
 import Foundation
-import FirebaseFirestore
 
-struct CatPost: Identifiable, Codable {
-    @DocumentID var id: String? // Use Firebase document ID as unique identifier
-    let username: String
-    let catName: String
-    let catBreed: String
-    let location: String
+struct CatPost: Identifiable, Codable, Hashable {
+    var id: String
+    var catName: String
+    var catBreed: String?
+    var catAge: Int
+    var location: String?
+    var postDescription: String?
     var likes: Int
-    var postDescription: String
-    var timestamp: Date
-    var profileImageURL: String // URL for profile image in Firebase Storage
-    var postImageURL: String // URL for post image in Firebase Storage
+    var username: String
+    var comments: [Comment]  // Updated to use the Comment struct
 }

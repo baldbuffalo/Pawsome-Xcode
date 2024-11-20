@@ -11,46 +11,61 @@ struct CommentsView: View {
     @State private var commentText: String = ""
     @State private var comments: [Comment] = []
     @State private var isLoading = true
+    @State private var errorMessage: String?
 
     private let db = Firestore.firestore()
 
     var body: some View {
-        NavigationView {
-            VStack {
-                if isLoading {
-                    ProgressView("Loading Comments...")
-                } else {
-                    List(comments) { comment in
-                        CommentRow(comment: comment)
-                    }
-                }
-
-                HStack {
-                    TextField("Add a comment...", text: $commentText)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
+        VStack {
+            if isLoading {
+                ProgressView("Loading Comments...")
+                    .progressViewStyle(CircularProgressViewStyle())
+            } else {
+                if let errorMessage = errorMessage {
+                    Text(errorMessage)
+                        .foregroundColor(.red)
                         .padding()
+                }
 
-                    Button(action: saveComment) {
-                        Text("Send")
-                            .bold()
-                    }
-                    .padding()
+                List(comments) { comment in
+                    CommentRow(comment: comment)
                 }
             }
-            .onAppear {
-                Task {
-                    await loadComments()
-                }
+
+            commentInputSection
+        }
+        .onAppear {
+            Task {
+                await loadComments()
             }
-            .navigationTitle("Comments")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Close") {
-                        showComments = false
-                    }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button("Close") {
+                    showComments = false
                 }
             }
         }
+    }
+
+    private var commentInputSection: some View {
+        HStack {
+            TextField("Add a comment...", text: $commentText)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .padding()
+                .disableAutocorrection(true)
+                .autocapitalization(.sentences)
+
+            Button(action: saveComment) {
+                Text("Send")
+                    .bold()
+                    .foregroundColor(commentText.isEmpty ? .gray : .blue)
+            }
+            .padding()
+            .disabled(commentText.isEmpty)
+        }
+        .padding(.bottom)
     }
 
     private func loadComments() async {
@@ -63,7 +78,7 @@ struct CommentsView: View {
                 try? document.data(as: Comment.self)
             }
         } catch {
-            print("Failed to fetch comments: \(error.localizedDescription)")
+            errorMessage = "Failed to fetch comments: \(error.localizedDescription)"
         }
         isLoading = false
     }
@@ -82,7 +97,7 @@ struct CommentsView: View {
             profilePictureUrl: profileView.profilePictureUrl
         )
 
-        comments.append(newComment)
+        comments.append(newComment) // Add new comment locally
         commentText = "" // Clear text field after adding
     }
 }
@@ -140,7 +155,7 @@ private let commentDateFormatter: DateFormatter = {
     return formatter
 }()
 
-struct Comment: Identifiable, Codable {
+struct Comment: Identifiable, Codable, Hashable {
     @DocumentID var id: String?
     var text: String
     var username: String
