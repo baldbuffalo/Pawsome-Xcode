@@ -13,7 +13,7 @@ struct PawsomeApp: App {
     @State private var isLoggedIn: Bool = false
     @State private var username: String = ""
     @State private var profileImageData: Data? = nil
-    @State private var selectedImage: UIImage? = nil
+    @State private var selectedImage: Any? = nil // This will handle both UIImage (iOS) and NSImage (macOS)
     @State private var comments: [Comment] = [] // Array to store comments
     @State private var commentText: String = "" // To hold the text of the comment
     
@@ -27,7 +27,32 @@ struct PawsomeApp: App {
                 TabView {
                     HomeView(
                         isLoggedIn: $isLoggedIn,
-                        currentUsername: $username
+                        currentUsername: $username,
+                        profileImage: Binding<Any?>(
+                            get: {
+                                #if os(iOS)
+                                if let data = profileImageData {
+                                    return UIImage(data: data)
+                                }
+                                #elseif os(macOS)
+                                if let data = profileImageData {
+                                    return NSImage(data: data)
+                                }
+                                #endif
+                                return nil
+                            },
+                            set: { newImage in
+                                #if os(iOS)
+                                if let uiImage = newImage as? UIImage {
+                                    profileImageData = uiImage.jpegData(compressionQuality: 1.0)
+                                }
+                                #elseif os(macOS)
+                                if let nsImage = newImage as? NSImage {
+                                    profileImageData = nsImage.tiffRepresentation
+                                }
+                                #endif
+                            }
+                        )
                     )
                     .tabItem {
                         Label("Home", systemImage: "house")
@@ -46,7 +71,32 @@ struct PawsomeApp: App {
 
                     ProfileView(
                         isLoggedIn: $isLoggedIn,
-                        currentUsername: $username
+                        currentUsername: $username,
+                        profileImage: Binding<Any?>(
+                            get: {
+                                #if os(iOS)
+                                if let data = profileImageData {
+                                    return UIImage(data: data)
+                                }
+                                #elseif os(macOS)
+                                if let data = profileImageData {
+                                    return NSImage(data: data)
+                                }
+                                #endif
+                                return nil
+                            },
+                            set: { newImage in
+                                #if os(iOS)
+                                if let uiImage = newImage as? UIImage {
+                                    profileImageData = uiImage.jpegData(compressionQuality: 1.0)
+                                }
+                                #elseif os(macOS)
+                                if let nsImage = newImage as? NSImage {
+                                    profileImageData = nsImage.tiffRepresentation
+                                }
+                                #endif
+                            }
+                        )
                     )
                     .tabItem {
                         Label("Profile", systemImage: "person.circle")
@@ -66,21 +116,65 @@ struct PawsomeApp: App {
             } else {
                 LoginView(
                     isLoggedIn: $isLoggedIn,
-                    username: $username
+                    username: $username,
+                    profileImage: Binding<Any?>(
+                        get: {
+                            #if os(iOS)
+                            if let data = profileImageData {
+                                return UIImage(data: data)
+                            }
+                            #elseif os(macOS)
+                            if let data = profileImageData {
+                                return NSImage(data: data)
+                            }
+                            #endif
+                            return nil
+                        },
+                        set: { newImage in
+                            #if os(iOS)
+                            if let uiImage = newImage as? UIImage {
+                                profileImageData = uiImage.jpegData(compressionQuality: 1.0)
+                            }
+                            #elseif os(macOS)
+                            if let nsImage = newImage as? NSImage {
+                                profileImageData = nsImage.tiffRepresentation
+                            }
+                            #endif
+                        }
+                    )
                 )
             }
         }
     }
 
     // Function to save a post to Firebase Firestore
-    private func savePostToFirebase(capturedImage: UIImage?, username: String) {
+    private func savePostToFirebase(capturedImage: Any?, username: String) {
         guard let capturedImage = capturedImage else { return }
+
+        var imageData: Data?
+
+        #if os(iOS)
+        if let uiImage = capturedImage as? UIImage {
+            imageData = uiImage.jpegData(compressionQuality: 1.0)
+        }
+        #elseif os(macOS)
+        if let nsImage = capturedImage as? NSImage {
+            imageData = nsImage.tiffRepresentation
+        }
+        #endif
+        
+        // Ensure imageData is valid
+        guard let validImageData = imageData else {
+            print("Failed to convert image to data")
+            return
+        }
+
         let postRef = db.collection("posts").document() // Create a new post document
         
         let newPost = [
             "username": username,
             "timestamp": Date(),
-            "imageData": capturedImage.jpegData(compressionQuality: 1.0) as Any
+            "imageData": validImageData as Any
         ] as [String: Any]
         
         postRef.setData(newPost) { error in
