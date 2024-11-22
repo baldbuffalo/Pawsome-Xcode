@@ -52,11 +52,19 @@ struct CommentsView: View {
 
     private var commentInputSection: some View {
         HStack {
+            #if available(iOS 15, *)
             TextField("Add a comment...", text: $commentText)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding()
                 .disableAutocorrection(true)
-                .textInputAutocapitalization(.sentences) // Fixed autocapitalization
+                .textInputAutocapitalization(.sentences)
+            #else
+            TextField("Add a comment...", text: $commentText)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .padding()
+                .disableAutocorrection(true)
+                .autocapitalization(.sentences)
+            #endif
 
             Button(action: saveComment) {
                 Text("Send")
