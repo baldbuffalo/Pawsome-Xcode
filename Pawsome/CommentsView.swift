@@ -20,15 +20,16 @@ struct CommentsView: View {
             if isLoading {
                 ProgressView("Loading Comments...")
                     .progressViewStyle(CircularProgressViewStyle())
+                    .padding()
             } else {
                 if let errorMessage = errorMessage {
                     Text(errorMessage)
                         .foregroundColor(.red)
                         .padding()
-                }
-
-                List(comments) { comment in
-                    CommentRow(comment: comment)
+                } else {
+                    List(comments) { comment in
+                        CommentRow(comment: comment)
+                    }
                 }
             }
 
@@ -55,7 +56,7 @@ struct CommentsView: View {
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding()
                 .disableAutocorrection(true)
-                .autocapitalization(.sentences)  // Correct placement of autocapitalization
+                .textInputAutocapitalization(.sentences) // Fixed autocapitalization
 
             Button(action: saveComment) {
                 Text("Send")
@@ -86,10 +87,8 @@ struct CommentsView: View {
     private func saveComment() {
         guard !commentText.isEmpty else { return }
 
-        // Save the comment using the passed closure
         saveCommentToFirebase(postID, commentText)
 
-        // Optionally, update the local comments list
         let newComment = Comment(
             text: commentText,
             username: profileView.username,
@@ -97,8 +96,8 @@ struct CommentsView: View {
             profilePictureUrl: profileView.profilePictureUrl
         )
 
-        comments.append(newComment) // Add new comment locally
-        commentText = "" // Clear text field after adding
+        comments.append(newComment)
+        commentText = ""
     }
 }
 
@@ -107,7 +106,6 @@ struct CommentRow: View {
 
     var body: some View {
         HStack {
-            // Display profile picture URL or a default image
             if let profilePictureUrl = comment.profilePictureUrl, let url = URL(string: profilePictureUrl) {
                 AsyncImage(url: url) { image in
                     image
@@ -147,7 +145,6 @@ struct CommentRow: View {
     }
 }
 
-// Define a date formatter for comment timestamps
 private let commentDateFormatter: DateFormatter = {
     let formatter = DateFormatter()
     formatter.dateStyle = .short
