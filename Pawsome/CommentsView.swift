@@ -27,7 +27,7 @@ struct CommentsView: View {
                         .foregroundColor(.red)
                         .padding()
                 } else {
-                    List(comments) { comment in
+                    List(comments.reversed()) { comment in
                         CommentRow(comment: comment)
                     }
                 }
@@ -52,18 +52,20 @@ struct CommentsView: View {
 
     private var commentInputSection: some View {
         HStack {
-            #if available(iOS 15, *)
-            TextField("Add a comment...", text: $commentText)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding()
-                .disableAutocorrection(true)
-                .textInputAutocapitalization(.sentences)
-            #else
-            TextField("Add a comment...", text: $commentText)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding()
-                .disableAutocorrection(true)
-                .autocapitalization(.sentences)
+            #if swift(>=5.5)
+            if #available(iOS 15.0, *) {
+                TextField("Add a comment...", text: $commentText)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .padding()
+                    .disableAutocorrection(true)
+                    .textInputAutocapitalization(.sentences)
+            } else {
+                TextField("Add a comment...", text: $commentText)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .padding()
+                    .disableAutocorrection(true)
+                    .autocapitalization(.sentences)
+            }
             #endif
 
             Button(action: saveComment) {
@@ -80,12 +82,13 @@ struct CommentsView: View {
     private func loadComments() async {
         do {
             let snapshot = try await db.collection("posts").document(postID).collection("comments")
-                .order(by: "timestamp", descending: false)
+                .order(by: "timestamp", descending: true)
                 .getDocuments()
-            
+
             comments = snapshot.documents.compactMap { document in
-                try? document.data(as: Comment.self)
-            }
+                Result { try document.data(as: Comment.self) }
+                    .getOrElse(nil)
+            }.compactMap { $0 }
         } catch {
             errorMessage = "Failed to fetch comments: \(error.localizedDescription)"
         }
@@ -104,7 +107,7 @@ struct CommentsView: View {
             profilePictureUrl: profileView.profilePictureUrl
         )
 
-        comments.append(newComment)
+        comments.insert(newComment, at: 0)
         commentText = ""
     }
 }
@@ -166,4 +169,15 @@ struct Comment: Identifiable, Codable, Hashable {
     var username: String
     var timestamp: Date
     var profilePictureUrl: String?
+}
+
+extension Result {
+    func getOrElse(_ defaultValue: Success?) -> Success? {
+        switch self {
+        case .success(let value):
+            return value
+        case .failure:
+            return defaultValue
+        }
+    }
 }
