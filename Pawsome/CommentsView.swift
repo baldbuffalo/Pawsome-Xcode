@@ -1,6 +1,6 @@
 import SwiftUI
 import Firebase
-import FirebaseAuth // Ensure this is present
+import FirebaseAuth
 import FirebaseFirestore
 import FirebaseStorage
 
@@ -10,7 +10,7 @@ struct CommentsView: View {
     var postID: String
 
     @State private var commentText: String = ""
-    @State private var comments: [[String: Any]] = [] // Directly store Firebase data
+    @State private var comments: [[String: Any]] = [] // Store Firebase data
     @State private var isLoading = true
     @State private var errorMessage: String?
 
@@ -29,7 +29,9 @@ struct CommentsView: View {
                         .padding()
                 } else {
                     List(comments, id: \.self) { comment in
-                        CommentRow(comment: comment)
+                        if let commentID = comment["commentID"] as? String {
+                            CommentRow(comment: comment)
+                        }
                     }
                 }
             }
@@ -74,7 +76,12 @@ struct CommentsView: View {
                 .order(by: "timestamp", descending: false)
                 .getDocuments()
 
-            comments = snapshot.documents.map { $0.data() }
+            // Map each document to include a commentID
+            comments = snapshot.documents.map { document in
+                var commentData = document.data()
+                commentData["commentID"] = document.documentID // Add the documentID as commentID
+                return commentData
+            }
         } catch {
             errorMessage = "Failed to fetch comments: \(error.localizedDescription)"
         }
@@ -82,7 +89,7 @@ struct CommentsView: View {
     }
 
     private func saveComment() {
-        guard let userID = Auth.auth().currentUser?.uid else { return } // Make sure FirebaseAuth is imported
+        guard let userID = Auth.auth().currentUser?.uid else { return }
         guard !commentText.isEmpty else { return }
 
         let timestamp = Timestamp(date: Date())
@@ -90,7 +97,8 @@ struct CommentsView: View {
             "text": commentText,
             "username": profileView.username,
             "timestamp": timestamp,
-            "profileImage": profileView.profileImage ?? "" // Save profile image URL
+            "profileImage": profileView.profileImage ?? "",
+            "commentID": UUID().uuidString // Add a temporary comment ID
         ]
 
         db.collection("posts").document(postID).collection("comments").addDocument(data: commentData) { error in
