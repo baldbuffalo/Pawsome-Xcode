@@ -1,15 +1,16 @@
 import SwiftUI
+import Firebase
+import FirebaseAuth // Ensure this is present
 import FirebaseFirestore
-import FirebaseAuth
+import FirebaseStorage
 
 struct CommentsView: View {
     @EnvironmentObject var profileView: ProfileView
     @Binding var showComments: Bool
     var postID: String
-    var saveCommentToFirebase: (String, String) -> Void
 
     @State private var commentText: String = ""
-    @State private var comments: [Comment] = []
+    @State private var comments: [[String: Any]] = [] // Directly store Firebase data
     @State private var isLoading = true
     @State private var errorMessage: String?
 
@@ -27,7 +28,7 @@ struct CommentsView: View {
                         .foregroundColor(.red)
                         .padding()
                 } else {
-                    List(comments.reversed()) { comment in
+                    List(comments, id: \.self) { comment in
                         CommentRow(comment: comment)
                     }
                 }
@@ -40,7 +41,6 @@ struct CommentsView: View {
                 await loadComments()
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button("Close") {
@@ -52,21 +52,10 @@ struct CommentsView: View {
 
     private var commentInputSection: some View {
         HStack {
-            #if swift(>=5.5)
-            if #available(iOS 15.0, *) {
-                TextField("Add a comment...", text: $commentText)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .padding()
-                    .disableAutocorrection(true)
-                    .textInputAutocapitalization(.sentences)
-            } else {
-                TextField("Add a comment...", text: $commentText)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .padding()
-                    .disableAutocorrection(true)
-                    .autocapitalization(.sentences)
-            }
-            #endif
+            TextField("Add a comment...", text: $commentText)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .padding()
+                .disableAutocorrection(true)
 
             Button(action: saveComment) {
                 Text("Send")
@@ -82,13 +71,10 @@ struct CommentsView: View {
     private func loadComments() async {
         do {
             let snapshot = try await db.collection("posts").document(postID).collection("comments")
-                .order(by: "timestamp", descending: true)
+                .order(by: "timestamp", descending: false)
                 .getDocuments()
 
-            comments = snapshot.documents.compactMap { document in
-                Result { try document.data(as: Comment.self) }
-                    .getOrElse(nil)
-            }.compactMap { $0 }
+            comments = snapshot.documents.map { $0.data() }
         } catch {
             errorMessage = "Failed to fetch comments: \(error.localizedDescription)"
         }
@@ -96,28 +82,34 @@ struct CommentsView: View {
     }
 
     private func saveComment() {
+        guard let userID = Auth.auth().currentUser?.uid else { return } // Make sure FirebaseAuth is imported
         guard !commentText.isEmpty else { return }
 
-        saveCommentToFirebase(postID, commentText)
+        let timestamp = Timestamp(date: Date())
+        let commentData: [String: Any] = [
+            "text": commentText,
+            "username": profileView.username,
+            "timestamp": timestamp,
+            "profileImage": profileView.profileImage ?? "" // Save profile image URL
+        ]
 
-        let newComment = Comment(
-            text: commentText,
-            username: profileView.username,
-            timestamp: Date(),
-            profilePictureUrl: profileView.profilePictureUrl
-        )
-
-        comments.insert(newComment, at: 0)
-        commentText = ""
+        db.collection("posts").document(postID).collection("comments").addDocument(data: commentData) { error in
+            if let error = error {
+                print("Failed to save comment: \(error.localizedDescription)")
+            } else {
+                comments.append(commentData)
+                commentText = ""
+            }
+        }
     }
 }
 
 struct CommentRow: View {
-    let comment: Comment
+    let comment: [String: Any]
 
     var body: some View {
         HStack {
-            if let profilePictureUrl = comment.profilePictureUrl, let url = URL(string: profilePictureUrl) {
+            if let profileImageURL = comment["profileImage"] as? String, let url = URL(string: profileImageURL), !profileImageURL.isEmpty {
                 AsyncImage(url: url) { image in
                     image
                         .resizable()
@@ -143,14 +135,20 @@ struct CommentRow: View {
             }
 
             VStack(alignment: .leading) {
-                Text(comment.username)
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-                Text(comment.text)
-                    .font(.body)
-                Text(comment.timestamp, formatter: commentDateFormatter)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                if let username = comment["username"] as? String {
+                    Text(username)
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                }
+                if let text = comment["text"] as? String {
+                    Text(text)
+                        .font(.body)
+                }
+                if let timestamp = comment["timestamp"] as? Timestamp {
+                    Text(timestamp.dateValue(), formatter: commentDateFormatter)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
         }
     }
@@ -162,22 +160,3 @@ private let commentDateFormatter: DateFormatter = {
     formatter.timeStyle = .short
     return formatter
 }()
-
-struct Comment: Identifiable, Codable, Hashable {
-    @DocumentID var id: String?
-    var text: String
-    var username: String
-    var timestamp: Date
-    var profilePictureUrl: String?
-}
-
-extension Result {
-    func getOrElse(_ defaultValue: Success?) -> Success? {
-        switch self {
-        case .success(let value):
-            return value
-        case .failure:
-            return defaultValue
-        }
-    }
-}
