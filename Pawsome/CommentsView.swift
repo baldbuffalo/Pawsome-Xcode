@@ -98,7 +98,6 @@ struct CommentsView: View {
             "username": profileView.username,
             "timestamp": timestamp,
             "profileImage": profileView.profileImage ?? "",
-            "commentID": UUID().uuidString // Add a temporary comment ID
         ]
 
         db.collection("posts").document(postID).collection("comments").addDocument(data: commentData) { error in
@@ -117,7 +116,7 @@ struct CommentRow: View {
 
     var body: some View {
         HStack {
-            if let profileImageURL = comment["profileImage"] as? String, let url = URL(string: profileImageURL), !profileImageURL.isEmpty {
+            if let profileImageURL = comment["profileImage"] as? String, !profileImageURL.isEmpty, let url = URL(string: profileImageURL) {
                 AsyncImage(url: url) { image in
                     image
                         .resizable()
