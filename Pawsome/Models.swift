@@ -1,5 +1,13 @@
 import Foundation
 
+struct Comment: Identifiable, Codable, Hashable {
+    let id: String
+    let text: String
+    let username: String
+    let profileImage: String
+    let timestamp: Date
+}
+
 struct CatPost: Identifiable, Codable, Hashable {
     var id: String
     var catName: String
@@ -9,5 +17,5 @@ struct CatPost: Identifiable, Codable, Hashable {
     var postDescription: String?
     var likes: Int
     var username: String
-    var comments: [Comment]  // Updated to use the Comment struct
+    var comments: [Comment]  // Using the shared Comment struct
 }
