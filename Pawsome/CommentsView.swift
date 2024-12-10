@@ -4,13 +4,23 @@ import FirebaseAuth
 import FirebaseFirestore
 import FirebaseStorage
 
+// MARK: - Comment Struct
+struct Comment: Hashable {
+    let id: String
+    let text: String
+    let username: String
+    let profileImage: String
+    let timestamp: Date
+}
+
+// MARK: - CommentsView
 struct CommentsView: View {
     @EnvironmentObject var profileView: ProfileView
     @Binding var showComments: Bool
     var postID: String
 
     @State private var commentText: String = ""
-    @State private var comments: [[String: Any]] = [] // Store Firebase data
+    @State private var comments: [Comment] = [] // Use Comment struct
     @State private var isLoading = true
     @State private var errorMessage: String?
 
@@ -28,10 +38,8 @@ struct CommentsView: View {
                         .foregroundColor(.red)
                         .padding()
                 } else {
-                    List(comments, id: \.self) { comment in
-                        if let commentID = comment["commentID"] as? String {
-                            CommentRow(comment: comment)
-                        }
+                    List(comments, id: \.id) { comment in
+                        CommentRow(comment: comment)
                     }
                 }
             }
@@ -70,24 +78,41 @@ struct CommentsView: View {
         .padding(.bottom)
     }
 
+    // MARK: - Load Comments
     private func loadComments() async {
         do {
-            let snapshot = try await db.collection("posts").document(postID).collection("comments")
+            let snapshot = try await db.collection("posts")
+                .document(postID)
+                .collection("comments")
                 .order(by: "timestamp", descending: false)
                 .getDocuments()
 
-            // Map each document to include a commentID
-            comments = snapshot.documents.map { document in
-                var commentData = document.data()
-                commentData["commentID"] = document.documentID // Add the documentID as commentID
-                return commentData
+            comments = snapshot.documents.compactMap { document in
+                let data = document.data()
+                guard
+                    let text = data["text"] as? String,
+                    let username = data["username"] as? String,
+                    let profileImage = data["profileImage"] as? String,
+                    let timestamp = data["timestamp"] as? Timestamp
+                else {
+                    return nil
+                }
+                return Comment(
+                    id: document.documentID,
+                    text: text,
+                    username: username,
+                    profileImage: profileImage,
+                    timestamp: timestamp.dateValue()
+                )
             }
+            errorMessage = nil // Clear any previous errors
         } catch {
             errorMessage = "Failed to fetch comments: \(error.localizedDescription)"
         }
         isLoading = false
     }
 
+    // MARK: - Save Comment
     private func saveComment() {
         guard let userID = Auth.auth().currentUser?.uid else { return }
         guard !commentText.isEmpty else { return }
@@ -96,27 +121,35 @@ struct CommentsView: View {
         let commentData: [String: Any] = [
             "text": commentText,
             "username": profileView.username,
-            "timestamp": timestamp,
             "profileImage": profileView.profileImage ?? "",
+            "timestamp": timestamp
         ]
 
         db.collection("posts").document(postID).collection("comments").addDocument(data: commentData) { error in
             if let error = error {
                 print("Failed to save comment: \(error.localizedDescription)")
             } else {
-                comments.append(commentData)
+                let newComment = Comment(
+                    id: UUID().uuidString, // Temporary ID
+                    text: commentText,
+                    username: profileView.username,
+                    profileImage: profileView.profileImage ?? "",
+                    timestamp: Date()
+                )
+                comments.append(newComment)
                 commentText = ""
             }
         }
     }
 }
 
+// MARK: - CommentRow
 struct CommentRow: View {
-    let comment: [String: Any]
+    let comment: Comment
 
     var body: some View {
         HStack {
-            if let profileImageURL = comment["profileImage"] as? String, !profileImageURL.isEmpty, let url = URL(string: profileImageURL) {
+            if let url = URL(string: comment.profileImage), !comment.profileImage.isEmpty {
                 AsyncImage(url: url) { image in
                     image
                         .resizable()
@@ -142,25 +175,20 @@ struct CommentRow: View {
             }
 
             VStack(alignment: .leading) {
-                if let username = comment["username"] as? String {
-                    Text(username)
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                }
-                if let text = comment["text"] as? String {
-                    Text(text)
-                        .font(.body)
-                }
-                if let timestamp = comment["timestamp"] as? Timestamp {
-                    Text(timestamp.dateValue(), formatter: commentDateFormatter)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
+                Text(comment.username)
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+                Text(comment.text)
+                    .font(.body)
+                Text(comment.timestamp, formatter: commentDateFormatter)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
         }
     }
 }
 
+// MARK: - Date Formatter
 private let commentDateFormatter: DateFormatter = {
     let formatter = DateFormatter()
     formatter.dateStyle = .short
