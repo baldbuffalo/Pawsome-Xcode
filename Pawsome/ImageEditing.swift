@@ -1,20 +1,14 @@
 import SwiftUI
 
-#if os(iOS)
-import UIKit
-#elseif os(macOS)
-import AppKit
-#endif
-
 struct ImageEditing: View {
-    @Binding var capturedImage: Any? // Binding to the captured image (supports both UIImage and NSImage)
+    @Binding var selectedImage: Any? // Binding to the selected image (supports both UIImage and NSImage)
     @Binding var hideTabBar: Bool // Binding to control tab bar visibility
     @State private var isCropping: Bool = false // State to manage cropping
     @State private var cropRect: CGRect = .zero // State for cropping rectangle
-
+    
     var body: some View {
         VStack {
-            if let image = capturedImage {
+            if let image = selectedImage {
                 if isCropping {
                     GeometryReader { geometry in
                         ZStack {
@@ -37,7 +31,7 @@ struct ImageEditing: View {
                                         .path(in: cropRect)
                                         .stroke(Color.red, lineWidth: 2)
                                 )
-
+                            
                             VStack {
                                 Spacer()
                                 Button("Crop Image") {
@@ -54,21 +48,21 @@ struct ImageEditing: View {
                         .scaledToFit()
                         .frame(height: 300)
                         .padding()
-
+                    
                     // Add editing options here (e.g., filters, cropping, etc.)
                     Text("Editing Options")
                         .font(.headline)
                         .padding()
-
+                    
                     // Button to open cropping interface
                     Button("Crop Image") {
                         isCropping = true // Show the crop view
                     }
                     .padding()
-
+                    
                     // Example button to discard the editing
                     Button("Done Editing") {
-                        capturedImage = nil // Reset the captured image
+                        selectedImage = nil // Reset the captured image
                         hideTabBar = false // Show the tab bar again after editing
                     }
                     .padding()
@@ -83,40 +77,47 @@ struct ImageEditing: View {
         .cornerRadius(10) // Optional for rounded corners
         .padding()
     }
-
+    
     private func cropImage() {
-        guard let cgImage = imageToCGImage(capturedImage) else { return }
+        guard let cgImage = imageToCGImage(selectedImage) else { return }
         
         // Crop the image based on the defined crop rectangle
         if let croppedCGImage = cgImage.cropping(to: cropRect) {
-            capturedImage = imageFromCGImage(croppedCGImage) // Update the captured image with the cropped version
+            selectedImage = imageFromCGImage(croppedCGImage) // Update the captured image with the cropped version
         }
         isCropping = false // Exit cropping mode
     }
-
+    
     // Helper function to convert the image to CGImage
-    private func imageToCGImage(_ image: Any) -> CGImage? {
+    private func imageToCGImage(_ image: Any?) -> CGImage? {
+        if let image = image {
+            #if os(iOS)
+            if let uiImage = image as? UIImage {
+                return uiImage.cgImage
+            }
+            #elseif os(macOS)
+            if let nsImage = image as? NSImage {
+                return nsImage.cgImage(forProposedRect: nil, context: nil, hints: nil)
+            }
+            #endif
+        }
+        return nil
+    }
+    
+    // Helper function to create a UIImage or NSImage from a CGImage
+    private func imageFromCGImage(_ cgImage: CGImage) -> Any? {
         #if os(iOS)
-        if let uiImage = image as? UIImage {
-            return uiImage.cgImage
+        if let uiImage = UIImage(cgImage: cgImage) {
+            return uiImage
         }
         #elseif os(macOS)
-        if let nsImage = image as? NSImage {
-            return nsImage.cgImage(forProposedRect: nil, context: nil, hints: nil)
+        if let nsImage = NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height)) {
+            return nsImage
         }
         #endif
         return nil
     }
-
-    // Helper function to create a UIImage or NSImage from a CGImage
-    private func imageFromCGImage(_ cgImage: CGImage) -> Any? {
-        #if os(iOS)
-        return UIImage(cgImage: cgImage)
-        #elseif os(macOS)
-        return NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
-        #endif
-    }
-
+    
     // Helper function to return the correct image view for each platform
     private func imageView(_ image: Any) -> Image {
         #if os(iOS)
@@ -128,6 +129,8 @@ struct ImageEditing: View {
             return Image(nsImage: nsImage)
         }
         #endif
-        return Image(systemName: "photo") // Fallback in case the image is not available
+        
+        // Fallback if the image type is not recognized
+        return Image(systemName: "photo")
     }
 }
