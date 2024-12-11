@@ -1,11 +1,18 @@
 import SwiftUI
-import AVKit
-import PhotosUI
-import CoreData
+#if os(iOS)
+import UIKit
+#endif
+#if os(macOS)
+import AppKit
+#endif
 
 struct ScanView: View {
     @Environment(\.managedObjectContext) private var viewContext
-    @Binding var capturedImage: UIImage?
+    #if os(iOS)
+    @Binding var selectedImage: UIImage?
+    #elseif os(macOS)
+    @Binding var selectedImage: NSImage?
+    #endif
     @State private var capturedVideoURL: URL?
     var username: String
     var onPostCreated: (CatPost) -> Void
@@ -22,6 +29,10 @@ struct ScanView: View {
                 Button("Open Camera") {
                     showMediaTypeActionSheet = true
                 }
+                .padding()
+                .foregroundColor(.white)
+                .background(Color.blue)
+                .cornerRadius(8)
                 .actionSheet(isPresented: $showMediaTypeActionSheet) {
                     ActionSheet(title: Text("Select Media Type"), buttons: [
                         .default(Text(MediaPicker.MediaType.photo.displayName)) {
@@ -40,21 +51,23 @@ struct ScanView: View {
                     ])
                 }
                 .sheet(isPresented: $isImagePickerPresented) {
-                    #if os(iOS)
-                    ImagePicker(
-                        sourceType: sourceTypeForMediaType(mediaType),
-                        selectedImage: $capturedImage,
-                        capturedVideoURL: $capturedVideoURL
-                    ) {
-                        navigateToForm = true
+                    if #available(macOS 13.0, *) {
+                        MacMediaPicker(
+                            selectedImage: $selectedImage,
+                            capturedVideoURL: $capturedVideoURL,
+                            mediaType: mediaType
+                        )
+                    } else {
+                        #if os(iOS)
+                        ImagePicker(
+                            sourceType: sourceTypeForMediaType(mediaType),
+                            selectedImage: $selectedImage,
+                            capturedVideoURL: $capturedVideoURL
+                        ) {
+                            navigateToForm = true
+                        }
+                        #endif
                     }
-                    #else
-                    MacMediaPicker(
-                        selectedImage: $capturedImage,
-                        capturedVideoURL: $capturedVideoURL,
-                        mediaType: mediaType
-                    )
-                    #endif
                 }
             }
             .navigationTitle("Camera")
@@ -62,24 +75,52 @@ struct ScanView: View {
                 FormView(
                     showForm: $navigateToForm,
                     navigateToHome: $navigateToHome,
-                    imageUIData: capturedImage?.pngData(),  // Convert UIImage to Data for upload
+                    imageUIData: selectedImage?.pngData(),  // This works for both macOS and iOS
                     videoURL: capturedVideoURL,
                     username: username,
                     onPostCreated: { catPost in
-                        onPostCreated(catPost)
+                        // Ensure that the catPost is a valid object and not a boolean value
+                        if let validCatPost = createCatPost(from: selectedImage, username: username) {
+                            onPostCreated(validCatPost)
+                        }
                     }
                 )
             }
         }
     }
 
-    private func sourceTypeForMediaType(_ mediaType: MediaPicker.MediaType) -> UIImagePickerController.SourceType {
+    private func sourceTypeForMediaType(_ mediaType: MediaPicker.MediaType) -> Any? {
+        #if os(iOS)
         switch mediaType {
         case .library:
-            return .photoLibrary
+            return UIImagePickerController.SourceType.photoLibrary
         case .photo, .video:
-            return .camera
+            return UIImagePickerController.SourceType.camera
         }
+        #elseif os(macOS)
+        switch mediaType {
+        case .library:
+            return NSOpenPanel()
+        case .photo, .video:
+            return AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInWideAngleCamera], mediaType: .video, position: .unspecified).devices.first
+        }
+        #endif
+        return nil
+    }
+
+    // Function to create a CatPost from selected image and username
+    private func createCatPost(from selectedImage: Any?, username: String) -> CatPost? {
+        guard let selectedImage = selectedImage else {
+            return nil // Return nil if no image is selected
+        }
+        
+        // Create and return a CatPost object. Assuming `CatPost` has an initializer that accepts image and username.
+        if let uiImage = selectedImage as? UIImage {
+            return CatPost(imageData: uiImage.pngData(), username: username)
+        } else if let nsImage = selectedImage as? NSImage {
+            return CatPost(imageData: nsImage.pngData(), username: username)
+        }
+        return nil
     }
 
     #if os(iOS)
@@ -110,13 +151,14 @@ struct ScanView: View {
             }
 
             func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
-                if let image = info[.originalImage] as? UIImage {
+                defer { picker.dismiss(animated: true) }
+                guard let mediaType = info[.mediaType] as? String else { return }
+                if mediaType == kUTTypeImage as String, let image = info[.originalImage] as? UIImage {
                     parent.selectedImage = image
-                } else if let videoURL = info[.mediaURL] as? URL {
+                } else if mediaType == kUTTypeMovie as String, let videoURL = info[.mediaURL] as? URL {
                     parent.capturedVideoURL = videoURL
                 }
                 parent.onImageCaptured()
-                picker.dismiss(animated: true)
             }
 
             func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
@@ -128,7 +170,7 @@ struct ScanView: View {
 
     #if os(macOS)
     struct MacMediaPicker: View {
-        @Binding var selectedImage: UIImage?
+        @Binding var selectedImage: NSImage?
         @Binding var capturedVideoURL: URL?
         var mediaType: MediaPicker.MediaType
 
@@ -140,7 +182,7 @@ struct ScanView: View {
                 if panel.runModal() == .OK, let url = panel.url {
                     if url.pathExtension == "jpg" || url.pathExtension == "png" {
                         if let image = NSImage(contentsOf: url) {
-                            selectedImage = UIImage(data: image.tiffRepresentation!)
+                            selectedImage = image
                         }
                     } else if url.pathExtension == "mov" || url.pathExtension == "mp4" {
                         capturedVideoURL = url
@@ -152,21 +194,12 @@ struct ScanView: View {
     #endif
 }
 
-struct MediaPicker {
-    enum MediaType: String, CaseIterable {
-        case library
-        case photo
-        case video
-
-        var displayName: String {
-            switch self {
-            case .library:
-                return "Photo Library"
-            case .photo:
-                return "Camera (Photo)"
-            case .video:
-                return "Camera (Video)"
-            }
-        }
+#if os(macOS)
+extension NSImage {
+    func pngData() -> Data? {
+        guard let tiffData = self.tiffRepresentation else { return nil }
+        let imageRep = NSBitmapImageRep(data: tiffData)
+        return imageRep?.representation(using: .png, properties: [:])
     }
 }
+#endif

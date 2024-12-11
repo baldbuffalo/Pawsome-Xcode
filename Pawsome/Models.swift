@@ -19,3 +19,23 @@ struct CatPost: Identifiable, Codable, Hashable {
     var username: String
     var comments: [Comment]  // Using the shared Comment struct
 }
+
+enum MediaPicker {
+    enum MediaType: String, CaseIterable {
+        case library
+        case photo
+        case video
+
+        var displayName: String {
+            switch self {
+            case .library:
+                return "Photo Library"
+            case .photo:
+                return "Camera (Photo)"
+            case .video:
+                return "Camera (Video)"
+            }
+        }
+    }
+}
+
