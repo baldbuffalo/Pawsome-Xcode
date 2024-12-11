@@ -1,9 +1,11 @@
 import SwiftUI
 #if os(iOS)
 import UIKit
+import MobileCoreServices
 #endif
 #if os(macOS)
 import AppKit
+import AVFoundation
 #endif
 
 struct ScanView: View {
@@ -22,6 +24,7 @@ struct ScanView: View {
     @State private var showMediaTypeActionSheet: Bool = false
     @State private var navigateToForm: Bool = false
     @State private var navigateToHome: Bool = false
+    @State private var errorMessage: String?
 
     var body: some View {
         NavigationStack {
@@ -55,19 +58,30 @@ struct ScanView: View {
                         MacMediaPicker(
                             selectedImage: $selectedImage,
                             capturedVideoURL: $capturedVideoURL,
-                            mediaType: mediaType
+                            mediaType: mediaType,
+                            onError: { message in
+                                errorMessage = message
+                            }
                         )
                     } else {
                         #if os(iOS)
                         ImagePicker(
                             sourceType: sourceTypeForMediaType(mediaType),
                             selectedImage: $selectedImage,
-                            capturedVideoURL: $capturedVideoURL
-                        ) {
-                            navigateToForm = true
-                        }
+                            capturedVideoURL: $capturedVideoURL,
+                            onImageCaptured: { navigateToForm = true },
+                            onError: { message in
+                                errorMessage = message
+                            }
+                        )
                         #endif
                     }
+                }
+
+                if let errorMessage = errorMessage {
+                    Text(errorMessage)
+                        .foregroundColor(.red)
+                        .padding()
                 }
             }
             .navigationTitle("Camera")
@@ -75,11 +89,10 @@ struct ScanView: View {
                 FormView(
                     showForm: $navigateToForm,
                     navigateToHome: $navigateToHome,
-                    imageUIData: selectedImage?.pngData(),  // This works for both macOS and iOS
+                    imageUIData: selectedImageData(),
                     videoURL: capturedVideoURL,
                     username: username,
                     onPostCreated: { catPost in
-                        // Ensure that the catPost is a valid object and not a boolean value
                         if let validCatPost = createCatPost(from: selectedImage, username: username) {
                             onPostCreated(validCatPost)
                         }
@@ -102,25 +115,36 @@ struct ScanView: View {
         case .library:
             return NSOpenPanel()
         case .photo, .video:
-            return AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInWideAngleCamera], mediaType: .video, position: .unspecified).devices.first
+            let videoDevices = AVCaptureDevice.devices(for: .video)
+            return videoDevices.first
         }
         #endif
         return nil
     }
 
-    // Function to create a CatPost from selected image and username
     private func createCatPost(from selectedImage: Any?, username: String) -> CatPost? {
         guard let selectedImage = selectedImage else {
-            return nil // Return nil if no image is selected
+            return nil
         }
-        
-        // Create and return a CatPost object. Assuming `CatPost` has an initializer that accepts image and username.
+
+        #if os(iOS)
         if let uiImage = selectedImage as? UIImage {
             return CatPost(imageData: uiImage.pngData(), username: username)
-        } else if let nsImage = selectedImage as? NSImage {
+        }
+        #elseif os(macOS)
+        if let nsImage = selectedImage as? NSImage {
             return CatPost(imageData: nsImage.pngData(), username: username)
         }
+        #endif
         return nil
+    }
+
+    private func selectedImageData() -> Data? {
+        #if os(iOS)
+        return selectedImage?.pngData()
+        #elseif os(macOS)
+        return selectedImage?.pngData()
+        #endif
     }
 
     #if os(iOS)
@@ -129,6 +153,7 @@ struct ScanView: View {
         @Binding var selectedImage: UIImage?
         @Binding var capturedVideoURL: URL?
         var onImageCaptured: () -> Void
+        var onError: (String) -> Void
 
         func makeUIViewController(context: Context) -> UIImagePickerController {
             let picker = UIImagePickerController()
@@ -152,9 +177,12 @@ struct ScanView: View {
 
             func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
                 defer { picker.dismiss(animated: true) }
-                guard let mediaType = info[.mediaType] as? String else { return }
+                guard let mediaType = info[.mediaType] as? String else {
+                    parent.onError("Unsupported media type")
+                    return
+                }
                 if mediaType == kUTTypeImage as String, let image = info[.originalImage] as? UIImage {
-                    parent.selectedImage = image
+                    parent.selectedImage = optimizeImage(image)
                 } else if mediaType == kUTTypeMovie as String, let videoURL = info[.mediaURL] as? URL {
                     parent.capturedVideoURL = videoURL
                 }
@@ -163,6 +191,23 @@ struct ScanView: View {
 
             func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
                 picker.dismiss(animated: true)
+                parent.onError("User canceled image selection")
+            }
+
+            func optimizeImage(_ image: UIImage) -> UIImage {
+                let maxSize: CGFloat = 1024
+                let aspectRatio = image.size.width / image.size.height
+                var newWidth: CGFloat = maxSize
+                var newHeight: CGFloat = newWidth / aspectRatio
+                if newHeight > maxSize {
+                    newHeight = maxSize
+                    newWidth = newHeight * aspectRatio
+                }
+                UIGraphicsBeginImageContext(CGSize(width: newWidth, height: newHeight))
+                image.draw(in: CGRect(x: 0, y: 0, width: newWidth, height: newHeight))
+                let resizedImage = UIGraphicsGetImageFromCurrentImageContext()
+                UIGraphicsEndImageContext()
+                return resizedImage ?? image
             }
         }
     }
@@ -173,6 +218,7 @@ struct ScanView: View {
         @Binding var selectedImage: NSImage?
         @Binding var capturedVideoURL: URL?
         var mediaType: MediaPicker.MediaType
+        var onError: (String) -> Void
 
         var body: some View {
             Button("Choose File") {
@@ -182,13 +228,30 @@ struct ScanView: View {
                 if panel.runModal() == .OK, let url = panel.url {
                     if url.pathExtension == "jpg" || url.pathExtension == "png" {
                         if let image = NSImage(contentsOf: url) {
-                            selectedImage = image
+                            selectedImage = optimizeImage(image)
                         }
                     } else if url.pathExtension == "mov" || url.pathExtension == "mp4" {
                         capturedVideoURL = url
                     }
+                } else {
+                    onError("No media selected")
                 }
             }
+        }
+
+        func optimizeImage(_ image: NSImage) -> NSImage? {
+            let maxSize: CGFloat = 1024
+            let aspectRatio = image.size.width / image.size.height
+            var newWidth: CGFloat = maxSize
+            var newHeight: CGFloat = newWidth / aspectRatio
+            if newHeight > maxSize {
+                newHeight = maxSize
+                newWidth = newHeight * aspectRatio
+            }
+            let newSize = NSSize(width: newWidth, height: newHeight)
+            let resizedImage = image.copy() as! NSImage
+            resizedImage.size = newSize
+            return resizedImage
         }
     }
     #endif
@@ -197,9 +260,9 @@ struct ScanView: View {
 #if os(macOS)
 extension NSImage {
     func pngData() -> Data? {
-        guard let tiffData = self.tiffRepresentation else { return nil }
-        let imageRep = NSBitmapImageRep(data: tiffData)
-        return imageRep?.representation(using: .png, properties: [:])
+        guard let tiffRepresentation = self.tiffRepresentation else { return nil }
+        let bitmapImageRep = NSBitmapImageRep(data: tiffRepresentation)
+        return bitmapImageRep?.representation(using: .png, properties: [:])
     }
 }
 #endif
