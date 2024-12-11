@@ -134,11 +134,19 @@ struct ScanView: View {
 
         #if os(iOS)
         if let uiImage = selectedImage as? UIImage {
-            return CatPost(imageData: uiImage.pngData(), username: username)
+            if let imageData = uiImage.pngData() {
+                return CatPost(imageData: imageData, username: username)
+            } else {
+                return nil
+            }
         }
         #elseif os(macOS)
         if let nsImage = selectedImage as? NSImage {
-            return CatPost(imageData: nsImage.pngData(), username: username)
+            if let imageData = nsImage.pngData() {
+                return CatPost(imageData: imageData, username: username)
+            } else {
+                return nil
+            }
         }
         #endif
 
