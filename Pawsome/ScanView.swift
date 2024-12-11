@@ -6,6 +6,7 @@ import MobileCoreServices
 #if os(macOS)
 import AppKit
 import AVFoundation
+import CoreMedia
 #endif
 
 struct ScanView: View {
@@ -102,21 +103,20 @@ struct ScanView: View {
         }
     }
 
-    private func sourceTypeForMediaType(_ mediaType: MediaPicker.MediaType) -> Any? {
+    private func sourceTypeForMediaType(_ mediaType: MediaPicker.MediaType) -> UIImagePickerController.SourceType? {
         #if os(iOS)
         switch mediaType {
         case .library:
-            return UIImagePickerController.SourceType.photoLibrary
+            return .photoLibrary
         case .photo, .video:
-            return UIImagePickerController.SourceType.camera
+            return .camera
         }
         #elseif os(macOS)
         switch mediaType {
         case .library:
-            return NSOpenPanel()
+            return nil // NSOpenPanel for selecting files, no direct camera option
         case .photo, .video:
-            let videoDevices = AVCaptureDevice.devices(for: .video)
-            return videoDevices.first
+            return nil // macOS handles this separately
         }
         #endif
         return nil
