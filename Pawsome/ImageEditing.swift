@@ -107,15 +107,10 @@ struct ImageEditing: View {
     // Helper function to create a UIImage or NSImage from a CGImage
     private func imageFromCGImage(_ cgImage: CGImage) -> Any? {
         #if os(iOS)
-        if let uiImage = UIImage(cgImage: cgImage) {
-            return uiImage
-        }
+        return UIImage(cgImage: cgImage)
         #elseif os(macOS)
-        if let nsImage = NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height)) {
-            return nsImage
-        }
+        return NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
         #endif
-        return nil
     }
     
     // Helper function to return the correct image view for each platform
