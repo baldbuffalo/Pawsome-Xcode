@@ -6,6 +6,7 @@ import MobileCoreServices
 #if os(macOS)
 import AppKit
 import AVFoundation
+import UniformTypeIdentifiers // For UTType
 #endif
 
 struct ScanView: View {
@@ -115,7 +116,11 @@ struct ScanView: View {
         case .library:
             return NSOpenPanel()
         case .photo, .video:
-            let videoDevices = AVCaptureDevice.devices(for: .video)
+            let videoDevices = AVCaptureDevice.DiscoverySession(
+                deviceTypes: [.builtInWideAngleCamera],
+                mediaType: .video,
+                position: .unspecified
+            ).devices
             return videoDevices.first
         }
         #endif
@@ -136,6 +141,7 @@ struct ScanView: View {
             return CatPost(imageData: nsImage.pngData(), username: username)
         }
         #endif
+
         return nil
     }
 
@@ -223,7 +229,7 @@ struct ScanView: View {
         var body: some View {
             Button("Choose File") {
                 let panel = NSOpenPanel()
-                panel.allowedFileTypes = ["public.image", "public.movie"]
+                panel.allowedContentTypes = [UTType.image, UTType.movie] // Use allowedContentTypes
                 panel.allowsMultipleSelection = false
                 if panel.runModal() == .OK, let url = panel.url {
                     if url.pathExtension == "jpg" || url.pathExtension == "png" {
