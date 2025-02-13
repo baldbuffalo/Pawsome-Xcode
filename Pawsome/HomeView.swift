@@ -65,7 +65,7 @@ struct HomeView: View {
                     }
                     .contextMenu {
                         EditButton(post: post)
-                        DeleteButton(post: post)
+                        DeleteButton(post: post) // Adding DeleteButton here
                     }
             }
         }
@@ -97,6 +97,16 @@ struct HomeView: View {
                 }
             }
             Button("Cancel", role: .cancel) { }
+        }
+    }
+    
+    // Define the DeleteButton for context menu
+    private func DeleteButton(post: CatPost) -> some View {
+        Button(action: {
+            postToDelete = post
+        }) {
+            Label("Delete", systemImage: "trash")
+                .foregroundColor(.red)
         }
     }
 }
