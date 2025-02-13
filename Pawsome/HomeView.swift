@@ -65,7 +65,7 @@ struct HomeView: View {
                     }
                     .contextMenu {
                         EditButton(post: post)
-                        DeleteButton(post: post) // Adding DeleteButton here
+                        DeleteButton(post: post)
                     }
             }
         }
@@ -97,16 +97,6 @@ struct HomeView: View {
                 }
             }
             Button("Cancel", role: .cancel) { }
-        }
-    }
-    
-    // Define the DeleteButton for context menu
-    private func DeleteButton(post: CatPost) -> some View {
-        Button(action: {
-            postToDelete = post
-        }) {
-            Label("Delete", systemImage: "trash")
-                .foregroundColor(.red)
         }
     }
 }
@@ -299,4 +289,60 @@ struct EmptyStateView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
+}
+
+struct AddPostView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var catName: String = ""
+    @State private var catBreed: String = ""
+    @State private var catAge: String = ""
+    @State private var location: String = ""
+    @State private var imageURL: String = ""
+    
+    var onSave: (CatPost) -> Void
+    
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section(header: Text("Cat Information")) {
+                    TextField("Cat Name", text: $catName)
+                    TextField("Breed", text: $catBreed)
+                    TextField("Age", text: $catAge)
+                        .keyboardType(.numberPad)
+                    TextField("Location", text: $location)
+                    TextField("Image URL", text: $imageURL)
+                }
+                
+                Section {
+                    Button("Save") {
+                        savePost()
+                    }
+                    .disabled(catName.isEmpty || catAge.isEmpty || imageURL.isEmpty)
+                    
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+            }
+            .navigationTitle("Add Post")
+        }
+    }
+    
+    private func savePost() {
+        guard let age = Int(catAge) else { return }
+        let newPost = CatPost(id: UUID().uuidString, catName: catName, catBreed: catBreed, catAge: age, location: location, imageURL: imageURL, likes: 0, comments: [])
+        onSave(newPost)
+        dismiss()
+    }
+}
+
+struct CatPost: Identifiable, Codable {
+    var id: String
+    var catName: String
+    var catBreed: String?
+    var catAge: Int
+    var location: String?
+    var imageURL: String?
+    var likes: Int
+    var comments: [String]
 }
