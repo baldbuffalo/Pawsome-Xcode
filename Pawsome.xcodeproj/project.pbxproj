@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		6221FE882CA1EA1C00C55851 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 6221FE872CA1EA1C00C55851 /* GoogleSignIn */; };
 		6221FE8A2CA1EA1C00C55851 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 6221FE892CA1EA1C00C55851 /* GoogleSignInSwift */; };
+		625F568E2D5E1DFE003D5239 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 625F568D2D5E1DFE003D5239 /* FirebaseFirestore */; };
 		62735C082CDD255C000719B2 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 62735C072CDD255C000719B2 /* FirebaseFirestore */; };
 		62735C0A2CDD255C000719B2 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 62735C092CDD255C000719B2 /* FirebaseStorage */; };
 		627C49962CDDE23000ABDABF /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 627C49952CDDE23000ABDABF /* FirebaseAuth */; };
@@ -97,6 +98,7 @@
 				6221FE882CA1EA1C00C55851 /* GoogleSignIn in Frameworks */,
 				62735C0A2CDD255C000719B2 /* FirebaseStorage in Frameworks */,
 				62D804A32CAD1F6B00D13EFA /* FirebaseAnalyticsWithoutAdIdSupport in Frameworks */,
+				625F568E2D5E1DFE003D5239 /* FirebaseFirestore in Frameworks */,
 				6221FE8A2CA1EA1C00C55851 /* GoogleSignInSwift in Frameworks */,
 				62735C082CDD255C000719B2 /* FirebaseFirestore in Frameworks */,
 				627C49962CDDE23000ABDABF /* FirebaseAuth in Frameworks */,
@@ -201,6 +203,7 @@
 				62735C072CDD255C000719B2 /* FirebaseFirestore */,
 				62735C092CDD255C000719B2 /* FirebaseStorage */,
 				627C49952CDDE23000ABDABF /* FirebaseAuth */,
+				625F568D2D5E1DFE003D5239 /* FirebaseFirestore */,
 			);
 			productName = Pawsome;
 			productReference = 62355CC52C84CC5400560D69 /* Pawsome.app */;
@@ -526,6 +529,10 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 6221FE862CA1EA1C00C55851 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
 			productName = GoogleSignInSwift;
+		};
+		625F568D2D5E1DFE003D5239 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = FirebaseFirestore;
 		};
 		62735C072CDD255C000719B2 /* FirebaseFirestore */ = {
 			isa = XCSwiftPackageProductDependency;
