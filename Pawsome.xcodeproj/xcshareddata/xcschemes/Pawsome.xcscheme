@@ -52,6 +52,17 @@
                ReferencedContainer = "container:Pawsome.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "62F845102D5FFFB6000B1915"
+               BuildableName = "CatPostModuleTests.xctest"
+               BlueprintName = "CatPostModuleTests"
+               ReferencedContainer = "container:Pawsome.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

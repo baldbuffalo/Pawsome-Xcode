@@ -1,13 +1,14 @@
 import SwiftUI
 import Firebase
 import FirebaseFirestore
+import CatPostModule  // Import the module here
 
-// Assuming CatPost is defined in CatPost.swift
 struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
-    @State private var selectedPost: CatPost?
-    @State private var postToDelete: CatPost?
+    @State private var selectedPost: CatPost? // Now using CatPost from the module
+    @State private var postToDelete: CatPost?  // Now using CatPost from the module
     @State private var showError = false
+    @State private var isAddingPost = false
     
     var body: some View {
         NavigationStack {
@@ -16,24 +17,7 @@ struct HomeView: View {
                     ProgressView("Loading posts...")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if viewModel.posts.isEmpty {
-                    VStack {
-                        Text("No posts available")
-                            .font(.title)
-                            .fontWeight(.bold)
-                            .padding(.bottom, 20)
-                        
-                        Button(action: {
-                            // Action to add a post (add your action here)
-                        }) {
-                            Text("Add a Post")
-                                .font(.headline)
-                                .foregroundColor(.blue)
-                                .padding()
-                                .background(Capsule().stroke(Color.blue, lineWidth: 2))
-                        }
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .foregroundColor(.gray)
+                    EmptyStateView()
                 } else {
                     PostsListView()
                 }
@@ -41,7 +25,7 @@ struct HomeView: View {
             .navigationTitle("Pawsome")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { /* Action for adding post */ }) {
+                    Button(action: { isAddingPost = true }) {
                         Image(systemName: "plus")
                     }
                 }
@@ -60,6 +44,11 @@ struct HomeView: View {
                     viewModel.updatePost(updatedPost)
                 }
             }
+            .sheet(isPresented: $isAddingPost) {
+                AddPostView { newPost in
+                    viewModel.savePost(newPost)
+                }
+            }
             .refreshable { viewModel.fetchPosts() }
             .onAppear { viewModel.fetchPostsIfNeeded() }
         }
@@ -70,8 +59,8 @@ struct HomeView: View {
     private func PostsListView() -> some View {
         List {
             ForEach(viewModel.posts) { post in
-                PostCardView(post: post)  // Referencing CatPost directly
-                    .swipeActions {
+                PostCardView(post: post)
+                    .swipeActions(edge: .trailing) {
                         SwipeDeleteButton(post: post)
                         SwipeEditButton(post: post)
                     }
@@ -114,16 +103,24 @@ struct HomeView: View {
 }
 
 struct PostCardView: View {
-    let post: CatPost  // Direct reference to CatPost from CatPost.swift
+    let post: CatPost
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(post.title)
+            Text(post.catName)
                 .font(.headline)
             
-            Text(post.description)
-                .font(.subheadline)
-                .foregroundColor(.gray)
+            if let breed = post.catBreed {
+                Text(breed)
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+            }
+            
+            if let location = post.location {
+                Text(location)
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+            }
             
             if let imageURL = post.imageURL {
                 AsyncImage(url: URL(string: imageURL)) { image in
@@ -135,10 +132,27 @@ struct PostCardView: View {
                     ProgressView()
                 }
             }
+            
+            HStack {
+                Text("\(post.likes) Likes")
+                    .font(.subheadline)
+                Spacer()
+                Text("\(post.comments.count) Comments")
+                    .font(.subheadline)
+            }
         }
         .padding()
-        .background(Color("systemBackground"))  // Use Color directly for system background
+        .background(Color(.systemBackground)) // Ensures background color works
         .cornerRadius(12)
         .shadow(radius: 2)
+    }
+}
+
+struct EmptyStateView: View {
+    var body: some View {
+        Text("No posts available.")
+            .font(.title)
+            .foregroundColor(.gray)
+            .padding()
     }
 }
