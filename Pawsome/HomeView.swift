@@ -2,6 +2,7 @@ import SwiftUI
 import Firebase
 import FirebaseFirestore
 
+// Assuming CatPost is defined in CatPost.swift
 struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
     @State private var selectedPost: CatPost?
@@ -15,7 +16,24 @@ struct HomeView: View {
                     ProgressView("Loading posts...")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if viewModel.posts.isEmpty {
-                    EmptyStateView()
+                    VStack {
+                        Text("No posts available")
+                            .font(.title)
+                            .fontWeight(.bold)
+                            .padding(.bottom, 20)
+                        
+                        Button(action: {
+                            // Action to add a post (add your action here)
+                        }) {
+                            Text("Add a Post")
+                                .font(.headline)
+                                .foregroundColor(.blue)
+                                .padding()
+                                .background(Capsule().stroke(Color.blue, lineWidth: 2))
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .foregroundColor(.gray)
                 } else {
                     PostsListView()
                 }
@@ -52,8 +70,8 @@ struct HomeView: View {
     private func PostsListView() -> some View {
         List {
             ForEach(viewModel.posts) { post in
-                PostCardView(post: post)
-                    .swipeActions { // Swipe actions applied correctly
+                PostCardView(post: post)  // Referencing CatPost directly
+                    .swipeActions {
                         SwipeDeleteButton(post: post)
                         SwipeEditButton(post: post)
                     }
@@ -96,7 +114,7 @@ struct HomeView: View {
 }
 
 struct PostCardView: View {
-    let post: CatPost
+    let post: CatPost  // Direct reference to CatPost from CatPost.swift
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
