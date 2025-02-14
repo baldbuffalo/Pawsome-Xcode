@@ -7,7 +7,6 @@ struct HomeView: View {
     @State private var selectedPost: CatPost?
     @State private var postToDelete: CatPost?
     @State private var showError = false
-    @State private var isAddingPost = false
     
     var body: some View {
         NavigationStack {
@@ -24,7 +23,7 @@ struct HomeView: View {
             .navigationTitle("Pawsome")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { isAddingPost = true }) {
+                    Button(action: { /* Action for adding post */ }) {
                         Image(systemName: "plus")
                     }
                 }
@@ -43,11 +42,6 @@ struct HomeView: View {
                     viewModel.updatePost(updatedPost)
                 }
             }
-            .sheet(isPresented: $isAddingPost) {
-                AddPostView { newPost in
-                    viewModel.savePost(newPost)
-                }
-            }
             .refreshable { viewModel.fetchPosts() }
             .onAppear { viewModel.fetchPostsIfNeeded() }
         }
@@ -58,8 +52,8 @@ struct HomeView: View {
     private func PostsListView() -> some View {
         List {
             ForEach(viewModel.posts) { post in
-                PostCardView(post: post)  // Ensure PostCardView exists
-                    .swipeActions(edge: .trailing) {
+                PostCardView(post: post)
+                    .swipeActions { // Swipe actions applied correctly
                         SwipeDeleteButton(post: post)
                         SwipeEditButton(post: post)
                     }
@@ -98,5 +92,35 @@ struct HomeView: View {
             }
             Button("Cancel", role: .cancel) { }
         }
+    }
+}
+
+struct PostCardView: View {
+    let post: CatPost
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(post.title)
+                .font(.headline)
+            
+            Text(post.description)
+                .font(.subheadline)
+                .foregroundColor(.gray)
+            
+            if let imageURL = post.imageURL {
+                AsyncImage(url: URL(string: imageURL)) { image in
+                    image.resizable()
+                        .scaledToFit()
+                        .frame(maxWidth: .infinity, maxHeight: 200)
+                        .cornerRadius(10)
+                } placeholder: {
+                    ProgressView()
+                }
+            }
+        }
+        .padding()
+        .background(Color("systemBackground"))  // Use Color directly for system background
+        .cornerRadius(12)
+        .shadow(radius: 2)
     }
 }
