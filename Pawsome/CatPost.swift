@@ -2,13 +2,13 @@ import Foundation
 import FirebaseFirestore
 
 struct CatPost: Identifiable, Codable {
-    @DocumentID var id: String? // Firestore document ID
+    var id: String? // Firestore document ID
     var catName: String
     var catBreed: String?
     var location: String?
     var imageURL: String?
     var likes: Int
-    var comments: [Comment]
+    var comments: [Comment] // Assuming you have Comment in CommentsView.swift
 
     init(id: String? = nil, catName: String, catBreed: String? = nil, location: String? = nil, imageURL: String? = nil, likes: Int = 0, comments: [Comment] = []) {
         self.id = id
@@ -19,18 +19,29 @@ struct CatPost: Identifiable, Codable {
         self.likes = likes
         self.comments = comments
     }
-}
 
-struct Comment: Identifiable, Codable {
-    var id: String
-    var author: String
-    var text: String
-    var timestamp: Date
+    // Convert Firestore document to CatPost
+    static func fromDocument(_ document: DocumentSnapshot) -> CatPost? {
+        guard let data = document.data() else { return nil }
+        return CatPost(
+            id: document.documentID,
+            catName: data["catName"] as? String ?? "",
+            catBreed: data["catBreed"] as? String,
+            location: data["location"] as? String,
+            imageURL: data["imageURL"] as? String,
+            likes: data["likes"] as? Int ?? 0,
+            comments: [] // Handle comments separately
+        )
+    }
 
-    init(id: String = UUID().uuidString, author: String, text: String, timestamp: Date = Date()) {
-        self.id = id
-        self.author = author
-        self.text = text
-        self.timestamp = timestamp
+    // Convert CatPost to Firestore format
+    func toDictionary() -> [String: Any] {
+        return [
+            "catName": catName,
+            "catBreed": catBreed ?? NSNull(),
+            "location": location ?? NSNull(),
+            "imageURL": imageURL ?? NSNull(),
+            "likes": likes
+        ]
     }
 }
