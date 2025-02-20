@@ -1,12 +1,12 @@
 import SwiftUI
 import Firebase
 import FirebaseFirestore
-import CatPostModule  // Import the module here
+import CatPostModule  // Ensure this module provides the CatPost model
 
 struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
-    @State private var selectedPost: CatPost? // Now using CatPost from the module
-    @State private var postToDelete: CatPost?  // Now using CatPost from the module
+    @State private var selectedPost: CatPost?
+    @State private var postToDelete: CatPost?
     @State private var showError = false
     @State private var isAddingPost = false
     
@@ -19,7 +19,7 @@ struct HomeView: View {
                 } else if viewModel.posts.isEmpty {
                     EmptyStateView()
                 } else {
-                    PostsListView()
+                    PostsListView(posts: viewModel.posts)
                 }
             }
             .navigationTitle("Pawsome")
@@ -56,9 +56,9 @@ struct HomeView: View {
     
     // MARK: - Subviews
     
-    private func PostsListView() -> some View {
+    private func PostsListView(posts: [CatPost]) -> some View {
         List {
-            ForEach(viewModel.posts) { post in
+            ForEach(posts) { post in
                 PostCardView(post: post)
                     .swipeActions(edge: .trailing) {
                         SwipeDeleteButton(post: post)
@@ -110,20 +110,20 @@ struct PostCardView: View {
             Text(post.catName)
                 .font(.headline)
             
-            if let breed = post.catBreed {
+            if let breed = post.catBreed, !breed.isEmpty {
                 Text(breed)
                     .font(.subheadline)
                     .foregroundColor(.gray)
             }
             
-            if let location = post.location {
+            if let location = post.location, !location.isEmpty {
                 Text(location)
                     .font(.subheadline)
                     .foregroundColor(.gray)
             }
             
-            if let imageURL = post.imageURL {
-                AsyncImage(url: URL(string: imageURL)) { image in
+            if let imageURL = post.imageURL, let url = URL(string: imageURL) {
+                AsyncImage(url: url) { image in
                     image.resizable()
                         .scaledToFit()
                         .frame(maxWidth: .infinity, maxHeight: 200)
@@ -142,7 +142,7 @@ struct PostCardView: View {
             }
         }
         .padding()
-        .background(Color(.systemBackground)) // Ensures background color works
+        .background(Color(.systemBackground))
         .cornerRadius(12)
         .shadow(radius: 2)
     }
@@ -150,9 +150,16 @@ struct PostCardView: View {
 
 struct EmptyStateView: View {
     var body: some View {
-        Text("No posts available.")
-            .font(.title)
-            .foregroundColor(.gray)
-            .padding()
+        VStack {
+            Image(systemName: "square.stack.3d.up.slash")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 80, height: 80)
+                .foregroundColor(.gray)
+            Text("No posts available.")
+                .font(.title)
+                .foregroundColor(.gray)
+                .padding()
+        }
     }
 }
