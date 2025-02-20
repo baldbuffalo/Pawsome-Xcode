@@ -2,7 +2,7 @@ import SwiftUI
 import Firebase
 import FirebaseAuth
 import FirebaseFirestore
-import Foundation  // Ensure models.swift is imported
+import Foundation
 
 struct CommentsView: View {
     @EnvironmentObject var profileView: ProfileView
@@ -10,7 +10,7 @@ struct CommentsView: View {
     var postID: String
 
     @State private var commentText: String = ""
-    @State private var comments: [Comment] = []  // Using Comment from models.swift
+    @State private var comments: [Comment] = []
     @State private var isLoading = true
     @State private var errorMessage: String?
 
@@ -29,7 +29,7 @@ struct CommentsView: View {
                         .padding()
                 } else {
                     List(comments) { comment in
-                        CommentRow(comment: comment)  // Using Comment from models.swift
+                        CommentRow(comment: comment)
                     }
                 }
             }
@@ -74,16 +74,10 @@ struct CommentsView: View {
                 .order(by: "timestamp", descending: false)
                 .getDocuments()
 
-            // Map each document to the Comment struct
-            comments = snapshot.documents.map { document in
-                let data = document.data()
-                return Comment(
-                    id: document.documentID,
-                    text: data["text"] as? String ?? "",
-                    username: data["username"] as? String ?? "Anonymous",
-                    profileImage: data["profileImage"] as? String ?? "",
-                    timestamp: (data["timestamp"] as? Timestamp)?.dateValue() ?? Date()
-                )
+            comments = snapshot.documents.compactMap { document in
+                var data = document.data()
+                data["id"] = document.documentID
+                return Comment(document: data)
             }
         } catch {
             errorMessage = "Failed to fetch comments: \(error.localizedDescription)"
@@ -107,9 +101,8 @@ struct CommentsView: View {
             if let error = error {
                 print("Failed to save comment: \(error.localizedDescription)")
             } else {
-                // Append comment to local list
                 let newComment = Comment(
-                    id: UUID().uuidString, // Temporary ID, replaced on reload
+                    id: UUID().uuidString, // Temporary ID
                     text: commentText,
                     username: profileView.username,
                     profileImage: profileView.profileImage ?? "",
@@ -123,11 +116,11 @@ struct CommentsView: View {
 }
 
 struct CommentRow: View {
-    let comment: Comment  // Using Comment from models.swift
+    let comment: Comment
 
     var body: some View {
         HStack {
-            if let url = URL(string: comment.profileImage), !comment.profileImage.isEmpty {
+            if let url = URL(string: comment.profileImage ?? ""), !(comment.profileImage ?? "").isEmpty {
                 AsyncImage(url: url) { image in
                     image
                         .resizable()
@@ -165,6 +158,40 @@ struct CommentRow: View {
                     .foregroundColor(.secondary)
             }
         }
+    }
+}
+
+struct Comment: Identifiable, Codable {
+    var id: String
+    var text: String
+    var username: String
+    var profileImage: String?
+    var timestamp: Date
+
+    enum CodingKeys: String, CodingKey {
+        case id, text, username, profileImage, timestamp
+    }
+
+    init(id: String, text: String, username: String, profileImage: String?, timestamp: Date) {
+        self.id = id
+        self.text = text
+        self.username = username
+        self.profileImage = profileImage
+        self.timestamp = timestamp
+    }
+
+    init?(document: [String: Any]) {
+        guard let id = document["id"] as? String,
+              let text = document["text"] as? String,
+              let username = document["username"] as? String,
+              let timestamp = document["timestamp"] as? Timestamp else {
+            return nil
+        }
+        self.id = id
+        self.text = text
+        self.username = username
+        self.profileImage = document["profileImage"] as? String
+        self.timestamp = timestamp.dateValue()
     }
 }
 

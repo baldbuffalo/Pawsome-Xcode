@@ -8,7 +8,7 @@ struct CatPost: Identifiable, Codable {
     var location: String?
     var imageURL: String?
     var likes: Int
-    var comments: [Comment] // Assuming you have Comment in CommentsView.swift
+    var comments: [Comment] // Now using Comment from CommentsView.swift
 
     init(id: String? = nil, catName: String, catBreed: String? = nil, location: String? = nil, imageURL: String? = nil, likes: Int = 0, comments: [Comment] = []) {
         self.id = id
