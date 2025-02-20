@@ -142,7 +142,15 @@ struct PostCardView: View {
             }
         }
         .padding()
-        .background(Color(.systemBackground))
+        .background(
+            Color(
+                #if os(iOS)
+                UIColor.systemBackground
+                #elseif os(macOS)
+                NSColor.windowBackgroundColor
+                #endif
+            )
+        )
         .cornerRadius(12)
         .shadow(radius: 2)
     }
