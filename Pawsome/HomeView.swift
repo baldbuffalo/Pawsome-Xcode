@@ -4,33 +4,27 @@ import FirebaseFirestore
 import CatPostModule  // Ensure this module provides the CatPost model
 
 struct HomeView: View {
-    @StateObject private var viewModel = HomeViewModel()
+    @State private var posts: [CatPost] = []
+    @State private var isLoading = true
+    @State private var error: Error?
     @State private var selectedPost: CatPost?
     @State private var postToDelete: CatPost?
     @State private var showError = false
-    @State private var isAddingPost = false
     
     var body: some View {
         NavigationStack {
             Group {
-                if viewModel.isLoading {
+                if isLoading {
                     ProgressView("Loading posts...")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if viewModel.posts.isEmpty {
+                } else if posts.isEmpty {
                     EmptyStateView()
                 } else {
-                    PostsListView(posts: viewModel.posts)
+                    PostsListView(posts: posts)
                 }
             }
             .navigationTitle("Pawsome")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { isAddingPost = true }) {
-                        Image(systemName: "plus")
-                    }
-                }
-            }
-            .alert("Error", isPresented: $showError, presenting: viewModel.error) { _ in } message: {
+            .alert("Error", isPresented: $showError, presenting: error) { _ in } message: {
                 Text($0.localizedDescription)
             }
             .confirmationDialog("Delete Post", isPresented: Binding(
@@ -41,21 +35,49 @@ struct HomeView: View {
             }
             .sheet(item: $selectedPost) { post in
                 EditPostView(post: post) { updatedPost in
-                    viewModel.updatePost(updatedPost)
+                    updatePost(updatedPost)
                 }
             }
-            .sheet(isPresented: $isAddingPost) {
-                AddPostView { newPost in
-                    viewModel.savePost(newPost)
-                }
-            }
-            .refreshable { viewModel.fetchPosts() }
-            .onAppear { viewModel.fetchPostsIfNeeded() }
+            .refreshable { fetchPosts() }
+            .onAppear { fetchPosts() }
         }
     }
     
-    // MARK: - Subviews
+    // MARK: - Firestore Methods
     
+    private func fetchPosts() {
+        isLoading = true
+        Firestore.firestore().collection("posts").getDocuments { snapshot, error in
+            DispatchQueue.main.async {
+                if let error = error {
+                    self.error = error
+                    self.showError = true
+                } else {
+                    self.posts = snapshot?.documents.compactMap { doc in
+                        try? doc.data(as: CatPost.self)
+                    } ?? []
+                }
+                self.isLoading = false
+            }
+        }
+    }
+    
+    private func deletePost(_ post: CatPost) {
+        guard let id = post.id else { return }
+        Firestore.firestore().collection("posts").document(id).delete { error in
+            DispatchQueue.main.async {
+                if let error = error {
+                    self.error = error
+                    self.showError = true
+                } else {
+                    self.posts.removeAll { $0.id == post.id }
+                }
+            }
+        }
+    }
+
+    // MARK: - Subviews
+
     private func PostsListView(posts: [CatPost]) -> some View {
         List {
             ForEach(posts) { post in
@@ -90,11 +112,19 @@ struct HomeView: View {
         .tint(.blue)
     }
     
+    private func DeleteButton(post: CatPost) -> some View {
+        Button(role: .destructive) {
+            postToDelete = post
+        } label: {
+            Label("Delete", systemImage: "trash")
+        }
+    }
+    
     private func DeleteConfirmationButtons() -> some View {
         Group {
             Button("Delete", role: .destructive) {
                 if let post = postToDelete {
-                    viewModel.deletePost(post)
+                    deletePost(post)
                 }
             }
             Button("Cancel", role: .cancel) { }
@@ -120,17 +150,6 @@ struct PostCardView: View {
                 Text(location)
                     .font(.subheadline)
                     .foregroundColor(.gray)
-            }
-            
-            if let imageURL = post.imageURL, let url = URL(string: imageURL) {
-                AsyncImage(url: url) { image in
-                    image.resizable()
-                        .scaledToFit()
-                        .frame(maxWidth: .infinity, maxHeight: 200)
-                        .cornerRadius(10)
-                } placeholder: {
-                    ProgressView()
-                }
             }
             
             HStack {
