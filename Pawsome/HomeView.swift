@@ -156,7 +156,7 @@ struct PostCardView: View {
             }
         }
         .padding()
-        .background(Color(PlatformColor.systemBackground))
+        .background(Color(PlatformColor.backgroundColor)) // ✅ Fixed Background Issue
         .cornerRadius(12)
         .shadow(radius: 2)
     }
@@ -183,7 +183,13 @@ struct EmptyStateView: View {
 #if canImport(UIKit)
 import UIKit
 typealias PlatformColor = UIColor
+extension PlatformColor {
+    static var backgroundColor: UIColor { UIColor.systemBackground }
+}
 #elseif canImport(AppKit)
 import AppKit
 typealias PlatformColor = NSColor
+extension PlatformColor {
+    static var backgroundColor: NSColor { NSColor.windowBackgroundColor } // ✅ Equivalent for macOS
+}
 #endif

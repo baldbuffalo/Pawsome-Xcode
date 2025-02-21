@@ -7,15 +7,17 @@ struct CatPost: Identifiable, Codable {
     var catBreed: String?
     var location: String?
     var imageURL: String?
+    var postDescription: String? // ✅ Added postDescription
     var likes: Int
-    var comments: [Comment] // Now using Comment from CommentsView.swift
+    var comments: [String] // ✅ Ensure this is [String]
 
-    init(id: String? = nil, catName: String, catBreed: String? = nil, location: String? = nil, imageURL: String? = nil, likes: Int = 0, comments: [Comment] = []) {
+    init(id: String? = nil, catName: String, catBreed: String? = nil, location: String? = nil, imageURL: String? = nil, postDescription: String? = nil, likes: Int = 0, comments: [String] = []) { // ✅ Changed to [String]
         self.id = id
         self.catName = catName
         self.catBreed = catBreed
         self.location = location
         self.imageURL = imageURL
+        self.postDescription = postDescription
         self.likes = likes
         self.comments = comments
     }
@@ -29,8 +31,9 @@ struct CatPost: Identifiable, Codable {
             catBreed: data["catBreed"] as? String,
             location: data["location"] as? String,
             imageURL: data["imageURL"] as? String,
+            postDescription: data["postDescription"] as? String, // ✅ Added postDescription
             likes: data["likes"] as? Int ?? 0,
-            comments: [] // Handle comments separately
+            comments: data["comments"] as? [String] ?? [] // ✅ Fetch comments properly
         )
     }
 
@@ -41,7 +44,9 @@ struct CatPost: Identifiable, Codable {
             "catBreed": catBreed ?? NSNull(),
             "location": location ?? NSNull(),
             "imageURL": imageURL ?? NSNull(),
-            "likes": likes
+            "postDescription": postDescription ?? NSNull(), // ✅ Added postDescription
+            "likes": likes,
+            "comments": comments // ✅ Ensure comments are included in Firestore
         ]
     }
 }
