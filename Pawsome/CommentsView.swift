@@ -90,12 +90,13 @@ struct CommentsView: View {
         guard !commentText.isEmpty else { return }
 
         let timestamp = Timestamp(date: Date())
-        let commentData: [String: Any] = [
-            "text": commentText,
-            "username": profileView.username,
-            "timestamp": timestamp,
-            "profileImage": profileView.profileImage ?? "",
-        ]
+        let commentData = Comment(
+            id: UUID().uuidString, // Temporary ID
+            text: commentText,
+            username: profileView.username,
+            profileImage: profileView.profileImage ?? "",
+            timestamp: Date()
+        ).toDictionary() // Use toDictionary to create Firestore-compatible data
 
         db.collection("posts").document(postID).collection("comments").addDocument(data: commentData) { error in
             if let error = error {
@@ -192,6 +193,17 @@ struct Comment: Identifiable, Codable {
         self.username = username
         self.profileImage = document["profileImage"] as? String
         self.timestamp = timestamp.dateValue()
+    }
+
+    // toDictionary method to convert the Comment object to a dictionary for Firestore storage
+    func toDictionary() -> [String: Any] {
+        return [
+            "id": id,
+            "text": text,
+            "username": username,
+            "profileImage": profileImage ?? "",
+            "timestamp": Timestamp(date: timestamp)
+        ]
     }
 }
 
