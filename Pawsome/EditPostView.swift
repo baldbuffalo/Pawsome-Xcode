@@ -4,36 +4,50 @@ struct EditPostView: View {
     @Binding var post: CatPost
     @Binding var isEditing: Bool
     var saveChanges: () -> Void
-    
+
     var body: some View {
         NavigationStack {
-            Form {
+            VStack {
                 TextField("Cat Name", text: $post.catName)
-                TextField("Cat Breed", text: optionalBinding($post).catBreed)
-                TextField("Location", text: optionalBinding($post).location)
-                TextField("Description", text: optionalBinding($post).postDescription)
-                
-                // Handling catAge properly
-                TextField("Age", value: optionalBinding($post).catAge, formatter: NumberFormatter())
-            }
-            .navigationBarItems(
-                leading: Button("Cancel") {
-                    isEditing = false
-                },
-                trailing: Button("Save") {
-                    saveChanges()  // Save the changes
-                    isEditing = false  // Close the edit view
+
+                TextField("Cat Breed", text: Binding(
+                    get: { post.catBreed ?? "" },
+                    set: { post.catBreed = $0 }
+                ))
+
+                TextField("Location", text: Binding(
+                    get: { post.location ?? "" },
+                    set: { post.location = $0 }
+                ))
+
+                TextField("Description", text: Binding(
+                    get: { post.postDescription ?? "" }, // ✅ Fixed issue with optional
+                    set: { post.postDescription = $0 }
+                ))
+
+                if let age = post.catAge { // ✅ Handle optional age properly
+                    TextField("Age", value: Binding(
+                        get: { age },
+                        set: { post.catAge = $0 }
+                    ), formatter: NumberFormatter())
                 }
-            )
+            }
+            .padding()
+
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        isEditing = false
+                    }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Save") {
+                        saveChanges()
+                        isEditing = false
+                    }
+                }
+            }
             .navigationTitle("Edit Post")
         }
-    }
-    
-    // Helper function to provide a safe binding for optional properties
-    private func optionalBinding(_ binding: Binding<CatPost>) -> Binding<CatPost> {
-        return Binding(
-            get: { binding.wrappedValue },
-            set: { binding.wrappedValue = $0 }
-        )
     }
 }
