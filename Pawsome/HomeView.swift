@@ -52,7 +52,7 @@ struct HomeView: View {
             .refreshable { fetchPosts() }
         }
     }
-    
+
     // MARK: - Fetch Posts
     private func fetchPosts() {
         isLoading = true
@@ -63,6 +63,13 @@ struct HomeView: View {
                 } else {
                     posts = snapshot?.documents.compactMap { doc in
                         let data = doc.data()
+
+                        // Map the comments array to the Comment model instead of [String]
+                        let commentsData = data["comments"] as? [[String: Any]] ?? []
+                        let comments = commentsData.compactMap { commentData in
+                            Comment(document: commentData)
+                        }
+
                         return CatPost(
                             id: doc.documentID,
                             catName: data["catName"] as? String ?? "Unknown",
@@ -70,7 +77,7 @@ struct HomeView: View {
                             location: data["location"] as? String,
                             imageURL: data["imageURL"] as? String,
                             likes: data["likes"] as? Int ?? 0,
-                            comments: (data["comments"] as? [String]) ?? []
+                            comments: comments // Use the array of Comment
                         )
                     } ?? []
                 }

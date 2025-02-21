@@ -1,6 +1,5 @@
 import FirebaseFirestore
 
-
 struct CatPost: Identifiable, Codable {
     var id: String?
     var catName: String
@@ -9,7 +8,7 @@ struct CatPost: Identifiable, Codable {
     var imageURL: String?
     var postDescription: String?
     var likes: Int
-    var comments: [Comment] // 🔥 Change from [String] to [Comment]
+    var comments: [Comment] // ✅ Ensure this is always [Comment]
 
     init(id: String? = nil, catName: String, catBreed: String? = nil, location: String? = nil, imageURL: String? = nil, postDescription: String? = nil, likes: Int = 0, comments: [Comment] = []) {
         self.id = id
@@ -26,8 +25,8 @@ struct CatPost: Identifiable, Codable {
     static func fromDocument(_ document: DocumentSnapshot) -> CatPost? {
         guard let data = document.data() else { return nil }
 
-        let commentsData = data["comments"] as? [[String: Any]] ?? []
-        let comments = commentsData.compactMap { Comment(document: $0) } // ✅ Convert Firestore data to [Comment]
+        let commentsArray = data["comments"] as? [[String: Any]] ?? [] // ✅ Ensure it's an array of dictionaries
+        let comments = commentsArray.compactMap { Comment(document: $0) }
 
         return CatPost(
             id: document.documentID,
