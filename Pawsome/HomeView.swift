@@ -6,11 +6,11 @@ import CatPostModule  // Ensure this module provides the CatPost model
 struct HomeView: View {
     @State private var posts: [CatPost] = []
     @State private var isLoading = true
-    @State private var error: Error?
-    @State private var selectedPost: CatPost?
+    @State private var errorMessage: String?
     @State private var postToDelete: CatPost?
-    @State private var showError = false
-    
+
+    private let db = Firestore.firestore()
+
     var body: some View {
         NavigationStack {
             Group {
@@ -24,94 +24,88 @@ struct HomeView: View {
                 }
             }
             .navigationTitle("Pawsome")
-            .alert("Error", isPresented: $showError, presenting: error) { _ in } message: {
-                Text($0.localizedDescription)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: fetchPosts) {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                }
             }
-            .confirmationDialog("Delete Post", isPresented: Binding(
+            .alert("Error", isPresented: Binding(
+                get: { errorMessage != nil },
+                set: { _ in errorMessage = nil }
+            )) {
+                Text(errorMessage ?? "Unknown error")
+            }
+            .confirmationDialog("Delete Post?", isPresented: Binding(
                 get: { postToDelete != nil },
                 set: { _ in postToDelete = nil }
             )) {
-                DeleteConfirmationButtons()
-            }
-            .sheet(item: $selectedPost) { post in
-                EditPostView(post: post) { updatedPost in
-                    updatePost(updatedPost)
+                if let post = postToDelete {
+                    Button("Delete", role: .destructive) {
+                        deletePost(post)
+                    }
                 }
+                Button("Cancel", role: .cancel) {}
             }
-            .refreshable { fetchPosts() }
             .onAppear { fetchPosts() }
+            .refreshable { fetchPosts() }
         }
     }
     
-    // MARK: - Firestore Methods
-    
+    // MARK: - Fetch Posts
     private func fetchPosts() {
         isLoading = true
-        Firestore.firestore().collection("posts").getDocuments { snapshot, error in
-            DispatchQueue.main.async {
+        db.collection("posts").order(by: "timestamp", descending: true)
+            .getDocuments { snapshot, error in
                 if let error = error {
-                    self.error = error
-                    self.showError = true
+                    errorMessage = "Failed to load posts: \(error.localizedDescription)"
                 } else {
-                    self.posts = snapshot?.documents.compactMap { doc in
-                        try? doc.data(as: CatPost.self)
+                    posts = snapshot?.documents.compactMap { doc in
+                        let data = doc.data()
+                        return CatPost(
+                            id: doc.documentID,
+                            catName: data["catName"] as? String ?? "Unknown",
+                            catBreed: data["catBreed"] as? String,
+                            location: data["location"] as? String,
+                            imageURL: data["imageURL"] as? String,
+                            likes: data["likes"] as? Int ?? 0,
+                            comments: (data["comments"] as? [String]) ?? []
+                        )
                     } ?? []
                 }
-                self.isLoading = false
+                isLoading = false
             }
-        }
     }
-    
+
+    // MARK: - Delete Post
     private func deletePost(_ post: CatPost) {
-        guard let id = post.id else { return }
-        Firestore.firestore().collection("posts").document(id).delete { error in
-            DispatchQueue.main.async {
-                if let error = error {
-                    self.error = error
-                    self.showError = true
-                } else {
-                    self.posts.removeAll { $0.id == post.id }
-                }
+        guard let postID = post.id else { return }
+        db.collection("posts").document(postID).delete { error in
+            if let error = error {
+                errorMessage = "Failed to delete post: \(error.localizedDescription)"
+            } else {
+                posts.removeAll { $0.id == postID }
             }
         }
     }
 
     // MARK: - Subviews
-
     private func PostsListView(posts: [CatPost]) -> some View {
         List {
             ForEach(posts) { post in
                 PostCardView(post: post)
                     .swipeActions(edge: .trailing) {
-                        SwipeDeleteButton(post: post)
-                        SwipeEditButton(post: post)
+                        DeleteButton(post: post)
                     }
                     .contextMenu {
-                        EditButton(post: post)
                         DeleteButton(post: post)
                     }
             }
         }
         .listStyle(.plain)
     }
-    
-    private func SwipeDeleteButton(post: CatPost) -> some View {
-        Button(role: .destructive) {
-            postToDelete = post
-        } label: {
-            Label("Delete", systemImage: "trash")
-        }
-    }
-    
-    private func SwipeEditButton(post: CatPost) -> some View {
-        Button {
-            selectedPost = post
-        } label: {
-            Label("Edit", systemImage: "pencil")
-        }
-        .tint(.blue)
-    }
-    
+
     private func DeleteButton(post: CatPost) -> some View {
         Button(role: .destructive) {
             postToDelete = post
@@ -119,19 +113,9 @@ struct HomeView: View {
             Label("Delete", systemImage: "trash")
         }
     }
-    
-    private func DeleteConfirmationButtons() -> some View {
-        Group {
-            Button("Delete", role: .destructive) {
-                if let post = postToDelete {
-                    deletePost(post)
-                }
-            }
-            Button("Cancel", role: .cancel) { }
-        }
-    }
 }
 
+// MARK: - PostCardView
 struct PostCardView: View {
     let post: CatPost
 
@@ -139,19 +123,30 @@ struct PostCardView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(post.catName)
                 .font(.headline)
-            
+
             if let breed = post.catBreed, !breed.isEmpty {
                 Text(breed)
                     .font(.subheadline)
                     .foregroundColor(.gray)
             }
-            
+
             if let location = post.location, !location.isEmpty {
                 Text(location)
                     .font(.subheadline)
                     .foregroundColor(.gray)
             }
-            
+
+            if let imageURL = post.imageURL, let url = URL(string: imageURL) {
+                AsyncImage(url: url) { image in
+                    image.resizable()
+                        .scaledToFit()
+                        .frame(maxWidth: .infinity, maxHeight: 200)
+                        .cornerRadius(10)
+                } placeholder: {
+                    ProgressView()
+                }
+            }
+
             HStack {
                 Text("\(post.likes) Likes")
                     .font(.subheadline)
@@ -161,20 +156,13 @@ struct PostCardView: View {
             }
         }
         .padding()
-        .background(
-            Color(
-                #if os(iOS)
-                UIColor.systemBackground
-                #elseif os(macOS)
-                NSColor.windowBackgroundColor
-                #endif
-            )
-        )
+        .background(Color(PlatformColor.systemBackground))
         .cornerRadius(12)
         .shadow(radius: 2)
     }
 }
 
+// MARK: - EmptyStateView
 struct EmptyStateView: View {
     var body: some View {
         VStack {
@@ -190,3 +178,12 @@ struct EmptyStateView: View {
         }
     }
 }
+
+// MARK: - Platform Compatibility
+#if canImport(UIKit)
+import UIKit
+typealias PlatformColor = UIColor
+#elseif canImport(AppKit)
+import AppKit
+typealias PlatformColor = NSColor
+#endif

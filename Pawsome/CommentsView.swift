@@ -28,7 +28,7 @@ struct CommentsView: View {
                         .foregroundColor(.red)
                         .padding()
                 } else {
-                    List(comments) { comment in
+                    List(comments, id: \.id) { comment in
                         CommentRow(comment: comment)
                     }
                 }
