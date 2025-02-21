@@ -1,17 +1,17 @@
-import Foundation
 import FirebaseFirestore
 
+
 struct CatPost: Identifiable, Codable {
-    var id: String? // Firestore document ID
+    var id: String?
     var catName: String
     var catBreed: String?
     var location: String?
     var imageURL: String?
-    var postDescription: String? // ✅ Added postDescription
+    var postDescription: String?
     var likes: Int
-    var comments: [String] // ✅ Ensure this is [String]
+    var comments: [Comment] // 🔥 Change from [String] to [Comment]
 
-    init(id: String? = nil, catName: String, catBreed: String? = nil, location: String? = nil, imageURL: String? = nil, postDescription: String? = nil, likes: Int = 0, comments: [String] = []) { // ✅ Changed to [String]
+    init(id: String? = nil, catName: String, catBreed: String? = nil, location: String? = nil, imageURL: String? = nil, postDescription: String? = nil, likes: Int = 0, comments: [Comment] = []) {
         self.id = id
         self.catName = catName
         self.catBreed = catBreed
@@ -25,15 +25,19 @@ struct CatPost: Identifiable, Codable {
     // Convert Firestore document to CatPost
     static func fromDocument(_ document: DocumentSnapshot) -> CatPost? {
         guard let data = document.data() else { return nil }
+
+        let commentsData = data["comments"] as? [[String: Any]] ?? []
+        let comments = commentsData.compactMap { Comment(document: $0) } // ✅ Convert Firestore data to [Comment]
+
         return CatPost(
             id: document.documentID,
             catName: data["catName"] as? String ?? "",
             catBreed: data["catBreed"] as? String,
             location: data["location"] as? String,
             imageURL: data["imageURL"] as? String,
-            postDescription: data["postDescription"] as? String, // ✅ Added postDescription
+            postDescription: data["postDescription"] as? String,
             likes: data["likes"] as? Int ?? 0,
-            comments: data["comments"] as? [String] ?? [] // ✅ Fetch comments properly
+            comments: comments
         )
     }
 
@@ -44,9 +48,9 @@ struct CatPost: Identifiable, Codable {
             "catBreed": catBreed ?? NSNull(),
             "location": location ?? NSNull(),
             "imageURL": imageURL ?? NSNull(),
-            "postDescription": postDescription ?? NSNull(), // ✅ Added postDescription
+            "postDescription": postDescription ?? NSNull(),
             "likes": likes,
-            "comments": comments // ✅ Ensure comments are included in Firestore
+            "comments": comments.map { $0.toDictionary() } // ✅ Convert [Comment] to [[String: Any]]
         ]
     }
 }
