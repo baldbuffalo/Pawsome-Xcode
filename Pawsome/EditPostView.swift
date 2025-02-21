@@ -9,12 +9,12 @@ struct EditPostView: View {
         NavigationStack {
             Form {
                 TextField("Cat Name", text: $post.catName)
-                TextField("Cat Breed", text: Binding($post.catBreed, default: ""))
-                TextField("Age", value: $post.catAge, formatter: NumberFormatter())
-                TextField("Location", text: Binding($post.location, default: ""))
-                TextField("Description", text: Binding($post.postDescription, default: ""))
+                TextField("Cat Breed", text: optionalBinding($post).catBreed)
+                TextField("Location", text: optionalBinding($post).location)
+                TextField("Description", text: optionalBinding($post).postDescription)
                 
-                // You can add more fields as needed (image picker, etc.)
+                // Handling catAge properly
+                TextField("Age", value: optionalBinding($post).catAge, formatter: NumberFormatter())
             }
             .navigationBarItems(
                 leading: Button("Cancel") {
@@ -27,5 +27,13 @@ struct EditPostView: View {
             )
             .navigationTitle("Edit Post")
         }
+    }
+    
+    // Helper function to provide a safe binding for optional properties
+    private func optionalBinding(_ binding: Binding<CatPost>) -> Binding<CatPost> {
+        return Binding(
+            get: { binding.wrappedValue },
+            set: { binding.wrappedValue = $0 }
+        )
     }
 }
