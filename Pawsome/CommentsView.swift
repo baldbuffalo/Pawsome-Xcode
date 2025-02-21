@@ -1,134 +1,59 @@
 import SwiftUI
 import FirebaseFirestore
 
-// MARK: - Comment Model (Nested within CommentsView.swift)
-struct Comment: Identifiable, Codable {
-    var id: String
-    var text: String
-    var username: String
-    var profileImage: String?
-    var timestamp: Date
+// Comment Model (no change from before)
+struct Comment: Identifiable {
+    var id: String // Unique identifier for each comment
+    var user: String // Name of the user who posted the comment
+    var text: String // Content of the comment
+    var timestamp: Date // The time the comment was posted
+}
 
-    enum CodingKeys: String, CodingKey {
-        case id, text, username, profileImage, timestamp
-    }
+// Comments View for displaying the comments of a post
+struct CommentsView: View {
+    var comments: [Comment] // An array of Comment objects passed from a parent view (e.g., CatPost)
 
-    init(id: String, text: String, username: String, profileImage: String?, timestamp: Date) {
-        self.id = id
-        self.text = text
-        self.username = username
-        self.profileImage = profileImage
-        self.timestamp = timestamp
-    }
+    var body: some View {
+        VStack(alignment: .leading) {
+            Text("Comments")
+                .font(.headline)
+                .padding(.top)
 
-    init?(document: [String: Any]) {
-        guard let id = document["id"] as? String,
-              let text = document["text"] as? String,
-              let username = document["username"] as? String,
-              let timestamp = document["timestamp"] as? Timestamp else {
-            return nil
+            // List of comments for this post
+            ForEach(comments) { comment in
+                CommentRow(comment: comment)
+                    .padding(.vertical, 5)
+            }
+
+            // Add your UI for adding comments (if any) below
+            // E.g., TextField or TextEditor to add a new comment
         }
-        self.id = id
-        self.text = text
-        self.username = username
-        self.profileImage = document["profileImage"] as? String
-        self.timestamp = timestamp.dateValue()
-    }
-
-    func toDictionary() -> [String: Any] {
-        return [
-            "id": id,
-            "text": text,
-            "username": username,
-            "profileImage": profileImage ?? "",
-            "timestamp": Timestamp(date: timestamp)
-        ]
+        .padding()
     }
 }
 
-// MARK: - CommentsView
-struct CommentsView: View {
-    @State private var comments: [Comment] = []
-    @State private var newCommentText: String = ""
-
-    let postId: String
+// Row for each individual comment
+struct CommentRow: View {
+    var comment: Comment
 
     var body: some View {
-        VStack {
-            // List of comments
-            List(comments) { comment in
-                VStack(alignment: .leading) {
-                    Text(comment.username)
-                        .font(.headline)
-                    Text(comment.text)
-                        .font(.body)
-                    if let profileImage = comment.profileImage {
-                        Image(systemName: "person.fill")
-                            .resizable()
-                            .frame(width: 50, height: 50)
-                    }
-                }
-            }
-            
-            // New comment input
-            HStack {
-                TextField("Write a comment", text: $newCommentText)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                
-                Button(action: postComment) {
-                    Text("Post")
-                }
-                .disabled(newCommentText.isEmpty)
-            }
-            .padding()
-        }
-        .onAppear {
-            loadComments()
+        VStack(alignment: .leading) {
+            Text(comment.user)
+                .font(.subheadline)
+                .foregroundColor(.gray)
+            Text(comment.text)
+                .font(.body)
+                .padding(.top, 2)
+            Text("Posted at \(dateFormatter.string(from: comment.timestamp))")
+                .font(.footnote)
+                .foregroundColor(.gray)
         }
     }
 
-    // Function to load comments from Firestore
-    func loadComments() {
-        let db = Firestore.firestore()
-        db.collection("catPosts")
-            .document(postId)
-            .collection("comments")
-            .order(by: "timestamp")
-            .getDocuments { snapshot, error in
-                if let error = error {
-                    print("Error loading comments: \(error)")
-                    return
-                }
-                comments = snapshot?.documents.compactMap { document in
-                    Comment(document: document.data())
-                } ?? []
-            }
-    }
-
-    // Function to post a new comment
-    func postComment() {
-        let db = Firestore.firestore()
-        let newComment = Comment(
-            id: UUID().uuidString,
-            text: newCommentText,
-            username: "User", // Replace with actual user info
-            profileImage: nil, // Optionally add profile image URL
-            timestamp: Date()
-        )
-
-        let commentData = newComment.toDictionary()
-
-        db.collection("catPosts")
-            .document(postId)
-            .collection("comments")
-            .document(newComment.id)
-            .setData(commentData) { error in
-                if let error = error {
-                    print("Error posting comment: \(error)")
-                } else {
-                    comments.append(newComment)
-                    newCommentText = ""
-                }
-            }
+    private var dateFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        formatter.timeStyle = .short
+        return formatter
     }
 }
