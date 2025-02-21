@@ -9,8 +9,9 @@ struct CatPost: Identifiable, Codable {
     var postDescription: String?
     var likes: Int
     var comments: [Comment] // ✅ Ensure this is always [Comment]
+    var catAge: Int? // Add optional catAge
 
-    init(id: String? = nil, catName: String, catBreed: String? = nil, location: String? = nil, imageURL: String? = nil, postDescription: String? = nil, likes: Int = 0, comments: [Comment] = []) {
+    init(id: String? = nil, catName: String, catBreed: String? = nil, location: String? = nil, imageURL: String? = nil, postDescription: String? = nil, likes: Int = 0, comments: [Comment] = [], catAge: Int? = nil) {
         self.id = id
         self.catName = catName
         self.catBreed = catBreed
@@ -19,6 +20,7 @@ struct CatPost: Identifiable, Codable {
         self.postDescription = postDescription
         self.likes = likes
         self.comments = comments
+        self.catAge = catAge
     }
 
     // Convert Firestore document to CatPost
@@ -36,7 +38,8 @@ struct CatPost: Identifiable, Codable {
             imageURL: data["imageURL"] as? String,
             postDescription: data["postDescription"] as? String,
             likes: data["likes"] as? Int ?? 0,
-            comments: comments
+            comments: comments,
+            catAge: data["catAge"] as? Int // Add this line to handle the catAge field
         )
     }
 
@@ -49,7 +52,8 @@ struct CatPost: Identifiable, Codable {
             "imageURL": imageURL ?? NSNull(),
             "postDescription": postDescription ?? NSNull(),
             "likes": likes,
-            "comments": comments.map { $0.toDictionary() } // ✅ Convert [Comment] to [[String: Any]]
+            "comments": comments.map { $0.toDictionary() }, // ✅ Convert [Comment] to [[String: Any]]
+            "catAge": catAge ?? NSNull() // Add catAge to dictionary, default to NSNull() if nil
         ]
     }
 }
