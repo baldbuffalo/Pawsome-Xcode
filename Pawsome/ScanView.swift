@@ -16,23 +16,7 @@ import MobileCoreServices
 #if os(macOS)
 import AppKit
 import AVFoundation
-import UniformTypeIdentifiers // For UTType
 #endif
-
-// Ensure this enum is declared outside of ScanView or any other view struct
-enum MediaPicker {
-    enum MediaType: CaseIterable {
-        case photo, video, library
-        
-        var displayName: String {
-            switch self {
-            case .photo: return "Photo"
-            case .video: return "Video"
-            case .library: return "Library"
-            }
-        }
-    }
-}
 
 struct ScanView: View {
     @Environment(\.managedObjectContext) private var viewContext
@@ -44,66 +28,26 @@ struct ScanView: View {
     @State private var capturedVideoURL: URL?
     var username: String
     var onPostCreated: (CatPost) -> Void
-    
+
     @State private var isImagePickerPresented: Bool = false
-    @State private var mediaType: MediaPicker.MediaType = .photo
-    @State private var showMediaTypeActionSheet: Bool = false
     @State private var navigateToForm: Bool = false
     @State private var navigateToHome: Bool = false
     @State private var errorMessage: String?
-    
+
     var body: some View {
         NavigationStack {
             VStack {
-                Button("Open Camera") {
-                    showMediaTypeActionSheet = true
+                Button("Open Media Picker") {
+                    isImagePickerPresented = true
                 }
                 .padding()
                 .foregroundColor(.white)
                 .background(Color.blue)
                 .cornerRadius(8)
-                .actionSheet(isPresented: $showMediaTypeActionSheet) {
-                    ActionSheet(title: Text("Select Media Type"), buttons: [
-                        .default(Text(MediaPicker.MediaType.photo.displayName)) {
-                            mediaType = .photo
-                            isImagePickerPresented = true
-                        },
-                        .default(Text(MediaPicker.MediaType.video.displayName)) {
-                            mediaType = .video
-                            isImagePickerPresented = true
-                        },
-                        .default(Text(MediaPicker.MediaType.library.displayName)) {
-                            mediaType = .library
-                            isImagePickerPresented = true
-                        },
-                        .cancel()
-                    ])
-                }
                 .sheet(isPresented: $isImagePickerPresented) {
-                    if #available(macOS 13.0, *) {
-                        MacMediaPicker(
-                            selectedImage: $selectedImage,
-                            capturedVideoURL: $capturedVideoURL,
-                            mediaType: mediaType,
-                            onError: { message in
-                                errorMessage = message
-                            }
-                        )
-                    } else {
-#if os(iOS)
-                        ImagePicker(
-                            sourceType: sourceTypeForMediaType(mediaType),
-                            selectedImage: $selectedImage,
-                            capturedVideoURL: $capturedVideoURL,
-                            onImageCaptured: { navigateToForm = true },
-                            onError: { message in
-                                errorMessage = message
-                            }
-                        )
-#endif
-                    }
+                    mediaPickerView()
                 }
-                
+
                 if let errorMessage = errorMessage {
                     Text(errorMessage)
                         .foregroundColor(.red)
@@ -127,128 +71,106 @@ struct ScanView: View {
             }
         }
     }
-    
-    private func sourceTypeForMediaType(_ mediaType: MediaPicker.MediaType) -> Any? {
-#if os(iOS)
-        switch mediaType {
-        case .library:
-            return UIImagePickerController.SourceType.photoLibrary
-        case .photo, .video:
-            return UIImagePickerController.SourceType.camera
-        }
-#elseif os(macOS)
-        switch mediaType {
-        case .library:
-            return NSOpenPanel()
-        case .photo, .video:
-            let videoDevices = AVCaptureDevice.DiscoverySession(
-                deviceTypes: [.builtInWideAngleCamera],
-                mediaType: .video,
-                position: .unspecified
-            ).devices
-            return videoDevices.first
-        }
-#endif
-        return nil
+
+    @ViewBuilder
+    private func mediaPickerView() -> some View {
+        #if os(iOS)
+        ImagePicker(
+            selectedImage: $selectedImage,
+            capturedVideoURL: $capturedVideoURL,
+            onImageCaptured: { navigateToForm = true },
+            onError: { message in errorMessage = message }
+        )
+        #elseif os(macOS)
+        ImagePickerMac(selectedImage: $selectedImage)
+        #endif
     }
-    
+
     private func createCatPost(from selectedImage: Any?, username: String) -> CatPost? {
-        guard let selectedImage = selectedImage else {
-            return nil
+        guard let selectedImage = selectedImage else { return nil }
+        #if os(iOS)
+        if let uiImage = selectedImage as? UIImage, let imageData = uiImage.pngData() {
+            return CatPost(imageData: imageData, username: username)
         }
-        
-#if os(iOS)
-        if let uiImage = selectedImage as? UIImage {
-            if let imageData = uiImage.pngData() {
-                return CatPost(imageData: imageData, username: username)
-            } else {
-                return nil
-            }
+        #elseif os(macOS)
+        if let nsImage = selectedImage as? NSImage, let imageData = nsImage.pngData() {
+            return CatPost(imageData: imageData, username: username)
         }
-#elseif os(macOS)
-        if let nsImage = selectedImage as? NSImage {
-            if let imageData = nsImage.pngData() {
-                return CatPost(imageData: imageData, username: username)
-            } else {
-                return nil
-            }
-        }
-#endif
-        
+        #endif
         return nil
     }
-    
+
     private func selectedImageData() -> Data? {
-#if os(iOS)
+        #if os(iOS)
         return selectedImage?.pngData()
-#elseif os(macOS)
+        #elseif os(macOS)
         return selectedImage?.pngData()
-#endif
+        #endif
     }
-    
-#if os(iOS)
-    struct ImagePicker: UIViewControllerRepresentable {
-        var sourceType: UIImagePickerController.SourceType
-        @Binding var selectedImage: UIImage?
-        @Binding var capturedVideoURL: URL?
-        var onImageCaptured: () -> Void
-        var onError: (String) -> Void
-        
-        func makeUIViewController(context: Context) -> UIImagePickerController {
-            let picker = UIImagePickerController()
-            picker.sourceType = sourceType
-            picker.delegate = context.coordinator
-            return picker
-        }
-        
-        func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
-        
-        func makeCoordinator() -> Coordinator {
-            Coordinator(self)
-        }
-        
-        class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-            let parent: ImagePicker
-            
-            init(_ parent: ImagePicker) {
-                self.parent = parent
-            }
-            
-            func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
-                defer { picker.dismiss(animated: true) }
-                guard let mediaType = info[.mediaType] as? String else {
-                    parent.onError("Unsupported media type")
-                    return
-                }
-                if mediaType == kUTTypeImage as String, let image = info[.originalImage] as? UIImage {
-                    parent.selectedImage = optimizeImage(image)
-                } else if mediaType == kUTTypeMovie as String, let videoURL = info[.mediaURL] as? URL {
-                    parent.capturedVideoURL = videoURL
-                }
-                parent.onImageCaptured()
-            }
-            
-            func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-                picker.dismiss(animated: true)
-                parent.onError("User canceled image selection")
-            }
-            
-            func optimizeImage(_ image: UIImage) -> UIImage {
-                let maxSize: CGFloat = 1024
-                let aspectRatio = image.size.width / image.size.height
-                var newWidth: CGFloat = maxSize
-                var newHeight: CGFloat = newWidth / aspectRatio
-                if newHeight > maxSize {
-                    newHeight = maxSize
-                    newWidth = newHeight * aspectRatio
-                }
-                UIGraphicsBeginImageContext(CGSize(width: newWidth, height: newHeight))
-                image.draw(in: CGRect(x: 0, y: 0, width: newWidth, height: newHeight))
-                let resizedImage = UIGraphicsGetImageFromCurrentImageContext()
-                UIGraphicsEndImageContext()
-                return resizedImage ?? image
-            }
-        }
-    }
-#endif
 }
+
+#if os(iOS)
+struct ImagePicker: UIViewControllerRepresentable {
+    @Binding var selectedImage: UIImage?
+    @Binding var capturedVideoURL: URL?
+    var onImageCaptured: () -> Void
+    var onError: (String) -> Void
+
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.sourceType = .photoLibrary // Uses existing media picker
+        picker.delegate = context.coordinator
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let parent: ImagePicker
+
+        init(_ parent: ImagePicker) {
+            self.parent = parent
+        }
+
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
+            defer { picker.dismiss(animated: true) }
+
+            if let image = info[.originalImage] as? UIImage {
+                parent.selectedImage = image
+                parent.onImageCaptured()
+            } else if let videoURL = info[.mediaURL] as? URL {
+                parent.capturedVideoURL = videoURL
+                parent.onImageCaptured()
+            } else {
+                parent.onError("Unsupported media type")
+            }
+        }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            picker.dismiss(animated: true)
+            parent.onError("User canceled selection")
+        }
+    }
+}
+#endif
+
+#if os(macOS)
+struct ImagePickerMac: View {
+    @Binding var selectedImage: NSImage?
+
+    var body: some View {
+        Button("Select Image") {
+            let panel = NSOpenPanel()
+            panel.allowedContentTypes = [.image]
+            panel.allowsMultipleSelection = false
+            if panel.runModal() == .OK, let url = panel.urls.first, let image = NSImage(contentsOf: url) {
+                selectedImage = image
+            }
+        }
+    }
+}
+#endif

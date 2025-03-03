@@ -14,8 +14,6 @@ struct PawsomeApp: App {
     @State private var username: String = ""
     @State private var profileImageData: Data? = nil
     @State private var selectedImage: Any? = nil // Changed to Any for platform-specific image types
-    @State private var comments: [Comment] = [] // Array to store comments
-    @State private var commentText: String = "" // To hold the text of the comment
     
     @StateObject private var profileView = ProfileView() // Create ProfileView as @StateObject
     
@@ -25,33 +23,17 @@ struct PawsomeApp: App {
         WindowGroup {
             if isLoggedIn {
                 TabView {
+                    // Home View
                     HomeView(
                         isLoggedIn: $isLoggedIn,
                         currentUsername: $username,
-                        profileImage: Binding<Any?>(
-                            get: {
-                                if let data = profileImageData {
-                                    #if os(iOS)
-                                    return UIImage(data: data)
-                                    #elseif os(macOS)
-                                    return NSImage(data: data)
-                                    #endif
-                                }
-                                return nil
-                            },
-                            set: { newImage in
-                                #if os(iOS)
-                                profileImageData = (newImage as? UIImage)?.jpegData(compressionQuality: 1.0)
-                                #elseif os(macOS)
-                                profileImageData = (newImage as? NSImage)?.tiffRepresentation
-                                #endif
-                            }
-                        )
+                        profileImage: profileImageBinding
                     )
                     .tabItem {
                         Label("Home", systemImage: "house")
                     }
 
+                    // Scan View
                     ScanView(
                         capturedImage: $selectedImage,
                         username: username,
@@ -63,70 +45,58 @@ struct PawsomeApp: App {
                         Label("Post", systemImage: "plus.app")
                     }
 
+                    // Profile View
                     ProfileView(
                         isLoggedIn: $isLoggedIn,
                         currentUsername: $username,
-                        profileImage: Binding<Any?>(
-                            get: {
-                                if let data = profileImageData {
-                                    #if os(iOS)
-                                    return UIImage(data: data)
-                                    #elseif os(macOS)
-                                    return NSImage(data: data)
-                                    #endif
-                                }
-                                return nil
-                            },
-                            set: { newImage in
-                                #if os(iOS)
-                                profileImageData = (newImage as? UIImage)?.jpegData(compressionQuality: 1.0)
-                                #elseif os(macOS)
-                                profileImageData = (newImage as? NSImage)?.tiffRepresentation
-                                #endif
-                            }
-                        )
+                        profileImage: profileImageBinding
                     )
                     .tabItem {
                         Label("Profile", systemImage: "person.circle")
                     }
-
-                    // Comments View
-                    CommentsView(
-                        comments: $comments,  // Your existing comments array binding
-                        commentText: $commentText,
-                        saveComment: saveCommentToFirebase(postId: "samplePostId") // Pass postId dynamically
-                    )
-                    .tabItem {
-                        Label("Comments", systemImage: "message")
-                    }
                 }
-                .environmentObject(profileView) // Inject ProfileView as an environment object here
+                .environmentObject(profileView) // Inject ProfileView as an environment object
             } else {
                 LoginView(
                     isLoggedIn: $isLoggedIn,
                     username: $username,
-                    profileImage: Binding<Any?>(
-                        get: {
-                            if let data = profileImageData {
-                                #if os(iOS)
-                                return UIImage(data: data)
-                                #elseif os(macOS)
-                                return NSImage(data: data)
-                                #endif
-                            }
-                            return nil
-                        },
-                        set: { newImage in
-                            #if os(iOS)
-                            profileImageData = (newImage as? UIImage)?.jpegData(compressionQuality: 1.0)
-                            #elseif os(macOS)
-                            profileImageData = (newImage as? NSImage)?.tiffRepresentation
-                            #endif
-                        }
-                    )
+                    profileImage: profileImageBinding
                 )
             }
         }
+    }
+
+    // Helper to generate a Binding for profile image across platforms
+    private var profileImageBinding: Binding<Any?> {
+        Binding<Any?>(
+            get: {
+                if let data = profileImageData {
+                    #if os(iOS)
+                    return UIImage(data: data)
+                    #elseif os(macOS)
+                    return NSImage(data: data)
+                    #endif
+                }
+                return nil
+            },
+            set: { newImage in
+                profileImageData = imageData(from: newImage)
+            }
+        )
+    }
+
+    // Helper function to convert image to Data
+    private func imageData(from image: Any?) -> Data? {
+        #if os(iOS)
+        if let uiImage = image as? UIImage {
+            return uiImage.jpegData(compressionQuality: 1.0)
+        }
+        #elseif os(macOS)
+        if let nsImage = image as? NSImage {
+            return nsImage.tiffRepresentation
+        }
+        #endif
+        return nil
     }
 
     // Function to save a post to Firebase Firestore for iOS and macOS
@@ -134,58 +104,22 @@ struct PawsomeApp: App {
         guard let capturedImage = capturedImage else { return }
         
         let postRef = db.collection("posts").document() // Create a new post document
-        
-        var imageData: Data?
-        
-        #if os(iOS)
-        if let uiImage = capturedImage as? UIImage {
-            imageData = uiImage.jpegData(compressionQuality: 1.0)
-        }
-        #elseif os(macOS)
-        if let nsImage = capturedImage as? NSImage {
-            imageData = nsImage.tiffRepresentation
-        }
-        #endif
-        
-        // Check if imageData is nil after attempting to set it
-        guard let finalImageData = imageData else {
+        guard let finalImageData = imageData(from: capturedImage) else {
             print("Failed to process image")
             return
         }
 
-        let newPost = [
+        let newPost: [String: Any] = [
             "username": username,
             "timestamp": Date(),
             "imageData": finalImageData
-        ] as [String: Any]
+        ]
         
         postRef.setData(newPost) { error in
             if let error = error {
                 print("Failed to save post: \(error.localizedDescription)")
             } else {
                 print("Post saved successfully!")
-            }
-        }
-    }
-    
-    // Function to save a comment to Firebase Firestore
-    private func saveCommentToFirebase(postId: String) {
-        guard !commentText.isEmpty else { return }
-
-        let newComment = [
-            "postId": postId,
-            "commentText": commentText,
-            "username": username,
-            "timestamp": Date()
-        ] as [String: Any]
-
-        // Save the comment in the 'comments' collection
-        db.collection("comments").addDocument(data: newComment) { error in
-            if let error = error {
-                print("Failed to save comment: \(error.localizedDescription)")
-            } else {
-                print("Comment saved successfully!")
-                commentText = "" // Clear the comment field after saving
             }
         }
     }
