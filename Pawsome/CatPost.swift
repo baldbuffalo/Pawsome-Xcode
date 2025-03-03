@@ -27,7 +27,7 @@ struct CatPost: Identifiable, Codable {
     static func fromDocument(_ document: DocumentSnapshot) -> CatPost? {
         guard let data = document.data() else { return nil }
 
-        let commentsArray = data["comments"] as? [[String: Any]] ?? [] // ✅ Ensure it's an array of dictionaries
+        let commentsArray = data["comments"] as? [[String: Any]] ?? []
         let comments = commentsArray.compactMap { Comment(document: $0) }
 
         return CatPost(
@@ -39,7 +39,7 @@ struct CatPost: Identifiable, Codable {
             postDescription: data["postDescription"] as? String,
             likes: data["likes"] as? Int ?? 0,
             comments: comments,
-            catAge: data["catAge"] as? Int // Add this line to handle the catAge field
+            catAge: data["catAge"] as? Int
         )
     }
 
@@ -47,13 +47,13 @@ struct CatPost: Identifiable, Codable {
     func toDictionary() -> [String: Any] {
         return [
             "catName": catName,
-            "catBreed": catBreed ?? NSNull(),
-            "location": location ?? NSNull(),
-            "imageURL": imageURL ?? NSNull(),
-            "postDescription": postDescription ?? NSNull(),
+            "catBreed": catBreed ?? "",  // 🔹 Use empty string instead of NSNull()
+            "location": location ?? "",
+            "imageURL": imageURL ?? "",
+            "postDescription": postDescription ?? "",
             "likes": likes,
             "comments": comments.map { $0.toDictionary() }, // ✅ Convert [Comment] to [[String: Any]]
-            "catAge": catAge ?? NSNull() // Add catAge to dictionary, default to NSNull() if nil
-        ]
+            "catAge": catAge as Any // 🔹 Use `as Any` to allow optional values
+        ].compactMapValues { $0 } // 🔹 Removes `nil` values automatically
     }
 }

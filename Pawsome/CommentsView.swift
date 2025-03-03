@@ -1,59 +1,34 @@
 import SwiftUI
 import FirebaseFirestore
 
-// Comment Model (no change from before)
-struct Comment: Identifiable {
-    var id: String // Unique identifier for each comment
-    var user: String // Name of the user who posted the comment
-    var text: String // Content of the comment
-    var timestamp: Date // The time the comment was posted
-}
+// ✅ Comment Model now conforms to Codable
+struct Comment: Identifiable, Codable {
+    var id: String
+    var user: String
+    var text: String
+    var timestamp: Date
 
-// Comments View for displaying the comments of a post
-struct CommentsView: View {
-    var comments: [Comment] // An array of Comment objects passed from a parent view (e.g., CatPost)
-
-    var body: some View {
-        VStack(alignment: .leading) {
-            Text("Comments")
-                .font(.headline)
-                .padding(.top)
-
-            // List of comments for this post
-            ForEach(comments) { comment in
-                CommentRow(comment: comment)
-                    .padding(.vertical, 5)
-            }
-
-            // Add your UI for adding comments (if any) below
-            // E.g., TextField or TextEditor to add a new comment
+    // ✅ Init from Firestore document
+    init?(document: [String: Any]) {
+        guard let user = document["user"] as? String,
+              let text = document["text"] as? String,
+              let timestamp = (document["timestamp"] as? Timestamp)?.dateValue() else {
+            return nil
         }
-        .padding()
-    }
-}
 
-// Row for each individual comment
-struct CommentRow: View {
-    var comment: Comment
-
-    var body: some View {
-        VStack(alignment: .leading) {
-            Text(comment.user)
-                .font(.subheadline)
-                .foregroundColor(.gray)
-            Text(comment.text)
-                .font(.body)
-                .padding(.top, 2)
-            Text("Posted at \(dateFormatter.string(from: comment.timestamp))")
-                .font(.footnote)
-                .foregroundColor(.gray)
-        }
+        self.id = document["id"] as? String ?? UUID().uuidString
+        self.user = user
+        self.text = text
+        self.timestamp = timestamp
     }
 
-    private var dateFormatter: DateFormatter {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .short
-        formatter.timeStyle = .short
-        return formatter
+    // ✅ Convert Comment to Firestore format
+    func toDictionary() -> [String: Any] {
+        return [
+            "id": id,
+            "user": user,
+            "text": text,
+            "timestamp": Timestamp(date: timestamp) // ✅ Firestore-compatible timestamp
+        ]
     }
 }

@@ -71,7 +71,7 @@ struct HomeView: View {
                             location: data["location"] as? String,
                             imageURL: data["imageURL"] as? String,
                             likes: data["likes"] as? Int ?? 0,
-                            comments: data["comments"] as? [String] ?? [] // Fixed comments extraction
+                            comments: data["comments"] as? [Comment] ?? [] // Fixed comments extraction
                         )
                     } ?? []
                 }
