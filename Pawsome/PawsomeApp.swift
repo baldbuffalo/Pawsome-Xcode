@@ -1,12 +1,4 @@
 import SwiftUI
-import FirebaseFirestore
-import FirebaseAuth
-
-#if os(iOS)
-import UIKit
-#elseif os(macOS)
-import AppKit
-#endif
 
 @main
 struct PawsomeApp: App {
@@ -21,33 +13,27 @@ struct PawsomeApp: App {
         WindowGroup {
             if isLoggedIn {
                 TabView {
-                    // Home View
                     HomeView(
                         isLoggedIn: $isLoggedIn,
                         currentUsername: $username,
-                        profileImage: profileImageBinding
+                        profileImage: profileImageBinding // 🔥 FIXED
                     )
                     .tabItem {
                         Label("Home", systemImage: "house")
                     }
 
-                    // Scan View
                     ScanView(
-                        capturedImage: $selectedImage,
-                        username: username,
-                        onPostCreated: { catPost in
-                            savePostToFirebase(capturedImage: selectedImage, username: username)
-                        }
+                        selectedImage: $selectedImage,
+                        username: username
                     )
                     .tabItem {
                         Label("Post", systemImage: "plus.app")
                     }
 
-                    // Profile View
                     ProfileView(
                         isLoggedIn: $isLoggedIn,
                         currentUsername: $username,
-                        profileImage: profileImageBinding
+                        profileImage: profileImageBinding // 🔥 FIXED
                     )
                     .tabItem {
                         Label("Profile", systemImage: "person.circle")
@@ -58,68 +44,25 @@ struct PawsomeApp: App {
                 LoginView(
                     isLoggedIn: $isLoggedIn,
                     username: $username,
-                    profileImage: profileImageBinding
+                    profileImage: profileImageBinding // 🔥 FIXED
                 )
             }
         }
     }
 
-    // Profile image binding (cross-platform)
+    // 🔥 FIXED: Convert profileImageData (Data?) to Any?
     private var profileImageBinding: Binding<Any?> {
         Binding<Any?>(
             get: {
-                if let data = profileImageData {
-                    #if os(iOS)
-                    return UIImage(data: data)
-                    #elseif os(macOS)
-                    return NSImage(data: data)
-                    #endif
-                }
-                return nil
+                profileImageData // No conversion needed here
             },
             set: { newImage in
-                profileImageData = imageData(from: newImage)
+                if let data = newImage as? Data {
+                    profileImageData = data
+                } else {
+                    profileImageData = nil
+                }
             }
         )
-    }
-
-    // Convert image to Data
-    private func imageData(from image: Any?) -> Data? {
-        #if os(iOS)
-        if let uiImage = image as? UIImage {
-            return uiImage.jpegData(compressionQuality: 1.0)
-        }
-        #elseif os(macOS)
-        if let nsImage = image as? NSImage {
-            return nsImage.tiffRepresentation
-        }
-        #endif
-        return nil
-    }
-
-    // Save post to Firebase Firestore
-    private func savePostToFirebase(capturedImage: Any?, username: String) {
-        guard let capturedImage = capturedImage else { return }
-        
-        let db = Firestore.firestore()
-        let postRef = db.collection("posts").document()
-        guard let finalImageData = imageData(from: capturedImage) else {
-            print("Failed to process image")
-            return
-        }
-
-        let newPost: [String: Any] = [
-            "username": username,
-            "timestamp": Timestamp(date: Date()),
-            "imageData": finalImageData
-        ]
-        
-        postRef.setData(newPost) { error in
-            if let error = error {
-                print("Failed to save post: \(error.localizedDescription)")
-            } else {
-                print("Post saved successfully!")
-            }
-        }
     }
 }
