@@ -1,9 +1,11 @@
 import SwiftUI
-import Firebase
 import FirebaseFirestore
-import CatPostModule  // Ensure this module provides the CatPost model
 
 struct HomeView: View {
+    @Binding var isLoggedIn: Bool
+    @Binding var currentUsername: String
+    @Binding var profileImage: Any?
+
     @State private var posts: [CatPost] = []
     @State private var isLoading = true
     @State private var errorMessage: String?
@@ -18,14 +20,62 @@ struct HomeView: View {
                     ProgressView("Loading posts...")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if posts.isEmpty {
-                    EmptyStateView()
+                    Text("No posts available.")
+                        .font(.title)
+                        .foregroundColor(.gray)
+                        .padding()
                 } else {
-                    PostsListView(posts: posts)
+                    List {
+                        ForEach(posts) { post in
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(post.catName)
+                                    .font(.headline)
+                                
+                                if let breed = post.catBreed {
+                                    Text("Breed: \(breed)")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                }
+                                
+                                if let location = post.location {
+                                    Text("Location: \(location)")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                }
+                                
+                                if let imageURL = post.imageURL, let url = URL(string: imageURL) {
+                                    AsyncImage(url: url) { image in
+                                        image.resizable()
+                                            .scaledToFit()
+                                            .frame(maxWidth: .infinity, maxHeight: 200)
+                                            .cornerRadius(8)
+                                    } placeholder: {
+                                        ProgressView()
+                                    }
+                                }
+                                
+                                HStack {
+                                    Text("\(post.likes) Likes")
+                                    Spacer()
+                                    Text("\(post.comments.count) Comments")
+                                }
+                                .font(.footnote)
+                                .foregroundColor(.gray)
+                            }
+                            .padding(.vertical, 8)
+                            .swipeActions(edge: .trailing) {
+                                DeleteButton(post: post)
+                            }
+                            .contextMenu {
+                                DeleteButton(post: post)
+                            }
+                        }
+                    }
+                    .listStyle(.plain)
                 }
             }
             .navigationTitle("Pawsome")
             .toolbar {
-                // Use appropriate toolbar items for macOS and iOS
                 ToolbarItem(placement: .primaryAction) {
                     Button(action: fetchPosts) {
                         Image(systemName: "arrow.clockwise")
@@ -53,8 +103,7 @@ struct HomeView: View {
             .refreshable { fetchPosts() }
         }
     }
-    
-    // MARK: - Fetch Posts
+
     private func fetchPosts() {
         isLoading = true
         db.collection("posts").order(by: "timestamp", descending: true)
@@ -71,7 +120,7 @@ struct HomeView: View {
                             location: data["location"] as? String,
                             imageURL: data["imageURL"] as? String,
                             likes: data["likes"] as? Int ?? 0,
-                            comments: data["comments"] as? [Comment] ?? [] // Fixed comments extraction
+                            comments: data["comments"] as? [Comment] ?? []
                         )
                     } ?? []
                 }
@@ -79,7 +128,6 @@ struct HomeView: View {
             }
     }
 
-    // MARK: - Delete Post
     private func deletePost(_ post: CatPost) {
         guard let postID = post.id else { return }
         db.collection("posts").document(postID).delete { error in
@@ -91,22 +139,6 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - Subviews
-    private func PostsListView(posts: [CatPost]) -> some View {
-        List {
-            ForEach(posts) { post in
-                PostCardView(post: post)
-                    .swipeActions(edge: .trailing) {
-                        DeleteButton(post: post)
-                    }
-                    .contextMenu {
-                        DeleteButton(post: post)
-                    }
-            }
-        }
-        .listStyle(.plain)
-    }
-
     private func DeleteButton(post: CatPost) -> some View {
         Button(role: .destructive) {
             postToDelete = post
@@ -115,82 +147,3 @@ struct HomeView: View {
         }
     }
 }
-
-// MARK: - PostCardView
-struct PostCardView: View {
-    let post: CatPost
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(post.catName)
-                .font(.headline)
-
-            if let breed = post.catBreed, !breed.isEmpty {
-                Text(breed)
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-            }
-
-            if let location = post.location, !location.isEmpty {
-                Text(location)
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-            }
-
-            if let imageURL = post.imageURL, let url = URL(string: imageURL) {
-                AsyncImage(url: url) { image in
-                    image.resizable()
-                        .scaledToFit()
-                        .frame(maxWidth: .infinity, maxHeight: 200)
-                        .cornerRadius(10)
-                } placeholder: {
-                    ProgressView()
-                }
-            }
-
-            HStack {
-                Text("\(post.likes) Likes")
-                    .font(.subheadline)
-                Spacer()
-                Text("\(post.comments.count) Comments")
-                    .font(.subheadline)
-            }
-        }
-        .padding()
-        .background(Color(PlatformColor.backgroundColor)) // ✅ Fixed Background Issue
-        .cornerRadius(12)
-        .shadow(radius: 2)
-    }
-}
-
-// MARK: - EmptyStateView
-struct EmptyStateView: View {
-    var body: some View {
-        VStack {
-            Image(systemName: "square.stack.3d.up.slash")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 80, height: 80)
-                .foregroundColor(.gray)
-            Text("No posts available.")
-                .font(.title)
-                .foregroundColor(.gray)
-                .padding()
-        }
-    }
-}
-
-// MARK: - Platform Compatibility
-#if canImport(UIKit)
-import UIKit
-typealias PlatformColor = UIColor
-extension PlatformColor {
-    static var backgroundColor: UIColor { UIColor.systemBackground }
-}
-#elseif canImport(AppKit)
-import AppKit
-typealias PlatformColor = NSColor
-extension PlatformColor {
-    static var backgroundColor: NSColor { NSColor.windowBackgroundColor } // ✅ Equivalent for macOS
-}
-#endif

@@ -13,11 +13,9 @@ struct PawsomeApp: App {
     @State private var isLoggedIn: Bool = false
     @State private var username: String = ""
     @State private var profileImageData: Data? = nil
-    @State private var selectedImage: Any? = nil // Changed to Any for platform-specific image types
+    @State private var selectedImage: Any? = nil
     
-    @StateObject private var profileView = ProfileView() // Create ProfileView as @StateObject
-    
-    private let db = Firestore.firestore() // Firestore instance
+    @StateObject private var profileView = ProfileView() // Global profile state
 
     var body: some Scene {
         WindowGroup {
@@ -55,7 +53,7 @@ struct PawsomeApp: App {
                         Label("Profile", systemImage: "person.circle")
                     }
                 }
-                .environmentObject(profileView) // Inject ProfileView as an environment object
+                .environmentObject(profileView)
             } else {
                 LoginView(
                     isLoggedIn: $isLoggedIn,
@@ -66,7 +64,7 @@ struct PawsomeApp: App {
         }
     }
 
-    // Helper to generate a Binding for profile image across platforms
+    // Profile image binding (cross-platform)
     private var profileImageBinding: Binding<Any?> {
         Binding<Any?>(
             get: {
@@ -85,7 +83,7 @@ struct PawsomeApp: App {
         )
     }
 
-    // Helper function to convert image to Data
+    // Convert image to Data
     private func imageData(from image: Any?) -> Data? {
         #if os(iOS)
         if let uiImage = image as? UIImage {
@@ -99,11 +97,12 @@ struct PawsomeApp: App {
         return nil
     }
 
-    // Function to save a post to Firebase Firestore for iOS and macOS
+    // Save post to Firebase Firestore
     private func savePostToFirebase(capturedImage: Any?, username: String) {
         guard let capturedImage = capturedImage else { return }
         
-        let postRef = db.collection("posts").document() // Create a new post document
+        let db = Firestore.firestore()
+        let postRef = db.collection("posts").document()
         guard let finalImageData = imageData(from: capturedImage) else {
             print("Failed to process image")
             return
@@ -111,7 +110,7 @@ struct PawsomeApp: App {
 
         let newPost: [String: Any] = [
             "username": username,
-            "timestamp": Date(),
+            "timestamp": Timestamp(date: Date()),
             "imageData": finalImageData
         ]
         
