@@ -4,7 +4,7 @@ import SwiftUI
 struct PawsomeApp: App {
     @State private var isLoggedIn: Bool = false
     @State private var username: String = ""
-    @State private var profileImage: Any? = nil // Keep profile image state here
+    @State private var profileImage: NSImage? = nil  // Using NSImage for macOS compatibility
 
     @StateObject private var profileView = ProfileView() // Global profile state
 
@@ -12,19 +12,26 @@ struct PawsomeApp: App {
         WindowGroup {
             if isLoggedIn {
                 TabView {
-                    // Only pass profile image where needed (HomeView and ProfileView)
                     HomeView(
                         isLoggedIn: $isLoggedIn,
                         currentUsername: $username,
-                        profileImage: $profileImage // Pass it here
+                        profileImage: $profileImage,
+                        onPostCreated: {
+                            // Handle post creation logic
+                            print("Post created!")
+                        }
                     )
                     .tabItem {
                         Label("Home", systemImage: "house")
                     }
 
                     ScanView(
-                        selectedImage: .constant(nil), // No need for profile image here
-                        username: username
+                        selectedImage: .constant(nil),
+                        username: username,
+                        onPostCreated: {
+                            // Handle post creation logic from ScanView
+                            print("Post created from ScanView!")
+                        }
                     )
                     .tabItem {
                         Label("Post", systemImage: "plus.app")
@@ -33,7 +40,7 @@ struct PawsomeApp: App {
                     ProfileView(
                         isLoggedIn: $isLoggedIn,
                         currentUsername: $username,
-                        profileImage: $profileImage // Pass it here
+                        profileImage: $profileImage
                     )
                     .tabItem {
                         Label("Profile", systemImage: "person.circle")
@@ -44,7 +51,7 @@ struct PawsomeApp: App {
                 LoginView(
                     isLoggedIn: $isLoggedIn,
                     username: $username,
-                    profileImage: $profileImage // Pass it to LoginView if needed
+                    profileImage: $profileImage
                 )
             }
         }
