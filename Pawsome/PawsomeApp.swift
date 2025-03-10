@@ -4,26 +4,26 @@ import SwiftUI
 struct PawsomeApp: App {
     @State private var isLoggedIn: Bool = false
     @State private var username: String = ""
-    @State private var profileImageData: Data? = nil
-    @State private var selectedImage: Any? = nil
-    
+    @State private var profileImage: Any? = nil // Keep profile image state here
+
     @StateObject private var profileView = ProfileView() // Global profile state
 
     var body: some Scene {
         WindowGroup {
             if isLoggedIn {
                 TabView {
+                    // Only pass profile image where needed (HomeView and ProfileView)
                     HomeView(
                         isLoggedIn: $isLoggedIn,
                         currentUsername: $username,
-                        profileImage: profileImageBinding // 🔥 FIXED
+                        profileImage: $profileImage // Pass it here
                     )
                     .tabItem {
                         Label("Home", systemImage: "house")
                     }
 
                     ScanView(
-                        selectedImage: $selectedImage,
+                        selectedImage: .constant(nil), // No need for profile image here
                         username: username
                     )
                     .tabItem {
@@ -33,7 +33,7 @@ struct PawsomeApp: App {
                     ProfileView(
                         isLoggedIn: $isLoggedIn,
                         currentUsername: $username,
-                        profileImage: profileImageBinding // 🔥 FIXED
+                        profileImage: $profileImage // Pass it here
                     )
                     .tabItem {
                         Label("Profile", systemImage: "person.circle")
@@ -44,25 +44,9 @@ struct PawsomeApp: App {
                 LoginView(
                     isLoggedIn: $isLoggedIn,
                     username: $username,
-                    profileImage: profileImageBinding // 🔥 FIXED
+                    profileImage: $profileImage // Pass it to LoginView if needed
                 )
             }
         }
-    }
-
-    // 🔥 FIXED: Convert profileImageData (Data?) to Any?
-    private var profileImageBinding: Binding<Any?> {
-        Binding<Any?>(
-            get: {
-                profileImageData // No conversion needed here
-            },
-            set: { newImage in
-                if let data = newImage as? Data {
-                    profileImageData = data
-                } else {
-                    profileImageData = nil
-                }
-            }
-        )
     }
 }
