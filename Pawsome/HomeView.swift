@@ -13,6 +13,8 @@ struct HomeView: View {
 
     private let db = Firestore.firestore()
 
+    var onPostCreated: (() -> Void)? = nil // ✅ Added but does nothing
+
     var body: some View {
         NavigationStack {
             Group {
