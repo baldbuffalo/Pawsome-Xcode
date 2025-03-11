@@ -1,10 +1,17 @@
 import SwiftUI
 
+// Define a cross-platform image type
+#if os(macOS)
+typealias PlatformImage = NSImage
+#else
+typealias PlatformImage = UIImage
+#endif
+
 @main
 struct PawsomeApp: App {
     @State private var isLoggedIn: Bool = false
     @State private var username: String = ""
-    @State private var profileImage: NSImage? = nil  // Using NSImage for macOS compatibility
+    @State private var profileImage: PlatformImage? = nil  // Works for both iOS and macOS
 
     @StateObject private var profileView = ProfileView() // Global profile state
 
@@ -15,9 +22,8 @@ struct PawsomeApp: App {
                     HomeView(
                         isLoggedIn: $isLoggedIn,
                         currentUsername: $username,
-                        profileImage: $profileImage,
+                        profileImage: $profileImage, // Now cross-platform
                         onPostCreated: {
-                            // Handle post creation logic
                             print("Post created!")
                         }
                     )
@@ -29,7 +35,6 @@ struct PawsomeApp: App {
                         selectedImage: .constant(nil),
                         username: username,
                         onPostCreated: {
-                            // Handle post creation logic from ScanView
                             print("Post created from ScanView!")
                         }
                     )
@@ -40,7 +45,7 @@ struct PawsomeApp: App {
                     ProfileView(
                         isLoggedIn: $isLoggedIn,
                         currentUsername: $username,
-                        profileImage: $profileImage
+                        profileImage: $profileImage // Now cross-platform
                     )
                     .tabItem {
                         Label("Profile", systemImage: "person.circle")
@@ -51,7 +56,7 @@ struct PawsomeApp: App {
                 LoginView(
                     isLoggedIn: $isLoggedIn,
                     username: $username,
-                    profileImage: $profileImage
+                    profileImage: $profileImage // Now cross-platform
                 )
             }
         }

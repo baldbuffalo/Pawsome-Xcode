@@ -1,10 +1,17 @@
 import SwiftUI
 import FirebaseFirestore
 
+// Define a cross-platform image type
+#if os(macOS)
+typealias PlatformImage = NSImage
+#else
+typealias PlatformImage = UIImage
+#endif
+
 struct HomeView: View {
     @Binding var isLoggedIn: Bool
     @Binding var currentUsername: String
-    @Binding var profileImage: Any?
+    @Binding var profileImage: PlatformImage? // Using the cross-platform image type
 
     @State private var posts: [CatPost] = []
     @State private var isLoading = true
@@ -32,19 +39,19 @@ struct HomeView: View {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text(post.catName)
                                     .font(.headline)
-                                
+
                                 if let breed = post.catBreed {
                                     Text("Breed: \(breed)")
                                         .font(.subheadline)
                                         .foregroundColor(.secondary)
                                 }
-                                
+
                                 if let location = post.location {
                                     Text("Location: \(location)")
                                         .font(.subheadline)
                                         .foregroundColor(.secondary)
                                 }
-                                
+
                                 if let imageURL = post.imageURL, let url = URL(string: imageURL) {
                                     AsyncImage(url: url) { image in
                                         image.resizable()
@@ -55,7 +62,7 @@ struct HomeView: View {
                                         ProgressView()
                                     }
                                 }
-                                
+
                                 HStack {
                                     Text("\(post.likes) Likes")
                                     Spacer()
