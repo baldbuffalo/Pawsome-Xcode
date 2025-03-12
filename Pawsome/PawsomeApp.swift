@@ -1,17 +1,10 @@
 import SwiftUI
 
-// Define a cross-platform image type
-#if os(macOS)
-typealias PlatformImage = NSImage
-#else
-typealias PlatformImage = UIImage
-#endif
-
 @main
 struct PawsomeApp: App {
     @State private var isLoggedIn: Bool = false
     @State private var username: String = ""
-    @State private var profileImage: PlatformImage? = nil  // Works for both iOS and macOS
+    @State private var profileImage: PlatformImage? = nil  // Load and store profile image
 
     @StateObject private var profileView = ProfileView() // Global profile state
 
@@ -22,9 +15,9 @@ struct PawsomeApp: App {
                     HomeView(
                         isLoggedIn: $isLoggedIn,
                         currentUsername: $username,
-                        profileImage: $profileImage, // Now cross-platform
+                        profileImage: $profileImage, // Pass as a binding
                         onPostCreated: {
-                            print("Post created!")
+                            loadProfileImage() // Reload profile image after a post is created
                         }
                     )
                     .tabItem {
@@ -35,7 +28,7 @@ struct PawsomeApp: App {
                         selectedImage: .constant(nil),
                         username: username,
                         onPostCreated: {
-                            print("Post created from ScanView!")
+                            loadProfileImage() // Reload profile image from ScanView
                         }
                     )
                     .tabItem {
@@ -45,19 +38,34 @@ struct PawsomeApp: App {
                     ProfileView(
                         isLoggedIn: $isLoggedIn,
                         currentUsername: $username,
-                        profileImage: $profileImage // Now cross-platform
+                        profileImage: $profileImage
                     )
                     .tabItem {
                         Label("Profile", systemImage: "person.circle")
                     }
                 }
                 .environmentObject(profileView)
+                .onAppear {
+                    loadProfileImage() // Load the profile image when the app starts
+                }
             } else {
                 LoginView(
                     isLoggedIn: $isLoggedIn,
                     username: $username,
-                    profileImage: $profileImage // Now cross-platform
+                    profileImage: $profileImage
                 )
+            }
+        }
+    }
+
+    private func loadProfileImage() {
+        // Load the user's profile picture from storage or database
+        // This is just an example; replace with your actual loading logic
+        DispatchQueue.global().async {
+            if let image = fetchProfileImageFromDatabase() {
+                DispatchQueue.main.async {
+                    self.profileImage = image
+                }
             }
         }
     }
