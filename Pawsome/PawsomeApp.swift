@@ -26,7 +26,7 @@ struct PawsomeApp: App {
                         isLoggedIn: $isLoggedIn,
                         currentUsername: $username,
                         profileImage: $profileImage, // Pass as a binding
-                        onPostCreated: {
+                        onPostCreated: { _ in
                             loadProfileImage() // Reload the profile image after a post is created
                         }
                     )
@@ -37,7 +37,7 @@ struct PawsomeApp: App {
                     ScanView(
                         selectedImage: .constant(nil),
                         username: username,
-                        onPostCreated: {
+                        onPostCreated: { _ in
                             loadProfileImage() // Reload the profile image from ScanView
                         }
                     )
