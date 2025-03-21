@@ -36,8 +36,8 @@ struct PawsomeApp: App {
                             isLoggedIn: $isLoggedIn,
                             currentUsername: $username,
                             profileImage: $profileImage, // Pass as a binding
-                            onPostCreated: {
-                                loadProfileImage() // Reload the profile image after a post is created
+                            onPostCreated: { _ in
+                                loadProfileImage() // Reload profile image after a post is created
                             }
                         )
                         .tabItem {
@@ -45,24 +45,22 @@ struct PawsomeApp: App {
                         }
 
                         ScanView(
-                            selectedImage: .constant(nil),
+                            selectedImage: .constant<PlatformImage?>(nil),
                             username: username,
-                            onPostCreated: {
-                                loadProfileImage() // Reload the profile image from ScanView
+                            onPostCreated: { _ in
+                                loadProfileImage() // Reload profile image from ScanView
                             }
                         )
                         .tabItem {
                             Label("Post", systemImage: "plus.app")
                         }
 
+                        // ProfileView remains, but without a tab item
                         ProfileView(
                             isLoggedIn: $isLoggedIn,
                             currentUsername: $username,
-                            profileImage: $profileImage // Pass the image to ProfileView
+                            profileImage: $profileImage
                         )
-                        .tabItem {
-                            Label("Profile", systemImage: "person.circle")
-                        }
                     }
                     .environmentObject(profileView)
                 }
@@ -77,36 +75,30 @@ struct PawsomeApp: App {
     }
 
     private func loadProfileImage() {
-        // Ensure the username is available (otherwise, you may not have a valid path)
+        // Ensure the username is available
         guard !username.isEmpty else {
             print("Username is empty. Cannot load profile image.")
-            isLoadingImage = false  // Done loading even if there's no image
+            DispatchQueue.main.async {
+                isLoadingImage = false  // Done loading even if there's no image
+            }
             return
         }
         
         let storage = Storage.storage()
         let storageRef = storage.reference()
-        // Adjust the storage path according to your Firebase Storage structure.
         let profileImageRef = storageRef.child("profileImages/\(username).jpg")
         
         // Download up to 1 MB of data (adjust maxSize as needed)
         profileImageRef.getData(maxSize: 1 * 1024 * 1024) { data, error in
-            if let error = error {
-                print("Error fetching profile image: \(error.localizedDescription)")
-            } else if let data = data,
-                      let image = PlatformImage(data: data) {
-                DispatchQueue.main.async {
+            DispatchQueue.main.async {
+                if let error = error {
+                    print("Error fetching profile image: \(error.localizedDescription)")
+                    self.profileImage = nil  // Ensure no corrupted image is shown
+                } else if let data = data, let image = PlatformImage(data: data) {
                     self.profileImage = image
-                    self.isLoadingImage = false  // Done loading
                 }
-            } else {
-                DispatchQueue.main.async {
-                    self.isLoadingImage = false  // Done loading even if there's no image
-                }
+                self.isLoadingImage = false  // Done loading
             }
         }
     }
-}
-public protocol EquatableBytes: Equatable {
-    
 }

@@ -1,5 +1,6 @@
 import Firebase
 import FirebaseFirestore
+import FirebaseAuth  // ✅ Import Firebase Authentication
 
 struct UserRegistration {
     static func registerUser(username: String, profilePicture: String) {
