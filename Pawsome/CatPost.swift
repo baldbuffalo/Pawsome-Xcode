@@ -1,22 +1,23 @@
 import FirebaseFirestore
 
-struct CatPost: Identifiable, Codable {
+struct CatPost: Identifiable {
     var id: String?
     var catName: String
     var catBreed: String?
     var location: String?
-    var imageURL: String?
+    var imageData: Data? // Store image as Data
     var postDescription: String?
     var likes: Int
-    var comments: [Comment] // ✅ Ensure this is always [Comment]
-    var catAge: Int? // Add optional catAge
+    var comments: [Comment] // Ensure Comment struct is properly handled
+    var catAge: Int?
 
-    init(id: String? = nil, catName: String, catBreed: String? = nil, location: String? = nil, imageURL: String? = nil, postDescription: String? = nil, likes: Int = 0, comments: [Comment] = [], catAge: Int? = nil) {
+    // Initialize CatPost from Firestore document
+    init(id: String? = nil, catName: String, catBreed: String? = nil, location: String? = nil, imageData: Data? = nil, postDescription: String? = nil, likes: Int = 0, comments: [Comment] = [], catAge: Int? = nil) {
         self.id = id
         self.catName = catName
         self.catBreed = catBreed
         self.location = location
-        self.imageURL = imageURL
+        self.imageData = imageData
         self.postDescription = postDescription
         self.likes = likes
         self.comments = comments
@@ -27,33 +28,39 @@ struct CatPost: Identifiable, Codable {
     static func fromDocument(_ document: DocumentSnapshot) -> CatPost? {
         guard let data = document.data() else { return nil }
 
-        let commentsArray = data["comments"] as? [[String: Any]] ?? []
-        let comments = commentsArray.compactMap { Comment(document: $0) }
-
-        return CatPost(
-            id: document.documentID,
-            catName: data["catName"] as? String ?? "",
-            catBreed: data["catBreed"] as? String,
-            location: data["location"] as? String,
-            imageURL: data["imageURL"] as? String,
-            postDescription: data["postDescription"] as? String,
-            likes: data["likes"] as? Int ?? 0,
-            comments: comments,
-            catAge: data["catAge"] as? Int
-        )
+        // Manually retrieve data from Firestore and initialize the CatPost object
+        let catName = data["catName"] as? String ?? ""
+        let catBreed = data["catBreed"] as? String
+        let location = data["location"] as? String
+        let imageData = data["imageData"] as? Data
+        let postDescription = data["postDescription"] as? String
+        let likes = data["likes"] as? Int ?? 0
+        let commentsData = data["comments"] as? [[String: Any]] ?? []
+        let comments = commentsData.compactMap { Comment(from: $0) }
+        let catAge = data["catAge"] as? Int
+        
+        return CatPost(id: document.documentID,
+                       catName: catName,
+                       catBreed: catBreed,
+                       location: location,
+                       imageData: imageData,
+                       postDescription: postDescription,
+                       likes: likes,
+                       comments: comments,
+                       catAge: catAge)
     }
 
-    // Convert CatPost to Firestore format
+    // Convert CatPost to Firestore dictionary (used when saving)
     func toDictionary() -> [String: Any] {
         return [
             "catName": catName,
-            "catBreed": catBreed ?? "",  // 🔹 Use empty string instead of NSNull()
+            "catBreed": catBreed ?? "",
             "location": location ?? "",
-            "imageURL": imageURL ?? "",
+            "imageData": imageData ?? Data(),
             "postDescription": postDescription ?? "",
             "likes": likes,
-            "comments": comments.map { $0.toDictionary() }, // ✅ Convert [Comment] to [[String: Any]]
-            "catAge": catAge as Any // 🔹 Use `as Any` to allow optional values
-        ].compactMapValues { $0 } // 🔹 Removes `nil` values automatically
+            "comments": comments.map { $0.toDictionary() }, // Assuming Comment has toDictionary()
+            "catAge": catAge as Any
+        ]
     }
 }

@@ -1,34 +1,29 @@
-import SwiftUI
 import FirebaseFirestore
 
-// ✅ Comment Model now conforms to Codable
-struct Comment: Identifiable, Codable {
+struct Comment {
     var id: String
-    var user: String
     var text: String
-    var timestamp: Date
+    var userName: String
 
-    // ✅ Init from Firestore document
-    init?(document: [String: Any]) {
-        guard let user = document["user"] as? String,
-              let text = document["text"] as? String,
-              let timestamp = (document["timestamp"] as? Timestamp)?.dateValue() else {
+    // Custom initializer for creating a Comment from a Firestore document
+    init?(from dictionary: [String: Any]) {
+        guard let id = dictionary["id"] as? String,
+              let text = dictionary["text"] as? String,
+              let userName = dictionary["userName"] as? String else {
             return nil
         }
 
-        self.id = document["id"] as? String ?? UUID().uuidString
-        self.user = user
+        self.id = id
         self.text = text
-        self.timestamp = timestamp
+        self.userName = userName
     }
 
-    // ✅ Convert Comment to Firestore format
+    // Optional: Convert the Comment object back into a dictionary for Firestore
     func toDictionary() -> [String: Any] {
         return [
             "id": id,
-            "user": user,
             "text": text,
-            "timestamp": Timestamp(date: timestamp) // ✅ Firestore-compatible timestamp
+            "userName": userName
         ]
     }
 }

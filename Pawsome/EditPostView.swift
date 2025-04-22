@@ -38,12 +38,12 @@ struct EditPostView: View {
             }
             .padding()
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
+                ToolbarItem(placement: .primaryAction) { // Change from navigationBarLeading to primaryAction
                     Button("Cancel") {
                         isEditing = false
                     }
                 }
-                ToolbarItem(placement: .automatic) {
+                ToolbarItem(placement: .confirmationAction) { // Use confirmationAction for Save
                     Button("Save") {
                         saveChanges()
                         isEditing = false

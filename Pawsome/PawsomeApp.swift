@@ -61,8 +61,9 @@ struct PawsomeApp: App {
                             currentUsername: $username,
                             profileImage: $profileImage
                         )
+                        .environmentObject(profileView)  // Pass ProfileView as an EnvironmentObject
                     }
-                    .environmentObject(profileView)
+                    .environmentObject(profileView)  // Make sure the ProfileView object is passed to all subviews
                 }
             } else {
                 LoginView(

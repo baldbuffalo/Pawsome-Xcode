@@ -19,6 +19,7 @@
 		62D804A32CAD1F6B00D13EFA /* FirebaseAnalyticsWithoutAdIdSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 62D804A22CAD1F6B00D13EFA /* FirebaseAnalyticsWithoutAdIdSupport */; };
 		62D804A52CAD1F6B00D13EFA /* FirebaseAppCheck in Frameworks */ = {isa = PBXBuildFile; productRef = 62D804A42CAD1F6B00D13EFA /* FirebaseAppCheck */; };
 		62D804A72CAD1F6B00D13EFA /* FirebaseAppDistribution-Beta in Frameworks */ = {isa = PBXBuildFile; productRef = 62D804A62CAD1F6B00D13EFA /* FirebaseAppDistribution-Beta */; };
+		62F842302DB7671E006B3279 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 62F8422F2DB7671E006B3279 /* FirebaseFirestore */; };
 		62F845122D5FFFB6000B1915 /* CatPostModule.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 62F845082D5FFFB6000B1915 /* CatPostModule.framework */; };
 		62F8451D2D5FFFB6000B1915 /* CatPostModule.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 62F845082D5FFFB6000B1915 /* CatPostModule.framework */; };
 		62F8451E2D5FFFB6000B1915 /* CatPostModule.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 62F845082D5FFFB6000B1915 /* CatPostModule.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
@@ -166,6 +167,7 @@
 				62D8049F2CAD1F6B00D13EFA /* FirebaseAnalytics in Frameworks */,
 				62D804A52CAD1F6B00D13EFA /* FirebaseAppCheck in Frameworks */,
 				62D804A12CAD1F6B00D13EFA /* FirebaseAnalyticsOnDeviceConversion in Frameworks */,
+				62F842302DB7671E006B3279 /* FirebaseFirestore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -296,6 +298,7 @@
 				62735C092CDD255C000719B2 /* FirebaseStorage */,
 				627C49952CDDE23000ABDABF /* FirebaseAuth */,
 				625F568D2D5E1DFE003D5239 /* FirebaseFirestore */,
+				62F8422F2DB7671E006B3279 /* FirebaseFirestore */,
 			);
 			productName = Pawsome;
 			productReference = 62355CC52C84CC5400560D69 /* Pawsome.app */;
@@ -356,7 +359,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1620;
-				LastUpgradeCheck = 1620;
+				LastUpgradeCheck = 1630;
 				TargetAttributes = {
 					62355CC42C84CC5400560D69 = {
 						CreatedOnToolsVersion = 16.1;
@@ -473,7 +476,6 @@
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_ASSET_PATHS = "\"Pawsome/Preview Content\"";
-				DEVELOPMENT_TEAM = 94MM32TB4P;
 				ENABLE_DEBUG_DYLIB = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
@@ -519,7 +521,6 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Pawsome/Preview Content\"";
-				DEVELOPMENT_TEAM = 94MM32TB4P;
 				ENABLE_DEBUG_DYLIB = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
@@ -591,6 +592,7 @@
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 94MM32TB4P;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -653,6 +655,7 @@
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 94MM32TB4P;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -675,11 +678,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
+				CODE_SIGN_IDENTITY = "";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEFINES_MODULE = YES;
-				DEVELOPMENT_TEAM = 94MM32TB4P;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
@@ -712,11 +715,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
+				CODE_SIGN_IDENTITY = "";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEFINES_MODULE = YES;
-				DEVELOPMENT_TEAM = 94MM32TB4P;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
@@ -750,7 +753,6 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 94MM32TB4P;
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.2;
 				MARKETING_VERSION = 1.0;
@@ -768,7 +770,6 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 94MM32TB4P;
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.2;
 				MARKETING_VERSION = 1.0;
@@ -892,6 +893,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 622262992CAD1008003661E6 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = "FirebaseAppDistribution-Beta";
+		};
+		62F8422F2DB7671E006B3279 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 622262992CAD1008003661E6 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
 		};
 /* End XCSwiftPackageProductDependency section */
 

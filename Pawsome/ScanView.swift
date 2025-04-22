@@ -102,9 +102,9 @@ struct ScanView: View {
 
     private func selectedImageData() -> Data? {
         #if os(iOS)
-        return selectedImage?.pngData()
+        return selectedImage?.pngData() // UIImage method for iOS
         #elseif os(macOS)
-        return selectedImage?.pngData()
+        return selectedImage?.pngData() // NSImage method for macOS
         #endif
     }
 }
