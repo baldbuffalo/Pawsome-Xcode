@@ -10,18 +10,21 @@ import AVFoundation
 
 struct ScanView: View {
     @Environment(\.managedObjectContext) private var viewContext
-#if os(iOS)
+
+    #if os(iOS)
     @Binding var selectedImage: UIImage?
-#elseif os(macOS)
+    #elseif os(macOS)
     @Binding var selectedImage: NSImage?
-#endif
+    #endif
+
     @State private var isImagePickerPresented: Bool = false
     @State private var errorMessage: String?
 
-    // State variables for passing to FormView
     @State private var showForm: Bool = false
     @State private var navigateToHome: Bool = false
+
     var username: String = "YourUsername" // Replace this with your actual username or bind it to something
+    var onPostCreated: () -> Void // ✅ Closure to call when a post is created
 
     var body: some View {
         NavigationStack {
@@ -45,15 +48,14 @@ struct ScanView: View {
             }
             .navigationTitle("Scan Cat")
             .navigationDestination(isPresented: $isImagePickerPresented) {
-                // Pass the required arguments to FormView from Form.swift
                 FormView(
                     showForm: $showForm,
                     navigateToHome: $navigateToHome,
-                    imageUIData: selectedImage?.pngData(), // This line needs to be fixed for macOS
-                    videoURL: nil, // Set to nil if you're not dealing with a video
-                    username: username, // Pass your username here
-                    onPostCreated: { catPost in
-                        // Handle the post creation here
+                    imageUIData: selectedImage?.pngData(),
+                    videoURL: nil,
+                    username: username,
+                    onPostCreated: {_ in 
+                        onPostCreated() // ✅ Trigger parent action when post is created
                     }
                 )
             }
@@ -80,7 +82,7 @@ struct ImagePicker: UIViewControllerRepresentable {
 
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
-        picker.sourceType = .photoLibrary // Uses existing media picker
+        picker.sourceType = .photoLibrary
         picker.delegate = context.coordinator
         return picker
     }
@@ -123,7 +125,9 @@ struct ImagePickerMac: View {
             let panel = NSOpenPanel()
             panel.allowedContentTypes = [.image]
             panel.allowsMultipleSelection = false
-            if panel.runModal() == .OK, let url = panel.urls.first, let image = NSImage(contentsOf: url) {
+            if panel.runModal() == .OK,
+               let url = panel.urls.first,
+               let image = NSImage(contentsOf: url) {
                 selectedImage = image
             }
         }
@@ -131,7 +135,6 @@ struct ImagePickerMac: View {
 }
 #endif
 
-// Extension to convert NSImage to PNG Data in macOS
 #if os(macOS)
 extension NSImage {
     func pngData() -> Data? {

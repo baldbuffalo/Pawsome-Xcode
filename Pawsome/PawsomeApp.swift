@@ -36,7 +36,7 @@ struct PawsomeApp: App {
                             isLoggedIn: $isLoggedIn,
                             currentUsername: $username,
                             profileImage: $profileImage, // Pass as a binding
-                            onPostCreated: { _ in
+                            onPostCreated: {
                                 loadProfileImage() // Reload profile image after a post is created
                             }
                         )
@@ -45,9 +45,9 @@ struct PawsomeApp: App {
                         }
 
                         ScanView(
-                            selectedImage: .constant<PlatformImage?>(nil),
+                            selectedImage: .constant(nil), // Binding to nil, indicating no selected image initially
                             username: username,
-                            onPostCreated: { _ in
+                            onPostCreated: {
                                 loadProfileImage() // Reload profile image from ScanView
                             }
                         )
@@ -55,7 +55,7 @@ struct PawsomeApp: App {
                             Label("Post", systemImage: "plus.app")
                         }
 
-                        // ProfileView remains, but without a tab item
+                        // ProfileView is now in a separate file, so no need to redefine it here
                         ProfileView(
                             isLoggedIn: $isLoggedIn,
                             currentUsername: $username,
