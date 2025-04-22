@@ -1,3 +1,5 @@
+import FirebaseFirestore
+
 struct CatPost: Identifiable, Codable {
     var id: String?
     var catName: String
@@ -6,11 +8,11 @@ struct CatPost: Identifiable, Codable {
     var imageData: Data
     var postDescription: String?
     var likes: Int
-    var comments: [Comment]
+    var comments: [String] // Assuming comments are represented as an array of strings
     var catAge: Int?
 
     // Initializer for the CatPost struct
-    init(id: String? = nil, catName: String, catBreed: String? = nil, location: String? = nil, imageData: Data, postDescription: String? = nil, likes: Int = 0, comments: [Comment] = [], catAge: Int? = nil) {
+    init(id: String? = nil, catName: String, catBreed: String? = nil, location: String? = nil, imageData: Data, postDescription: String? = nil, likes: Int = 0, comments: [String] = [], catAge: Int? = nil) {
         self.id = id
         self.catName = catName
         self.catBreed = catBreed
@@ -24,18 +26,23 @@ struct CatPost: Identifiable, Codable {
 
     // Convert Firestore document to CatPost
     static func fromDocument(_ document: DocumentSnapshot) -> CatPost? {
-        guard let data = document.data() else { return nil }
+        guard let data = document.data() else { return nil }  // Safely unwrap the document data
 
-        // Retrieve comments, assuming Comment is a struct with a valid initializer
-        let commentsArray = data["comments"] as? [[String: Any]] ?? []
-        let comments = commentsArray.compactMap { Comment(from: $0) }
+        // Retrieve comments (assuming they are stored as an array of strings)
+        let comments = data["comments"] as? [String] ?? []
+
+        // Safely decode imageData (if it exists)
+        guard let imageData = data["imageData"] as? Data else {
+            print("Error: imageData is missing or not in the correct format.")
+            return nil
+        }
 
         return CatPost(
             id: document.documentID,
             catName: data["catName"] as? String ?? "",
             catBreed: data["catBreed"] as? String,
             location: data["location"] as? String,
-            imageData: data["imageData"] as! Data, // Assuming it's stored as Data
+            imageData: imageData,
             postDescription: data["postDescription"] as? String,
             likes: data["likes"] as? Int ?? 0,
             comments: comments,
