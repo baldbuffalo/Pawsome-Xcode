@@ -1,7 +1,7 @@
 import SwiftUI
 import FirebaseStorage
 
-// Use a cross-platform image type.
+// Use a cross-platform image type
 #if os(macOS)
 import AppKit
 typealias PlatformImage = NSImage
@@ -15,29 +15,28 @@ struct PawsomeApp: App {
     @State private var isLoggedIn: Bool = false
     @State private var username: String = ""
     @State private var profileImage: PlatformImage? = nil  // Holds the loaded profile image
-    @State private var isLoadingImage: Bool = true  // Track if the profile image is still loading
+    @State private var isLoadingImage: Bool = true         // Track if the profile image is still loading
 
-    @StateObject private var profileViewModel = ProfileViewModel() // Renamed state object
+    @StateObject private var profileViewModel = ProfileViewModel() // Renamed view model
 
     var body: some Scene {
         WindowGroup {
             if isLoggedIn {
-                // Wait for profile image to load
                 if isLoadingImage {
                     ProgressView("Loading Profile...")
                         .progressViewStyle(CircularProgressViewStyle())
                         .padding()
                         .onAppear {
-                            loadProfileImage()  // Load the profile image when the app starts
+                            loadProfileImage()
                         }
                 } else {
                     TabView {
                         HomeView(
                             isLoggedIn: $isLoggedIn,
                             currentUsername: $username,
-                            profileImage: $profileImage, // Pass as a binding
+                            profileImage: $profileImage,
                             onPostCreated: {
-                                loadProfileImage() // Reload profile image after a post is created
+                                loadProfileImage()
                             }
                         )
                         .tabItem {
@@ -45,60 +44,55 @@ struct PawsomeApp: App {
                         }
 
                         ScanView(
-                            selectedImage: .constant(nil), // Binding to nil, indicating no selected image initially
+                            selectedImage: .constant(nil),
                             username: username,
                             onPostCreated: {
-                                loadProfileImage() // Reload profile image from ScanView
+                                loadProfileImage()
                             }
                         )
                         .tabItem {
                             Label("Post", systemImage: "plus.app")
                         }
 
-                        // ProfileView is now in a separate file, so no need to redefine it here
-                        ProfileView(
-                            isLoggedIn: $isLoggedIn,
-                            currentUsername: $username,
-                            profileImage: $profileImage
-                        )
-                        .environmentObject(profileViewModel)  // Pass ProfileViewModel as an EnvironmentObject
+                        ProfileViewUI() // Updated: now uses the proper SwiftUI view
+                            .environmentObject(profileViewModel)
+                            .tabItem {
+                                Label("Profile", systemImage: "person.crop.circle")
+                            }
                     }
-                    .environmentObject(profileViewModel)  // Make sure the ProfileViewModel object is passed to all subviews
+                    .environmentObject(profileViewModel)
                 }
             } else {
                 LoginView(
                     isLoggedIn: $isLoggedIn,
                     username: $username,
-                    profileImage: $profileImage // Pass the profile image to LoginView
+                    profileImage: $profileImage
                 )
             }
         }
     }
 
     private func loadProfileImage() {
-        // Ensure the username is available
         guard !username.isEmpty else {
             print("Username is empty. Cannot load profile image.")
             DispatchQueue.main.async {
-                isLoadingImage = false  // Done loading even if there's no image
+                isLoadingImage = false
             }
             return
         }
-        
+
         let storage = Storage.storage()
-        let storageRef = storage.reference()
-        let profileImageRef = storageRef.child("profileImages/\(username).jpg")
-        
-        // Download up to 1 MB of data (adjust maxSize as needed)
+        let profileImageRef = storage.reference().child("profileImages/\(username).jpg")
+
         profileImageRef.getData(maxSize: 1 * 1024 * 1024) { data, error in
             DispatchQueue.main.async {
                 if let error = error {
                     print("Error fetching profile image: \(error.localizedDescription)")
-                    self.profileImage = nil  // Ensure no corrupted image is shown
+                    self.profileImage = nil
                 } else if let data = data, let image = PlatformImage(data: data) {
                     self.profileImage = image
                 }
-                self.isLoadingImage = false  // Done loading
+                self.isLoadingImage = false
             }
         }
     }
