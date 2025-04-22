@@ -1,13 +1,3 @@
-#if os(macOS)
-extension NSImage {
-    func pngData() -> Data? {
-        guard let tiffRepresentation = self.tiffRepresentation else { return nil }
-        let bitmapImageRep = NSBitmapImageRep(data: tiffRepresentation)
-        return bitmapImageRep?.representation(using: .png, properties: [:])
-    }
-}
-#endif
-
 import SwiftUI
 #if os(iOS)
 import UIKit
@@ -25,14 +15,13 @@ struct ScanView: View {
 #elseif os(macOS)
     @Binding var selectedImage: NSImage?
 #endif
-    @State private var capturedVideoURL: URL?
-    var username: String
-    var onPostCreated: (CatPost) -> Void
-
     @State private var isImagePickerPresented: Bool = false
-    @State private var navigateToForm: Bool = false
-    @State private var navigateToHome: Bool = false
     @State private var errorMessage: String?
+
+    // State variables for passing to FormView
+    @State private var showForm: Bool = false
+    @State private var navigateToHome: Bool = false
+    var username: String = "YourUsername" // Replace this with your actual username or bind it to something
 
     var body: some View {
         NavigationStack {
@@ -54,18 +43,17 @@ struct ScanView: View {
                         .padding()
                 }
             }
-            .navigationTitle("Camera")
-            .navigationDestination(isPresented: $navigateToForm) {
+            .navigationTitle("Scan Cat")
+            .navigationDestination(isPresented: $isImagePickerPresented) {
+                // Pass the required arguments to FormView from Form.swift
                 FormView(
-                    showForm: $navigateToForm,
+                    showForm: $showForm,
                     navigateToHome: $navigateToHome,
-                    imageUIData: selectedImageData(),
-                    videoURL: capturedVideoURL,
-                    username: username,
+                    imageUIData: selectedImage?.pngData(), // This line needs to be fixed for macOS
+                    videoURL: nil, // Set to nil if you're not dealing with a video
+                    username: username, // Pass your username here
                     onPostCreated: { catPost in
-                        if let validCatPost = createCatPost(from: selectedImage, username: username) {
-                            onPostCreated(validCatPost)
-                        }
+                        // Handle the post creation here
                     }
                 )
             }
@@ -77,34 +65,10 @@ struct ScanView: View {
         #if os(iOS)
         ImagePicker(
             selectedImage: $selectedImage,
-            capturedVideoURL: $capturedVideoURL,
-            onImageCaptured: { navigateToForm = true },
-            onError: { message in errorMessage = message }
+            onImageCaptured: { }
         )
         #elseif os(macOS)
         ImagePickerMac(selectedImage: $selectedImage)
-        #endif
-    }
-
-    private func createCatPost(from selectedImage: Any?, username: String) -> CatPost? {
-        guard let selectedImage = selectedImage else { return nil }
-        #if os(iOS)
-        if let uiImage = selectedImage as? UIImage, let imageData = uiImage.pngData() {
-            return CatPost(imageData: imageData, username: username)
-        }
-        #elseif os(macOS)
-        if let nsImage = selectedImage as? NSImage, let imageData = nsImage.pngData() {
-            return CatPost(imageData: imageData, username: username)
-        }
-        #endif
-        return nil
-    }
-
-    private func selectedImageData() -> Data? {
-        #if os(iOS)
-        return selectedImage?.pngData() // UIImage method for iOS
-        #elseif os(macOS)
-        return selectedImage?.pngData() // NSImage method for macOS
         #endif
     }
 }
@@ -112,9 +76,7 @@ struct ScanView: View {
 #if os(iOS)
 struct ImagePicker: UIViewControllerRepresentable {
     @Binding var selectedImage: UIImage?
-    @Binding var capturedVideoURL: URL?
     var onImageCaptured: () -> Void
-    var onError: (String) -> Void
 
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
@@ -142,17 +104,11 @@ struct ImagePicker: UIViewControllerRepresentable {
             if let image = info[.originalImage] as? UIImage {
                 parent.selectedImage = image
                 parent.onImageCaptured()
-            } else if let videoURL = info[.mediaURL] as? URL {
-                parent.capturedVideoURL = videoURL
-                parent.onImageCaptured()
-            } else {
-                parent.onError("Unsupported media type")
             }
         }
 
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
             picker.dismiss(animated: true)
-            parent.onError("User canceled selection")
         }
     }
 }
@@ -171,6 +127,18 @@ struct ImagePickerMac: View {
                 selectedImage = image
             }
         }
+    }
+}
+#endif
+
+// Extension to convert NSImage to PNG Data in macOS
+#if os(macOS)
+extension NSImage {
+    func pngData() -> Data? {
+        guard let tiffRepresentation = self.tiffRepresentation else { return nil }
+        let bitmap = NSBitmapImageRep(data: tiffRepresentation)
+        let pngData = bitmap?.representation(using: .png, properties: [:])
+        return pngData
     }
 }
 #endif
