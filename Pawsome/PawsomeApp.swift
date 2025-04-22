@@ -17,7 +17,7 @@ struct PawsomeApp: App {
     @State private var profileImage: PlatformImage? = nil  // Holds the loaded profile image
     @State private var isLoadingImage: Bool = true  // Track if the profile image is still loading
 
-    @StateObject private var profileView = ProfileView() // Global profile state
+    @StateObject private var profileViewModel = ProfileViewModel() // Renamed state object
 
     var body: some Scene {
         WindowGroup {
@@ -61,9 +61,9 @@ struct PawsomeApp: App {
                             currentUsername: $username,
                             profileImage: $profileImage
                         )
-                        .environmentObject(profileView)  // Pass ProfileView as an EnvironmentObject
+                        .environmentObject(profileViewModel)  // Pass ProfileViewModel as an EnvironmentObject
                     }
-                    .environmentObject(profileView)  // Make sure the ProfileView object is passed to all subviews
+                    .environmentObject(profileViewModel)  // Make sure the ProfileViewModel object is passed to all subviews
                 }
             } else {
                 LoginView(
