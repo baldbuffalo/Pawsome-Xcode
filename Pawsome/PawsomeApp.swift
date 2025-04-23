@@ -5,29 +5,27 @@ import FirebaseStorage
 struct PawsomeApp: App {
     @State private var isLoggedIn: Bool = false
     @State private var username: String = ""
-    @State private var profileImage: PlatformImage? = nil  // Now using the shared type
     @State private var isLoadingImage: Bool = true
-
     @StateObject private var profileViewModel = ProfileViewModel()
 
     var body: some Scene {
         WindowGroup {
             if isLoggedIn {
-                if isLoadingImage {
+                if profileViewModel.isLoading {
                     ProgressView("Loading Profile...")
                         .progressViewStyle(CircularProgressViewStyle())
                         .padding()
                         .onAppear {
-                            loadProfileImage()
+                            profileViewModel.loadProfileImage(for: username)
                         }
                 } else {
                     TabView {
                         HomeView(
                             isLoggedIn: $isLoggedIn,
                             currentUsername: $username,
-                            profileImage: $profileImage,
+                            profileImage: $profileViewModel.profileImage,
                             onPostCreated: {
-                                loadProfileImage()
+                                profileViewModel.loadProfileImage(for: username)
                             }
                         )
                         .tabItem {
@@ -38,18 +36,37 @@ struct PawsomeApp: App {
                             selectedImage: .constant(nil),
                             username: username,
                             onPostCreated: {
-                                loadProfileImage()
+                                profileViewModel.loadProfileImage(for: username)
                             }
                         )
                         .tabItem {
                             Label("Post", systemImage: "plus.app")
                         }
 
-                        ProfileViewUI()
-                            .environmentObject(profileViewModel)
-                            .tabItem {
-                                Label("Profile", systemImage: "person.crop.circle")
+                        // Now Profile View is handled here as a UI, with the ProfileViewModel
+                        VStack {
+                            if let profileImage = profileViewModel.profileImage {
+                                Image(platformImage: profileImage) // Custom view to show platform images
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 100, height: 100)
+                                    .clipShape(Circle())
+                                    .padding()
+                            } else {
+                                Text("No profile image available")
+                                    .foregroundColor(.gray)
+                                    .padding()
                             }
+
+                            Text(username)
+                                .font(.title)
+                                .padding()
+
+                            // You can add other profile-related UI components here
+                        }
+                        .tabItem {
+                            Label("Profile", systemImage: "person.crop.circle")
+                        }
                     }
                     .environmentObject(profileViewModel)
                 }
@@ -57,33 +74,8 @@ struct PawsomeApp: App {
                 LoginView(
                     isLoggedIn: $isLoggedIn,
                     username: $username,
-                    profileImage: $profileImage
+                    profileImage: $profileViewModel.profileImage
                 )
-            }
-        }
-    }
-
-    private func loadProfileImage() {
-        guard !username.isEmpty else {
-            print("Username is empty. Cannot load profile image.")
-            DispatchQueue.main.async {
-                isLoadingImage = false
-            }
-            return
-        }
-
-        let storage = Storage.storage()
-        let profileImageRef = storage.reference().child("profileImages/\(username).jpg")
-
-        profileImageRef.getData(maxSize: 1 * 1024 * 1024) { data, error in
-            DispatchQueue.main.async {
-                if let error = error {
-                    print("Error fetching profile image: \(error.localizedDescription)")
-                    self.profileImage = nil
-                } else if let data = data, let image = PlatformImage(data: data) {
-                    self.profileImage = image
-                }
-                self.isLoadingImage = false
             }
         }
     }
