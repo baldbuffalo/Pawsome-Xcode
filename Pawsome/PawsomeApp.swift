@@ -1,23 +1,15 @@
 import SwiftUI
 import FirebaseStorage
-
-// Use a cross-platform image type
-#if os(macOS)
-import AppKit
-typealias PlatformImage = NSImage
-#else
-import UIKit
-typealias PlatformImage = UIImage
-#endif
+import PlatformImage  // 👈 Make sure this file/module is accessible
 
 @main
 struct PawsomeApp: App {
     @State private var isLoggedIn: Bool = false
     @State private var username: String = ""
-    @State private var profileImage: PlatformImage? = nil  // Holds the loaded profile image
-    @State private var isLoadingImage: Bool = true         // Track if the profile image is still loading
+    @State private var profileImage: PlatformImage? = nil  // Now using the shared type
+    @State private var isLoadingImage: Bool = true
 
-    @StateObject private var profileViewModel = ProfileViewModel() // Renamed view model
+    @StateObject private var profileViewModel = ProfileViewModel()
 
     var body: some Scene {
         WindowGroup {
@@ -54,7 +46,7 @@ struct PawsomeApp: App {
                             Label("Post", systemImage: "plus.app")
                         }
 
-                        ProfileViewUI() // Updated: now uses the proper SwiftUI view
+                        ProfileViewUI()
                             .environmentObject(profileViewModel)
                             .tabItem {
                                 Label("Profile", systemImage: "person.crop.circle")
