@@ -18,7 +18,6 @@ struct ProfileView: View {
                 } else {
                     if let urlString = viewModel.profileImage,
                        let url = URL(string: urlString) {
-                        
                         #if os(macOS)
                         if let image = NSImage(contentsOf: url) {
                             Image(nsImage: image)
@@ -31,11 +30,11 @@ struct ProfileView: View {
                             Circle()
                                 .fill(Color.gray)
                                 .frame(width: 100, height: 100)
-                                .overlay(Text("Image Load Error").foregroundColor(.white))
+                                .overlay(Text("No Image").foregroundColor(.white))
                         }
                         #else
-                        if let data = try? Data(contentsOf: url),
-                           let image = UIImage(data: data) {
+                        if let imageData = try? Data(contentsOf: url),
+                           let image = UIImage(data: imageData) {
                             Image(uiImage: image)
                                 .resizable()
                                 .scaledToFit()
@@ -46,7 +45,7 @@ struct ProfileView: View {
                             Circle()
                                 .fill(Color.gray)
                                 .frame(width: 100, height: 100)
-                                .overlay(Text("Image Load Error").foregroundColor(.white))
+                                .overlay(Text("No Image").foregroundColor(.white))
                         }
                         #endif
                     } else {
@@ -68,9 +67,8 @@ struct ProfileView: View {
             }
             .sheet(isPresented: $viewModel.isImagePickerPresented) {
                 ImagePickerView(selectedImage: $viewModel.selectedImage) { image in
-                    if let selectedImage = image {
-                        viewModel.uploadProfileImageToFirebase(image: selectedImage)
-                    }
+                    // Removed the unnecessary `if let`, since `image` is not optional
+                    viewModel.uploadProfileImageToFirebase(image: image)
                 }
             }
             .navigationTitle("Profile")
