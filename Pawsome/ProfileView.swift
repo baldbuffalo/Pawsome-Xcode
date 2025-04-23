@@ -16,42 +16,50 @@ struct ProfileView: View {
                         .progressViewStyle(CircularProgressViewStyle())
                         .padding()
                 } else {
-                    // Check if profile image URL exists
                     if let urlString = viewModel.profileImage,
-                       let url = URL(string: urlString),
-                       let image = PlatformImage(contentsOf: url) {
-
+                       let url = URL(string: urlString) {
+                        
                         #if os(macOS)
-                        // For macOS, use nsImage
-                        Image(nsImage: image) // Use nsImage for macOS
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 100, height: 100)
-                            .clipShape(Circle())
-                            .shadow(radius: 10)
+                        if let image = NSImage(contentsOf: url) {
+                            Image(nsImage: image)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 100, height: 100)
+                                .clipShape(Circle())
+                                .shadow(radius: 10)
+                        } else {
+                            Circle()
+                                .fill(Color.gray)
+                                .frame(width: 100, height: 100)
+                                .overlay(Text("Image Load Error").foregroundColor(.white))
+                        }
                         #else
-                        // For iOS, use uiImage
-                        Image(uiImage: image) // Use uiImage for iOS
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 100, height: 100)
-                            .clipShape(Circle())
-                            .shadow(radius: 10)
+                        if let data = try? Data(contentsOf: url),
+                           let image = UIImage(data: data) {
+                            Image(uiImage: image)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 100, height: 100)
+                                .clipShape(Circle())
+                                .shadow(radius: 10)
+                        } else {
+                            Circle()
+                                .fill(Color.gray)
+                                .frame(width: 100, height: 100)
+                                .overlay(Text("Image Load Error").foregroundColor(.white))
+                        }
                         #endif
                     } else {
-                        // Placeholder for when no image exists
                         Circle()
                             .fill(Color.gray)
                             .frame(width: 100, height: 100)
                             .overlay(Text("No Image").foregroundColor(.white))
                     }
 
-                    // Display username
                     Text("Username: \(viewModel.username)")
                         .font(.title)
                         .padding()
 
-                    // Button to change profile image
                     Button("Change Profile Image") {
                         viewModel.isImagePickerPresented.toggle()
                     }
@@ -60,7 +68,6 @@ struct ProfileView: View {
             }
             .sheet(isPresented: $viewModel.isImagePickerPresented) {
                 ImagePickerView(selectedImage: $viewModel.selectedImage) { image in
-                    // Ensure selectedImage is optional and then upload
                     if let selectedImage = image {
                         viewModel.uploadProfileImageToFirebase(image: selectedImage)
                     }
@@ -76,13 +83,12 @@ struct ProfileView: View {
 
 // MARK: - ProfileViewModel
 class ProfileViewModel: ObservableObject {
-    @Published var selectedImage: PlatformImage? // Make sure it's optional
-    @Published var profileImage: String? // URL string to profile image
+    @Published var selectedImage: PlatformImage?
+    @Published var profileImage: String?
     @Published var isImagePickerPresented = false
     @Published var username: String = "Anonymous"
     @Published var isImageLoading: Bool = false
 
-    // Load profile data from Firebase Firestore
     func loadProfileData() {
         guard let userID = Auth.auth().currentUser?.uid else { return }
         let db = Firestore.firestore()
@@ -100,7 +106,6 @@ class ProfileViewModel: ObservableObject {
         }
     }
 
-    // Upload selected profile image to Firebase Storage
     func uploadProfileImageToFirebase(image: PlatformImage) {
         let storageRef = Storage.storage().reference().child("profilePictures/\(UUID().uuidString).png")
 
@@ -134,7 +139,6 @@ class ProfileViewModel: ObservableObject {
         }
     }
 
-    // Save the uploaded profile image URL to Firestore
     func saveProfileImageURLToFirestore(url: URL) {
         guard let userID = Auth.auth().currentUser?.uid else { return }
         let db = Firestore.firestore()
