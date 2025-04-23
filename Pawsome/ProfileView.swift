@@ -4,14 +4,6 @@ import FirebaseStorage
 import FirebaseFirestore
 import FirebaseAuth
 
-#if os(macOS)
-import AppKit
-typealias PlatformImage = NSImage
-#else
-import UIKit
-typealias PlatformImage = UIImage
-#endif
-
 // MARK: - ViewModel
 class ProfileViewModel: ObservableObject {
     @Published var selectedImage: PlatformImage?
@@ -24,7 +16,7 @@ class ProfileViewModel: ObservableObject {
         guard let userID = Auth.auth().currentUser?.uid else { return }
         let db = Firestore.firestore()
         let profileRef = db.collection("users").document(userID)
-        
+
         profileRef.getDocument { document, error in
             if let document = document, document.exists, let data = document.data() {
                 DispatchQueue.main.async {
@@ -32,7 +24,7 @@ class ProfileViewModel: ObservableObject {
                     self.username = data["username"] as? String ?? "Anonymous"
                 }
             } else {
-                print("No profile found")
+                print("No profile found or error: \(error?.localizedDescription ?? "unknown error")")
             }
         }
     }
