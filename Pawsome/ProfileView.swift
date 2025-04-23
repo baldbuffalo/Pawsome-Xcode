@@ -17,8 +17,7 @@ struct ProfileView: View {
                 } else {
                     if let urlString = viewModel.profileImage,
                        let url = URL(string: urlString),
-                       let imageData = try? Data(contentsOf: url),
-                       let image = PlatformImage(data: imageData) {
+                       let image = PlatformImage(contentsOf: url) {
                         
                         #if os(macOS)
                         Image(nsImage: image) // Use nsImage for macOS
@@ -36,7 +35,6 @@ struct ProfileView: View {
                             .shadow(radius: 10)
                         #endif
                     } else {
-                        // Fallback to a default view if the image can't be loaded
                         Circle()
                             .fill(Color.gray)
                             .frame(width: 100, height: 100)
@@ -55,8 +53,8 @@ struct ProfileView: View {
             }
             .sheet(isPresented: $viewModel.isImagePickerPresented) {
                 ImagePickerView(selectedImage: $viewModel.selectedImage) { image in
-                    // Make sure `image` is treated as an optional `PlatformImage?`
-                    if let selectedImage = image as? PlatformImage {
+                    // Check if the image is not nil before uploading
+                    if let selectedImage = image {
                         viewModel.uploadProfileImageToFirebase(image: selectedImage)
                     }
                 }
@@ -71,7 +69,7 @@ struct ProfileView: View {
 
 // MARK: - ProfileViewModel
 class ProfileViewModel: ObservableObject {
-    @Published var selectedImage: PlatformImage?  // Make sure this is an optional type
+    @Published var selectedImage: PlatformImage?
     @Published var profileImage: String? // URL string to profile image
     @Published var isImagePickerPresented = false
     @Published var username: String = "Anonymous"
