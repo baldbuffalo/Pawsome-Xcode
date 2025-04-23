@@ -4,6 +4,7 @@ import FirebaseStorage
 import FirebaseFirestore
 import FirebaseAuth
 
+// MARK: - ProfileView
 struct ProfileView: View {
     @StateObject private var viewModel = ProfileViewModel()
 
@@ -15,11 +16,13 @@ struct ProfileView: View {
                         .progressViewStyle(CircularProgressViewStyle())
                         .padding()
                 } else {
+                    // Check if profile image URL exists
                     if let urlString = viewModel.profileImage,
                        let url = URL(string: urlString),
                        let image = PlatformImage(contentsOf: url) {
-                        
+
                         #if os(macOS)
+                        // For macOS, use nsImage
                         Image(nsImage: image) // Use nsImage for macOS
                             .resizable()
                             .scaledToFit()
@@ -27,6 +30,7 @@ struct ProfileView: View {
                             .clipShape(Circle())
                             .shadow(radius: 10)
                         #else
+                        // For iOS, use uiImage
                         Image(uiImage: image) // Use uiImage for iOS
                             .resizable()
                             .scaledToFit()
@@ -35,16 +39,19 @@ struct ProfileView: View {
                             .shadow(radius: 10)
                         #endif
                     } else {
+                        // Placeholder for when no image exists
                         Circle()
                             .fill(Color.gray)
                             .frame(width: 100, height: 100)
                             .overlay(Text("No Image").foregroundColor(.white))
                     }
 
+                    // Display username
                     Text("Username: \(viewModel.username)")
                         .font(.title)
                         .padding()
 
+                    // Button to change profile image
                     Button("Change Profile Image") {
                         viewModel.isImagePickerPresented.toggle()
                     }
@@ -53,7 +60,7 @@ struct ProfileView: View {
             }
             .sheet(isPresented: $viewModel.isImagePickerPresented) {
                 ImagePickerView(selectedImage: $viewModel.selectedImage) { image in
-                    // Check if the image is not nil before uploading
+                    // Ensure selectedImage is optional and then upload
                     if let selectedImage = image {
                         viewModel.uploadProfileImageToFirebase(image: selectedImage)
                     }
@@ -69,7 +76,7 @@ struct ProfileView: View {
 
 // MARK: - ProfileViewModel
 class ProfileViewModel: ObservableObject {
-    @Published var selectedImage: PlatformImage?
+    @Published var selectedImage: PlatformImage? // Make sure it's optional
     @Published var profileImage: String? // URL string to profile image
     @Published var isImagePickerPresented = false
     @Published var username: String = "Anonymous"
