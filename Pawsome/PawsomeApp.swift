@@ -1,6 +1,5 @@
 import SwiftUI
 import FirebaseStorage
-import PlatformImage  // 👈 Make sure this file/module is accessible
 
 @main
 struct PawsomeApp: App {
