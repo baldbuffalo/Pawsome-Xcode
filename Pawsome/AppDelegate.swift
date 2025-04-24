@@ -22,17 +22,15 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        FirebaseApp.configure() // Initialize Firebase
+        FirebaseApp.configure()
         return true
     }
 
-    // Handle URL opening for Google Sign-In
     func application(_ app: UIApplication, open url: URL,
                      options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
         return GIDSignIn.sharedInstance.handle(url)
     }
-    
-    // Method to save the context
+
     func saveContext () {
         let context = persistentContainer.viewContext
         if context.hasChanges {
@@ -43,6 +41,15 @@ class AppDelegate: NSObject, UIApplicationDelegate {
                 fatalError("Unresolved error \(nserror), \(nserror.userInfo)")
             }
         }
+    }
+}
+#elseif canImport(AppKit)
+import AppKit
+import Firebase
+
+class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        FirebaseApp.configure()
     }
 }
 #endif

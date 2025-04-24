@@ -2,58 +2,12 @@ import SwiftUI
 
 #if os(iOS)
 import UIKit
-#else
-import Cocoa
-#endif
 
-// MARK: - ImagePicker for iOS and macOS
-struct ImagePickerView: View {
+struct ImagePickerView: UIViewControllerRepresentable {
     @Binding var selectedImage: PlatformImage?
-    var onImagePicked: (PlatformImage) -> Void
-
-    @State private var isImagePickerPresented: Bool = false
-
-    var body: some View {
-        VStack {
-            Button("Select Image") {
-                isImagePickerPresented.toggle()
-            }
-            .sheet(isPresented: $isImagePickerPresented) {
-                ImagePickerController(selectedImage: $selectedImage, onImagePicked: onImagePicked)
-            }
-        }
-    }
-}
-
-#if os(iOS)
-
-// MARK: - iOS ImagePickerController using UIImagePickerController
-struct ImagePickerController: UIViewControllerRepresentable {
-    @Binding var selectedImage: PlatformImage?
-    var onImagePicked: (PlatformImage) -> Void
-
-    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-        var parent: ImagePickerController
-
-        init(parent: ImagePickerController) {
-            self.parent = parent
-        }
-
-        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-            if let uiImage = info[.originalImage] as? UIImage {
-                parent.selectedImage = uiImage
-                parent.onImagePicked(uiImage)
-            }
-            picker.dismiss(animated: true)
-        }
-
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            picker.dismiss(animated: true)
-        }
-    }
 
     func makeCoordinator() -> Coordinator {
-        return Coordinator(parent: self)
+        Coordinator(self)
     }
 
     func makeUIViewController(context: Context) -> UIImagePickerController {
@@ -64,48 +18,64 @@ struct ImagePickerController: UIViewControllerRepresentable {
     }
 
     func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
-}
 
-#else
+    class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
+        let parent: ImagePickerView
 
-// MARK: - macOS ImagePickerController using NSImagePicker
-struct ImagePickerController: NSViewControllerRepresentable {
-    @Binding var selectedImage: PlatformImage?
-    var onImagePicked: (PlatformImage) -> Void
-
-    class Coordinator: NSObject, NSOpenSavePanelDelegate {
-        var parent: ImagePickerController
-
-        init(parent: ImagePickerController) {
+        init(_ parent: ImagePickerView) {
             self.parent = parent
         }
 
-        func openPanel() {
-            let panel = NSOpenPanel()
-            panel.allowedFileTypes = ["jpg", "png", "jpeg"]
-            panel.allowsMultipleSelection = false
-            panel.begin { result in
-                if result == .OK, let url = panel.urls.first {
-                    if let image = PlatformImage(contentsOf: url) {
-                        self.parent.selectedImage = image
-                        self.parent.onImagePicked(image)
-                    }
-                }
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+            if let image = info[.originalImage] as? UIImage {
+                parent.selectedImage = image
             }
+            picker.dismiss(animated: true)
+        }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            picker.dismiss(animated: true)
         }
     }
+}
+#elseif os(macOS)
+import AppKit
 
-    func makeCoordinator() -> Coordinator {
-        return Coordinator(parent: self)
-    }
+struct ImagePickerView: NSViewControllerRepresentable {
+    @Binding var selectedImage: PlatformImage?
 
     func makeNSViewController(context: Context) -> NSViewController {
-        let viewController = NSViewController()
-        context.coordinator.openPanel()
-        return viewController
+        return ImagePickerViewController(selectedImage: $selectedImage)
     }
 
     func updateNSViewController(_ nsViewController: NSViewController, context: Context) {}
 }
 
+final class ImagePickerViewController: NSViewController {
+    @Binding var selectedImage: PlatformImage?
+
+    init(selectedImage: Binding<PlatformImage?>) {
+        _selectedImage = selectedImage
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func viewDidAppear() {
+        super.viewDidAppear()
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.png, .jpeg, .bmp]
+        panel.canChooseFiles = true
+        panel.allowsMultipleSelection = false
+        panel.begin { response in
+            if response == .OK, let url = panel.url,
+               let image = NSImage(contentsOf: url) {
+                self.selectedImage = image
+            }
+            self.dismiss(self)
+        }
+    }
+}
 #endif
