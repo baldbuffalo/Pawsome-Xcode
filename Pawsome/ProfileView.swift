@@ -1,73 +1,48 @@
 import SwiftUI
 import Firebase
 import FirebaseStorage
-import FirebaseFirestore
 import FirebaseAuth
+import Foundation
+import UniformTypeIdentifiers
+import PhotosUI
+import Combine
 
-// MARK: - ProfileView
 struct ProfileView: View {
     @StateObject private var viewModel = ProfileViewModel()
 
     var body: some View {
         NavigationView {
             VStack {
-                if viewModel.isImageLoading {
+                if viewModel.isLoading {
                     ProgressView("Loading...")
                         .progressViewStyle(CircularProgressViewStyle())
                         .padding()
                 } else {
-                    if let urlString = viewModel.profileImage,
-                       let url = URL(string: urlString) {
-                        #if os(macOS)
-                        if let image = NSImage(contentsOf: url) {
-                            Image(nsImage: image)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 100, height: 100)
-                                .clipShape(Circle())
-                                .shadow(radius: 10)
-                        } else {
-                            Circle()
-                                .fill(Color.gray)
-                                .frame(width: 100, height: 100)
-                                .overlay(Text("No Image").foregroundColor(.white))
-                        }
-                        #else
-                        if let imageData = try? Data(contentsOf: url),
-                           let image = UIImage(data: imageData) {
-                            Image(uiImage: image)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 100, height: 100)
-                                .clipShape(Circle())
-                                .shadow(radius: 10)
-                        } else {
-                            Circle()
-                                .fill(Color.gray)
-                                .frame(width: 100, height: 100)
-                                .overlay(Text("No Image").foregroundColor(.white))
-                        }
-                        #endif
+                    if let image = viewModel.profileImage {
+                        Image(platformImage: image)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 120, height: 120)
+                            .clipShape(Circle())
+                            .padding()
                     } else {
-                        Circle()
-                            .fill(Color.gray)
-                            .frame(width: 100, height: 100)
-                            .overlay(Text("No Image").foregroundColor(.white))
+                        Text("No Profile Image")
+                            .foregroundColor(.gray)
+                            .padding()
                     }
 
-                    Text("Username: \(viewModel.username)")
+                    Text(viewModel.username)
                         .font(.title)
                         .padding()
 
                     Button("Change Profile Image") {
-                        viewModel.isImagePickerPresented.toggle()
+                        viewModel.isImagePickerPresented = true
                     }
                     .padding()
                 }
             }
             .sheet(isPresented: $viewModel.isImagePickerPresented) {
                 ImagePickerView(selectedImage: $viewModel.selectedImage) { image in
-                    // Removed the unnecessary `if let`, since `image` is not optional
                     viewModel.uploadProfileImageToFirebase(image: image)
                 }
             }
@@ -79,29 +54,60 @@ struct ProfileView: View {
     }
 }
 
-// MARK: - ProfileViewModel
 class ProfileViewModel: ObservableObject {
+    @Published var isLoading: Bool = true
     @Published var selectedImage: PlatformImage?
-    @Published var profileImage: String?
+    @Published var profileImage: PlatformImage?
+    @Published var profileImageURL: String?
     @Published var isImagePickerPresented = false
     @Published var username: String = "Anonymous"
     @Published var isImageLoading: Bool = false
 
     func loadProfileData() {
-        guard let userID = Auth.auth().currentUser?.uid else { return }
+        guard let userID = Auth.auth().currentUser?.uid else {
+            self.isLoading = false
+            return
+        }
+
         let db = Firestore.firestore()
         let profileRef = db.collection("users").document(userID)
 
         profileRef.getDocument { document, error in
             if let document = document, document.exists, let data = document.data() {
-                DispatchQueue.main.async {
-                    self.profileImage = data["profileImage"] as? String
-                    self.username = data["username"] as? String ?? "Anonymous"
+                self.username = data["username"] as? String ?? "Anonymous"
+                if let imageUrlString = data["profileImage"] as? String,
+                   let imageURL = URL(string: imageUrlString) {
+                    self.downloadImage(from: imageURL)
+                } else {
+                    DispatchQueue.main.async {
+                        self.isLoading = false
+                    }
                 }
             } else {
                 print("No profile found or error: \(error?.localizedDescription ?? "unknown error")")
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                }
             }
         }
+    }
+
+    private func downloadImage(from url: URL) {
+        let task = URLSession.shared.dataTask(with: url) { data, response, error in
+            DispatchQueue.main.async {
+                if let data = data {
+                    #if os(macOS)
+                    self.profileImage = NSImage(data: data)
+                    #else
+                    self.profileImage = UIImage(data: data)
+                    #endif
+                } else {
+                    print("Failed to download image: \(error?.localizedDescription ?? "unknown error")")
+                }
+                self.isLoading = false
+            }
+        }
+        task.resume()
     }
 
     func uploadProfileImageToFirebase(image: PlatformImage) {
@@ -131,7 +137,7 @@ class ProfileViewModel: ObservableObject {
             } catch {
                 print("Error uploading image: \(error.localizedDescription)")
                 await MainActor.run {
-                    isImageLoading = false
+                    self.isImageLoading = false
                 }
             }
         }
@@ -149,8 +155,7 @@ class ProfileViewModel: ObservableObject {
                 print("Error saving profile image URL: \(error.localizedDescription)")
             } else {
                 DispatchQueue.main.async {
-                    self.profileImage = url.absoluteString
-                    self.isImageLoading = false
+                    self.downloadImage(from: url)
                 }
             }
         }
