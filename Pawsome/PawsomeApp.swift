@@ -51,10 +51,14 @@ struct PawsomeApp: App {
                             Label("Post", systemImage: "plus.app")
                         }
 
-                        ProfileView() // ProfileView uses @EnvironmentObject internally
-                            .tabItem {
-                                Label("Profile", systemImage: "person.crop.circle")
-                            }
+                        ProfileView(
+                            isLoggedIn: $isLoggedIn,
+                            currentUsername: $username,
+                            profileImage: $profileViewModel.profileImage
+                        )
+                        .tabItem {
+                            Label("Profile", systemImage: "person.crop.circle")
+                        }
                     }
                     .environmentObject(profileViewModel) // Inject ViewModel globally
                 }

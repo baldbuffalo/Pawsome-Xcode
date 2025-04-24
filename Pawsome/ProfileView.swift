@@ -7,8 +7,8 @@ import Foundation
 
 // MARK: - ViewModel
 class ProfileViewModel: ObservableObject {
-    @Published var selectedImage: PlatformImage?
-    @Published var profileImage: String?
+    @Published var selectedImage: String? // Changed from PlatformImage? to String?
+    @Published var profileImage: String = "" // Non-optional String initialized to an empty string
     @Published var isImagePickerPresented = false
     @Published var username: String = "Anonymous"
     @Published var isImageLoading: Bool = false
@@ -39,15 +39,15 @@ class ProfileViewModel: ObservableObject {
         if let imageURL = data["profileImage"] as? String {
             self.profileImage = imageURL
         } else {
-            self.profileImage = nil
+            self.profileImage = "" // Default to an empty string if no image URL
         }
         self.isLoading = false
     }
 
-    func uploadProfileImageToFirebase(image: PlatformImage) {
+    func uploadProfileImageToFirebase(image: String) { // Updated to accept String
         let storageRef = Storage.storage().reference().child("profilePictures/\(UUID().uuidString).png")
 
-        guard let pngData = image.asPNGData() else {
+        guard let pngData = image.data(using: .utf8) else { // Assuming image is a URL string
             print("Failed to get PNG data from image.")
             return
         }
@@ -92,6 +92,10 @@ class ProfileViewModel: ObservableObject {
 
 // MARK: - ProfileView
 struct ProfileView: View {
+    @Binding var isLoggedIn: Bool
+    @Binding var currentUsername: String
+    @Binding var profileImage: String
+
     @StateObject private var viewModel = ProfileViewModel()
 
     var body: some View {
@@ -102,24 +106,27 @@ struct ProfileView: View {
                     .padding()
             } else {
                 Group {
-                    if let imageUrlString = viewModel.profileImage,
-                       let imageUrl = URL(string: imageUrlString) {
-                        AsyncImage(url: imageUrl) { phase in
-                            switch phase {
-                            case .empty:
-                                ProgressView()
-                            case .success(let image):
-                                image
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(width: 120, height: 120)
-                                    .clipShape(Circle())
-                            case .failure:
-                                Image(systemName: "person.crop.circle.badge.exclamationmark")
-                                    .resizable()
-                                    .frame(width: 120, height: 120)
-                            @unknown default:
-                                EmptyView()
+                    // Use the profileImage directly, without optional unwrapping
+                    if !viewModel.profileImage.isEmpty || !profileImage.isEmpty {
+                        let imageUrlString = !viewModel.profileImage.isEmpty ? viewModel.profileImage : profileImage
+                        if let imageUrl = URL(string: imageUrlString) {
+                            AsyncImage(url: imageUrl) { phase in
+                                switch phase {
+                                case .empty:
+                                    ProgressView()
+                                case .success(let image):
+                                    image
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(width: 120, height: 120)
+                                        .clipShape(Circle())
+                                case .failure:
+                                    Image(systemName: "person.crop.circle.badge.exclamationmark")
+                                        .resizable()
+                                        .frame(width: 120, height: 120)
+                                @unknown default:
+                                    EmptyView()
+                                }
                             }
                         }
                     } else {
@@ -131,7 +138,7 @@ struct ProfileView: View {
                 }
                 .padding(.top)
 
-                Text(viewModel.username)
+                Text(viewModel.username.isEmpty ? currentUsername : viewModel.username)
                     .font(.title)
                     .padding(.bottom)
 

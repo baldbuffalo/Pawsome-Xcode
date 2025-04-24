@@ -1,6 +1,7 @@
 import SwiftUI
 import AuthenticationServices
 import GoogleSignIn
+
 #if canImport(UIKit)
 import UIKit
 #endif
@@ -8,7 +9,7 @@ import UIKit
 struct LoginView: View {
     @Binding var isLoggedIn: Bool
     @Binding var username: String
-    @Binding var profileImage: Image?
+    @Binding var profileImage: String
 
     var body: some View {
         VStack(spacing: 20) {
@@ -16,11 +17,11 @@ struct LoginView: View {
                 .font(.largeTitle)
                 .fontWeight(.bold)
                 .padding()
-            
+
             Text("Please sign in to continue")
                 .font(.subheadline)
                 .padding(.bottom, 50)
-            
+
             // Apple Sign-In Button
             SignInWithAppleButton(
                 onRequest: { request in
@@ -38,7 +39,7 @@ struct LoginView: View {
             .signInWithAppleButtonStyle(.black)
             .frame(height: 50)
             .padding(.horizontal, 40)
-            
+
             // Google Sign-In Button (iOS only)
             #if canImport(UIKit)
             Button(action: {
@@ -56,9 +57,9 @@ struct LoginView: View {
                 .padding(.horizontal, 40)
             }
             #endif
-            
+
             Spacer()
-            
+
             if isLoggedIn {
                 NavigationLink(destination: ProfileView(isLoggedIn: $isLoggedIn, currentUsername: $username, profileImage: $profileImage)) {
                     Text("Go to Profile")
@@ -76,7 +77,7 @@ struct LoginView: View {
                 username = "\(fullName.givenName ?? "") \(fullName.familyName ?? "")"
                 print("Signed in with Apple: \(username)")
             }
-            profileImage = Image(systemName: "person.circle")
+            profileImage = "system:person.circle" // Use your logic for profile image
             saveJoinDate()
             UserDefaults.standard.set(true, forKey: "isLoggedIn")
             isLoggedIn = true
@@ -84,12 +85,13 @@ struct LoginView: View {
     }
 
     private func googleSignIn() {
+        #if canImport(UIKit)
         guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
               let rootViewController = scene.windows.first?.rootViewController else {
             print("Root view controller not found")
             return
         }
-        
+
         GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController) { result, error in
             DispatchQueue.main.async {
                 if let error = error {
@@ -99,20 +101,25 @@ struct LoginView: View {
                 }
             }
         }
+        #else
+        print("Google Sign-In is only supported on iOS.")
+        #endif
     }
 
     private func handleGoogleSignIn(user: GIDGoogleUser) {
         username = user.profile?.name ?? ""
         if let profileURL = user.profile?.imageURL(withDimension: 100) {
-            loadImage(from: profileURL) { image in
-                profileImage = image
+            loadImage(from: profileURL) { result in
+                // In this version, profileImage is just a string.
+                // You should change this to an Image later if needed.
+                profileImage = profileURL.absoluteString
             }
         }
         saveJoinDate()
         UserDefaults.standard.set(true, forKey: "isLoggedIn")
         isLoggedIn = true
     }
-    
+
     private func saveJoinDate() {
         if UserDefaults.standard.string(forKey: "joinDate") == nil {
             let dateFormatter = DateFormatter()
@@ -123,16 +130,10 @@ struct LoginView: View {
     }
 }
 
-// Function to load the profile image asynchronously
-func loadImage(from url: URL, completion: @escaping (Image?) -> Void) {
-    let task = URLSession.shared.dataTask(with: url) { data, _, error in
-        if error != nil || data == nil {
-            DispatchQueue.main.async { completion(nil) }
-            return
-        }
+func loadImage(from url: URL, completion: @escaping (String) -> Void) {
+    URLSession.shared.dataTask(with: url) { data, _, _ in
         DispatchQueue.main.async {
-            completion(data.flatMap { Image(uiImage: UIImage(data: $0)!) })
+            completion(url.absoluteString)
         }
-    }
-    task.resume()
+    }.resume()
 }
