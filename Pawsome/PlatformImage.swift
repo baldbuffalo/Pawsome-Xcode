@@ -1,7 +1,23 @@
-#if os(macOS)
-import AppKit
-public typealias PlatformImage = NSImage
-#else
+#if os(iOS)
 import UIKit
-public typealias PlatformImage = UIImage
+typealias PlatformImage = UIImage
+
+extension PlatformImage {
+    func asPNGData() -> Data? {
+        self.pngData()
+    }
+}
+#elseif os(macOS)
+import AppKit
+typealias PlatformImage = NSImage
+
+extension PlatformImage {
+    func asPNGData() -> Data? {
+        guard let tiffData = self.tiffRepresentation,
+              let bitmap = NSBitmapImageRep(data: tiffData) else {
+            return nil
+        }
+        return bitmap.representation(using: .png, properties: [:])
+    }
+}
 #endif

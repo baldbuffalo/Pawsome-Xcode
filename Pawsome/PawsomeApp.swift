@@ -14,7 +14,7 @@ struct PawsomeApp: App {
 
     @State private var isLoggedIn: Bool = false
     @State private var username: String = ""
-    @StateObject private var profileViewModel = ProfileViewModel()
+    @StateObject private var profileViewModel = ProfileViewModel() // Correct usage in SwiftUI App
 
     var body: some Scene {
         WindowGroup {
@@ -51,12 +51,12 @@ struct PawsomeApp: App {
                             Label("Post", systemImage: "plus.app")
                         }
 
-                        ProfileView()
+                        ProfileView() // ProfileView uses @EnvironmentObject internally
                             .tabItem {
                                 Label("Profile", systemImage: "person.crop.circle")
                             }
                     }
-                    .environmentObject(profileViewModel)
+                    .environmentObject(profileViewModel) // Inject ViewModel globally
                 }
             } else {
                 LoginView(

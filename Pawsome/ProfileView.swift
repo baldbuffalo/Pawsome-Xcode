@@ -5,6 +5,92 @@ import FirebaseFirestore
 import FirebaseAuth
 import Foundation
 
+// MARK: - ViewModel
+class ProfileViewModel: ObservableObject {
+    @Published var selectedImage: PlatformImage?
+    @Published var profileImage: String?
+    @Published var isImagePickerPresented = false
+    @Published var username: String = "Anonymous"
+    @Published var isImageLoading: Bool = false
+    @Published var isLoading: Bool = false
+
+    func loadProfileData() {
+        guard let userID = Auth.auth().currentUser?.uid else { return }
+
+        isLoading = true
+
+        let db = Firestore.firestore()
+        let profileRef = db.collection("users").document(userID)
+
+        profileRef.getDocument { document, error in
+            DispatchQueue.main.async {
+                if let document = document, document.exists, let data = document.data() {
+                    self.username = data["username"] as? String ?? "Anonymous"
+                    self.loadProfileImage(from: data)
+                } else {
+                    print("No profile found or error: \(error?.localizedDescription ?? "unknown error")")
+                    self.isLoading = false
+                }
+            }
+        }
+    }
+
+    func loadProfileImage(from data: [String: Any]) {
+        if let imageURL = data["profileImage"] as? String {
+            self.profileImage = imageURL
+        } else {
+            self.profileImage = nil
+        }
+        self.isLoading = false
+    }
+
+    func uploadProfileImageToFirebase(image: PlatformImage) {
+        let storageRef = Storage.storage().reference().child("profilePictures/\(UUID().uuidString).png")
+
+        guard let pngData = image.asPNGData() else {
+            print("Failed to get PNG data from image.")
+            return
+        }
+
+        isImageLoading = true
+
+        Task {
+            do {
+                _ = try await storageRef.putDataAsync(pngData)
+                let downloadURL = try await storageRef.downloadURL()
+                await MainActor.run {
+                    self.saveProfileImageURLToFirestore(url: downloadURL)
+                }
+            } catch {
+                print("Error uploading image: \(error.localizedDescription)")
+                await MainActor.run {
+                    isImageLoading = false
+                }
+            }
+        }
+    }
+
+    func saveProfileImageURLToFirestore(url: URL) {
+        guard let userID = Auth.auth().currentUser?.uid else { return }
+        let db = Firestore.firestore()
+        let profileRef = db.collection("users").document(userID)
+
+        profileRef.setData([
+            "profileImage": url.absoluteString
+        ], merge: true) { error in
+            DispatchQueue.main.async {
+                if let error = error {
+                    print("Error saving image URL: \(error.localizedDescription)")
+                } else {
+                    self.profileImage = url.absoluteString
+                }
+                self.isImageLoading = false
+            }
+        }
+    }
+}
+
+// MARK: - ProfileView
 struct ProfileView: View {
     @StateObject private var viewModel = ProfileViewModel()
 
@@ -70,91 +156,6 @@ struct ProfileView: View {
                         viewModel.uploadProfileImageToFirebase(image: image)
                     }
                 }
-        }
-    }
-
-    // MARK: - ProfileViewModel
-    class ProfileViewModel: ObservableObject {
-        @Published var selectedImage: PlatformImage?
-        @Published var profileImage: String?
-        @Published var isImagePickerPresented = false
-        @Published var username: String = "Anonymous"
-        @Published var isImageLoading: Bool = false
-        @Published var isLoading: Bool = false
-
-        func loadProfileData() {
-            guard let userID = Auth.auth().currentUser?.uid else { return }
-
-            isLoading = true
-
-            let db = Firestore.firestore()
-            let profileRef = db.collection("users").document(userID)
-
-            profileRef.getDocument { document, error in
-                DispatchQueue.main.async {
-                    if let document = document, document.exists, let data = document.data() {
-                        self.username = data["username"] as? String ?? "Anonymous"
-                        self.loadProfileImage(from: data)
-                    } else {
-                        print("No profile found or error: \(error?.localizedDescription ?? "unknown error")")
-                        self.isLoading = false
-                    }
-                }
-            }
-        }
-
-        func loadProfileImage(from data: [String: Any]) {
-            if let imageURL = data["profileImage"] as? String {
-                self.profileImage = imageURL
-            } else {
-                self.profileImage = nil
-            }
-            self.isLoading = false
-        }
-
-        func uploadProfileImageToFirebase(image: PlatformImage) {
-            let storageRef = Storage.storage().reference().child("profilePictures/\(UUID().uuidString).png")
-
-            guard let pngData = image.asPNGData() else {
-                print("Failed to get PNG data from image.")
-                return
-            }
-
-            isImageLoading = true
-
-            Task {
-                do {
-                    _ = try await storageRef.putDataAsync(pngData)
-                    let downloadURL = try await storageRef.downloadURL()
-                    await MainActor.run {
-                        self.saveProfileImageURLToFirestore(url: downloadURL)
-                    }
-                } catch {
-                    print("Error uploading image: \(error.localizedDescription)")
-                    await MainActor.run {
-                        isImageLoading = false
-                    }
-                }
-            }
-        }
-
-        func saveProfileImageURLToFirestore(url: URL) {
-            guard let userID = Auth.auth().currentUser?.uid else { return }
-            let db = Firestore.firestore()
-            let profileRef = db.collection("users").document(userID)
-
-            profileRef.setData([
-                "profileImage": url.absoluteString
-            ], merge: true) { error in
-                DispatchQueue.main.async {
-                    if let error = error {
-                        print("Error saving image URL: \(error.localizedDescription)")
-                    } else {
-                        self.profileImage = url.absoluteString
-                    }
-                    self.isImageLoading = false
-                }
-            }
         }
     }
 }
