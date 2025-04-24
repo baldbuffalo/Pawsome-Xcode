@@ -5,10 +5,18 @@ import FirebaseFirestore
 import FirebaseAuth
 import Foundation
 
+#if os(iOS)
+import UIKit // Import UIKit to get UIImage for iOS
+#endif
+
+#if os(macOS)
+import AppKit // Import AppKit to get NSImage for macOS
+#endif
+
 // MARK: - ViewModel
 class ProfileViewModel: ObservableObject {
-    @Published var selectedImage: String? // Changed from PlatformImage? to String?
-    @Published var profileImage: String? // Changed back to optional String
+    @Published var selectedImage: PlatformImage? // Using PlatformImage to support both iOS and macOS
+    @Published var profileImage: String? // Holds the image URL as a String
     @Published var isImagePickerPresented = false
     @Published var username: String = "Anonymous"
     @Published var isImageLoading: Bool = false
@@ -44,11 +52,28 @@ class ProfileViewModel: ObservableObject {
         self.isLoading = false
     }
 
-    func uploadProfileImageToFirebase(image: String) { // Updated to accept String
+    func uploadProfileImageToFirebase(image: PlatformImage) { // Accept PlatformImage for both platforms
         let storageRef = Storage.storage().reference().child("profilePictures/\(UUID().uuidString).png")
 
-        guard let pngData = image.data(using: .utf8) else { // Assuming image is a URL string
-            print("Failed to get PNG data from image.")
+        var imageData: Data?
+
+        // Handle both iOS and macOS images
+        #if os(iOS)
+        if let uiImage = image as? UIImage { // For iOS (UIImage)
+            imageData = uiImage.pngData() // Convert UIImage to PNG data for iOS
+        }
+        #elseif os(macOS)
+        if let nsImage = image as? NSImage { // For macOS (NSImage)
+            guard let tiffData = nsImage.tiffRepresentation else {
+                print("Failed to get TIFF data from NSImage.")
+                return
+            }
+            imageData = tiffData // Use TIFF data for macOS
+        }
+        #endif
+        
+        guard let data = imageData else {
+            print("Failed to get image data.")
             return
         }
 
@@ -56,7 +81,7 @@ class ProfileViewModel: ObservableObject {
 
         Task {
             do {
-                _ = try await storageRef.putDataAsync(pngData)
+                _ = try await storageRef.putDataAsync(data)
                 let downloadURL = try await storageRef.downloadURL()
                 await MainActor.run {
                     self.saveProfileImageURLToFirestore(url: downloadURL)
@@ -94,7 +119,7 @@ class ProfileViewModel: ObservableObject {
 struct ProfileView: View {
     @Binding var isLoggedIn: Bool
     @Binding var currentUsername: String
-    @Binding var profileImage: String? // Changed back to optional String
+    @Binding var profileImage: String? // Holds the profile image URL
 
     @StateObject private var viewModel = ProfileViewModel()
 

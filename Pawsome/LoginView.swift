@@ -9,7 +9,7 @@ import UIKit
 struct LoginView: View {
     @Binding var isLoggedIn: Bool
     @Binding var username: String
-    @Binding var profileImage: String
+    @Binding var profileImage: String?
 
     var body: some View {
         VStack(spacing: 20) {
