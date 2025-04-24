@@ -11,7 +11,7 @@ struct ProfileView: View {
     var body: some View {
         NavigationView {
             VStack {
-                if viewModel.isImageLoading {
+                if viewModel.isLoading || viewModel.isImageLoading {
                     ProgressView("Loading...")
                         .progressViewStyle(CircularProgressViewStyle())
                         .padding()
@@ -75,22 +75,37 @@ class ProfileViewModel: ObservableObject {
     @Published var isImagePickerPresented = false
     @Published var username: String = "Anonymous"
     @Published var isImageLoading: Bool = false
+    @Published var isLoading: Bool = false
 
     func loadProfileData() {
         guard let userID = Auth.auth().currentUser?.uid else { return }
+
+        isLoading = true
+
         let db = Firestore.firestore()
         let profileRef = db.collection("users").document(userID)
 
         profileRef.getDocument { document, error in
-            if let document = document, document.exists, let data = document.data() {
-                DispatchQueue.main.async {
-                    self.profileImage = data["profileImage"] as? String
+            DispatchQueue.main.async {
+                if let document = document, document.exists, let data = document.data() {
                     self.username = data["username"] as? String ?? "Anonymous"
+                    self.loadProfileImage(from: data)
+                } else {
+                    print("No profile found or error: \(error?.localizedDescription ?? "unknown error")")
+                    self.isLoading = false
                 }
-            } else {
-                print("No profile found or error: \(error?.localizedDescription ?? "unknown error")")
             }
         }
+    }
+
+    // ✅ Dynamic member: loadProfileImage
+    func loadProfileImage(from data: [String: Any]) {
+        if let imageURL = data["profileImage"] as? String {
+            self.profileImage = imageURL
+        } else {
+            self.profileImage = nil
+        }
+        self.isLoading = false
     }
 
     func uploadProfileImageToFirebase(image: PlatformImage) {
