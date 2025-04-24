@@ -8,7 +8,7 @@ import Foundation
 // MARK: - ViewModel
 class ProfileViewModel: ObservableObject {
     @Published var selectedImage: String? // Changed from PlatformImage? to String?
-    @Published var profileImage: String = "" // Non-optional String initialized to an empty string
+    @Published var profileImage: String? // Changed back to optional String
     @Published var isImagePickerPresented = false
     @Published var username: String = "Anonymous"
     @Published var isImageLoading: Bool = false
@@ -39,7 +39,7 @@ class ProfileViewModel: ObservableObject {
         if let imageURL = data["profileImage"] as? String {
             self.profileImage = imageURL
         } else {
-            self.profileImage = "" // Default to an empty string if no image URL
+            self.profileImage = nil // No image URL found, set to nil
         }
         self.isLoading = false
     }
@@ -94,7 +94,7 @@ class ProfileViewModel: ObservableObject {
 struct ProfileView: View {
     @Binding var isLoggedIn: Bool
     @Binding var currentUsername: String
-    @Binding var profileImage: String
+    @Binding var profileImage: String? // Changed back to optional String
 
     @StateObject private var viewModel = ProfileViewModel()
 
@@ -107,26 +107,24 @@ struct ProfileView: View {
             } else {
                 Group {
                     // Use the profileImage directly, without optional unwrapping
-                    if !viewModel.profileImage.isEmpty || !profileImage.isEmpty {
-                        let imageUrlString = !viewModel.profileImage.isEmpty ? viewModel.profileImage : profileImage
-                        if let imageUrl = URL(string: imageUrlString) {
-                            AsyncImage(url: imageUrl) { phase in
-                                switch phase {
-                                case .empty:
-                                    ProgressView()
-                                case .success(let image):
-                                    image
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(width: 120, height: 120)
-                                        .clipShape(Circle())
-                                case .failure:
-                                    Image(systemName: "person.crop.circle.badge.exclamationmark")
-                                        .resizable()
-                                        .frame(width: 120, height: 120)
-                                @unknown default:
-                                    EmptyView()
-                                }
+                    if let imageUrlString = viewModel.profileImage ?? profileImage,
+                       let imageUrl = URL(string: imageUrlString) {
+                        AsyncImage(url: imageUrl) { phase in
+                            switch phase {
+                            case .empty:
+                                ProgressView()
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 120, height: 120)
+                                    .clipShape(Circle())
+                            case .failure:
+                                Image(systemName: "person.crop.circle.badge.exclamationmark")
+                                    .resizable()
+                                    .frame(width: 120, height: 120)
+                            @unknown default:
+                                EmptyView()
                             }
                         }
                     } else {
