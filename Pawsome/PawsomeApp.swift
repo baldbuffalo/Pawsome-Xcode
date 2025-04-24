@@ -16,7 +16,7 @@ struct PawsomeApp: App {
                         .progressViewStyle(CircularProgressViewStyle())
                         .padding()
                         .onAppear {
-                            profileViewModel.loadProfileImage(for: username)
+                            profileViewModel.loadProfileImage(from: username)
                         }
                 } else {
                     TabView {
@@ -25,7 +25,7 @@ struct PawsomeApp: App {
                             currentUsername: $username,
                             profileImage: $profileViewModel.profileImage,
                             onPostCreated: {
-                                profileViewModel.loadProfileImage(for: username)
+                                profileViewModel.loadProfileImage(from: username)
                             }
                         )
                         .tabItem {
@@ -36,7 +36,7 @@ struct PawsomeApp: App {
                             selectedImage: .constant(nil),
                             username: username,
                             onPostCreated: {
-                                profileViewModel.loadProfileImage(for: username)
+                                profileViewModel.loadProfileImage(from: username)
                             }
                         )
                         .tabItem {
