@@ -8,11 +8,12 @@ struct CatPost: Identifiable, Codable {
     var imageData: Data
     var postDescription: String?
     var likes: Int
-    var comments: [String] // Assuming comments are represented as an array of strings
+    var comments: [String]
     var catAge: Int?
+    var form: [String: Any]? // ✅ Added here
 
-    // Initializer for the CatPost struct
-    init(id: String? = nil, catName: String, catBreed: String? = nil, location: String? = nil, imageData: Data, postDescription: String? = nil, likes: Int = 0, comments: [String] = [], catAge: Int? = nil) {
+    // Initializer
+    init(id: String? = nil, catName: String, catBreed: String? = nil, location: String? = nil, imageData: Data, postDescription: String? = nil, likes: Int = 0, comments: [String] = [], catAge: Int? = nil, form: [String: Any]? = nil) {
         self.id = id
         self.catName = catName
         self.catBreed = catBreed
@@ -22,16 +23,15 @@ struct CatPost: Identifiable, Codable {
         self.likes = likes
         self.comments = comments
         self.catAge = catAge
+        self.form = form // ✅ Added here
     }
 
-    // Convert Firestore document to CatPost
+    // Firestore document to CatPost
     static func fromDocument(_ document: DocumentSnapshot) -> CatPost? {
-        guard let data = document.data() else { return nil }  // Safely unwrap the document data
+        guard let data = document.data() else { return nil }
 
-        // Retrieve comments (assuming they are stored as an array of strings)
         let comments = data["comments"] as? [String] ?? []
 
-        // Safely decode imageData (if it exists)
         guard let imageData = data["imageData"] as? Data else {
             print("Error: imageData is missing or not in the correct format.")
             return nil
@@ -46,7 +46,8 @@ struct CatPost: Identifiable, Codable {
             postDescription: data["postDescription"] as? String,
             likes: data["likes"] as? Int ?? 0,
             comments: comments,
-            catAge: data["catAge"] as? Int
+            catAge: data["catAge"] as? Int,
+            form: data["form"] as? [String: Any] // ✅ Also load 'form' from Firestore
         )
     }
 }
