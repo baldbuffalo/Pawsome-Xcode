@@ -19,23 +19,37 @@ struct ScanView: View {
 
     @State private var isImagePickerPresented: Bool = false
     @State private var errorMessage: String?
-
     @State private var showForm: Bool = false
     @State private var navigateToHome: Bool = false
+    @State private var showSourcePicker: Bool = false
+    @State private var useCamera: Bool = false
 
-    var username: String = "YourUsername" // Replace this with your actual username or bind it to something
-    var onPostCreated: () -> Void // ✅ Closure to call when a post is created
+    var username: String = "YourUsername"
+    var onPostCreated: () -> Void
 
     var body: some View {
         NavigationStack {
             VStack {
-                Button("Open Media Picker") {
-                    isImagePickerPresented = true
+                Button("Choose Image") {
+                    showSourcePicker = true
                 }
                 .padding()
                 .foregroundColor(.white)
                 .background(Color.blue)
                 .cornerRadius(8)
+                .confirmationDialog("Select Image Source", isPresented: $showSourcePicker, titleVisibility: .visible) {
+                    #if os(iOS)
+                    Button("Open Camera") {
+                        useCamera = true
+                        isImagePickerPresented = true
+                    }
+                    #endif
+                    Button("Open Files") {
+                        useCamera = false
+                        isImagePickerPresented = true
+                    }
+                    Button("Cancel", role: .cancel) {}
+                }
                 .sheet(isPresented: $isImagePickerPresented) {
                     mediaPickerView()
                 }
@@ -54,8 +68,8 @@ struct ScanView: View {
                     imageUIData: selectedImage?.pngData(),
                     videoURL: nil,
                     username: username,
-                    onPostCreated: {_ in 
-                        onPostCreated() // ✅ Trigger parent action when post is created
+                    onPostCreated: {_ in
+                        onPostCreated()
                     }
                 )
             }
@@ -67,6 +81,7 @@ struct ScanView: View {
         #if os(iOS)
         ImagePicker(
             selectedImage: $selectedImage,
+            useCamera: useCamera,
             onImageCaptured: { }
         )
         #elseif os(macOS)
@@ -78,11 +93,14 @@ struct ScanView: View {
 #if os(iOS)
 struct ImagePicker: UIViewControllerRepresentable {
     @Binding var selectedImage: UIImage?
+    var useCamera: Bool
     var onImageCaptured: () -> Void
 
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
-        picker.sourceType = .photoLibrary
+        picker.sourceType = useCamera && UIImagePickerController.isSourceTypeAvailable(.camera)
+            ? .camera
+            : .photoLibrary
         picker.delegate = context.coordinator
         return picker
     }
@@ -140,8 +158,15 @@ extension NSImage {
     func pngData() -> Data? {
         guard let tiffRepresentation = self.tiffRepresentation else { return nil }
         let bitmap = NSBitmapImageRep(data: tiffRepresentation)
-        let pngData = bitmap?.representation(using: .png, properties: [:])
-        return pngData
+        return bitmap?.representation(using: .png, properties: [:])
+    }
+}
+#endif
+
+#if os(iOS)
+extension UIImage {
+    func pngData() -> Data? {
+        self.pngData()
     }
 }
 #endif
