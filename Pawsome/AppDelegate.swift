@@ -10,7 +10,6 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     var window: UIWindow?
     var photoOutput: AVCapturePhotoOutput?
 
-    // Core Data stack
     lazy var persistentContainer: NSPersistentContainer = {
         let container = NSPersistentContainer(name: "CatPostModel")
         container.loadPersistentStores { storeDescription, error in
@@ -25,10 +24,19 @@ class AppDelegate: NSObject, UIApplicationDelegate {
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         FirebaseApp.configure()
 
-        // ✅ App Check only on iOS
-        #if os(iOS)
-        let providerFactory = AppAttestProviderFactory()
-        AppCheck.setAppCheckProviderFactory(providerFactory)
+        // ✅ Enable App Check only on real iPhone/iPad
+        #if targetEnvironment(macCatalyst)
+        print("🔕 Skipping App Check: Running on Mac Catalyst")
+        #elseif targetEnvironment(simulator)
+        print("🔕 Skipping App Check: Running on iOS Simulator")
+        #else
+        if UIDevice.current.userInterfaceIdiom == .phone || UIDevice.current.userInterfaceIdiom == .pad {
+            print("✅ Real iOS device detected — enabling App Check")
+            let providerFactory = AppAttestProviderFactory()
+            AppCheck.setAppCheckProviderFactory(providerFactory)
+        } else {
+            print("🔕 Skipping App Check: Not a physical iOS device")
+        }
         #endif
 
         return true
