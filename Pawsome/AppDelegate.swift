@@ -1,17 +1,18 @@
 #if canImport(UIKit)
 import UIKit
 import Firebase
+import FirebaseAppCheck
 import GoogleSignIn
 import AVFoundation
 import CoreData
 
 class AppDelegate: NSObject, UIApplicationDelegate {
     var window: UIWindow?
-    var photoOutput: AVCapturePhotoOutput? // Declare photoOutput
+    var photoOutput: AVCapturePhotoOutput?
 
     // Core Data stack
     lazy var persistentContainer: NSPersistentContainer = {
-        let container = NSPersistentContainer(name: "CatPostModel") // Replace with your model name
+        let container = NSPersistentContainer(name: "CatPostModel")
         container.loadPersistentStores(completionHandler: { (storeDescription, error) in
             if let error = error as NSError? {
                 fatalError("Unresolved error \(error), \(error.userInfo)")
@@ -23,6 +24,11 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         FirebaseApp.configure()
+
+        // 🔐 App Check using App Attest
+        let providerFactory = AppAttestProviderFactory()
+        AppCheck.setAppCheckProviderFactory(providerFactory)
+
         return true
     }
 
