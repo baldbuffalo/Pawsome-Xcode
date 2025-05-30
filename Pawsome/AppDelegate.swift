@@ -13,11 +13,11 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     // Core Data stack
     lazy var persistentContainer: NSPersistentContainer = {
         let container = NSPersistentContainer(name: "CatPostModel")
-        container.loadPersistentStores(completionHandler: { (storeDescription, error) in
+        container.loadPersistentStores { storeDescription, error in
             if let error = error as NSError? {
                 fatalError("Unresolved error \(error), \(error.userInfo)")
             }
-        })
+        }
         return container
     }()
 
@@ -25,8 +25,8 @@ class AppDelegate: NSObject, UIApplicationDelegate {
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         FirebaseApp.configure()
 
-        // 🔐 Only enable App Check on iOS
-        #if !targetEnvironment(macCatalyst)
+        // ✅ App Check only on iOS
+        #if os(iOS)
         let providerFactory = AppAttestProviderFactory()
         AppCheck.setAppCheckProviderFactory(providerFactory)
         #endif
@@ -39,7 +39,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         return GIDSignIn.sharedInstance.handle(url)
     }
 
-    func saveContext () {
+    func saveContext() {
         let context = persistentContainer.viewContext
         if context.hasChanges {
             do {
@@ -58,7 +58,7 @@ import Firebase
 class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         FirebaseApp.configure()
-        // ❗️ No App Check on macOS
+        // 🔕 App Check not supported on macOS
     }
 }
 #endif
