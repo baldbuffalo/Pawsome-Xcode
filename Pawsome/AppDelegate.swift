@@ -25,9 +25,11 @@ class AppDelegate: NSObject, UIApplicationDelegate {
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         FirebaseApp.configure()
 
-        // 🔐 App Check using App Attest
+        // 🔐 Only enable App Check on iOS
+        #if !targetEnvironment(macCatalyst)
         let providerFactory = AppAttestProviderFactory()
         AppCheck.setAppCheckProviderFactory(providerFactory)
+        #endif
 
         return true
     }
@@ -56,6 +58,7 @@ import Firebase
 class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         FirebaseApp.configure()
+        // ❗️ No App Check on macOS
     }
 }
 #endif
