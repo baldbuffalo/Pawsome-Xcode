@@ -162,11 +162,3 @@ extension NSImage {
     }
 }
 #endif
-
-#if os(iOS)
-extension UIImage {
-    func pngData() -> Data? {
-        self.pngData()
-    }
-}
-#endif
