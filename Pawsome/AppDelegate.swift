@@ -20,24 +20,33 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         return container
     }()
 
+    // Computed property to decide if App Check should be enabled
+    var enableAppCheck: Bool {
+        #if targetEnvironment(macCatalyst)
+        return false
+        #elseif targetEnvironment(simulator)
+        return true  // Enable debug App Check on simulator for testing
+        #else
+        return UIDevice.current.userInterfaceIdiom == .phone || UIDevice.current.userInterfaceIdiom == .pad
+        #endif
+    }
+
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         FirebaseApp.configure()
 
-        // ✅ App Check only for real iOS devices
-        #if targetEnvironment(macCatalyst)
-        print("🔕 Skipping App Check: Running on Mac Catalyst")
-        #elseif targetEnvironment(simulator)
-        print("🔕 Skipping App Check: Running on iOS Simulator")
-        #else
-        if UIDevice.current.userInterfaceIdiom == .phone || UIDevice.current.userInterfaceIdiom == .pad {
-            print("✅ App Check enabled: Real iOS device")
+        if enableAppCheck {
+            #if targetEnvironment(simulator)
+            print("✅ Enabling Debug App Check Provider (Simulator)")
+            AppCheck.setAppCheckProviderFactory(DebugAppCheckProviderFactory())
+            #else
+            print("✅ Enabling App Attest Provider (Real iOS device)")
             let providerFactory = AppAttestProviderFactory()
             AppCheck.setAppCheckProviderFactory(providerFactory)
+            #endif
         } else {
-            print("🔕 Skipping App Check: Unknown or unsupported iOS device")
+            print("🔕 Skipping App Check on this platform")
         }
-        #endif
 
         return true
     }
@@ -59,6 +68,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         }
     }
 }
+
 #elseif canImport(AppKit)
 import AppKit
 import Firebase
