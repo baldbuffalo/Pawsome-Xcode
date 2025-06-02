@@ -24,18 +24,18 @@ class AppDelegate: NSObject, UIApplicationDelegate {
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         FirebaseApp.configure()
 
-        // ✅ Enable App Check only on real iPhone/iPad
+        // ✅ App Check only for real iOS devices
         #if targetEnvironment(macCatalyst)
         print("🔕 Skipping App Check: Running on Mac Catalyst")
         #elseif targetEnvironment(simulator)
         print("🔕 Skipping App Check: Running on iOS Simulator")
         #else
         if UIDevice.current.userInterfaceIdiom == .phone || UIDevice.current.userInterfaceIdiom == .pad {
-            print("✅ Real iOS device detected — enabling App Check")
+            print("✅ App Check enabled: Real iOS device")
             let providerFactory = AppAttestProviderFactory()
             AppCheck.setAppCheckProviderFactory(providerFactory)
         } else {
-            print("🔕 Skipping App Check: Not a physical iOS device")
+            print("🔕 Skipping App Check: Unknown or unsupported iOS device")
         }
         #endif
 
@@ -66,7 +66,8 @@ import Firebase
 class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         FirebaseApp.configure()
-        // 🔕 App Check not supported on macOS
+        print("🔕 Skipping App Check: macOS does not support it")
+        // No AppCheck on macOS
     }
 }
 #endif
