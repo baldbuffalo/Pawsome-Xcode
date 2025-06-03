@@ -11,6 +11,9 @@ struct LoginView: View {
     @Binding var username: String
     @Binding var profileImage: String?
 
+    @State private var showError = false
+    @State private var errorMessage = ""
+
     var body: some View {
         VStack(spacing: 20) {
             Text("Welcome to Pawsome!")
@@ -32,7 +35,8 @@ struct LoginView: View {
                     case .success(let authResults):
                         handleAppleSignIn(result: authResults)
                     case .failure(let error):
-                        print("Apple sign-in failed: \(error.localizedDescription)")
+                        errorMessage = "Apple Sign-In failed: \(error.localizedDescription)"
+                        showError = true
                     }
                 }
             )
@@ -69,6 +73,11 @@ struct LoginView: View {
                 }
             }
         }
+        .alert("Sign-In Error", isPresented: $showError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(errorMessage)
+        }
     }
 
     private func handleAppleSignIn(result: ASAuthorization) {
@@ -81,6 +90,9 @@ struct LoginView: View {
             saveJoinDate()
             UserDefaults.standard.set(true, forKey: "isLoggedIn")
             isLoggedIn = true
+        } else {
+            errorMessage = "Apple credentials were not found."
+            showError = true
         }
     }
 
@@ -88,30 +100,34 @@ struct LoginView: View {
         #if canImport(UIKit)
         guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
               let rootViewController = scene.windows.first?.rootViewController else {
-            print("Root view controller not found")
+            errorMessage = "Could not find root view controller"
+            showError = true
             return
         }
 
         GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController) { result, error in
             DispatchQueue.main.async {
                 if let error = error {
-                    print("Google Sign-In failed: \(error.localizedDescription)")
+                    errorMessage = "Google Sign-In failed: \(error.localizedDescription)"
+                    showError = true
                 } else if let user = result?.user {
                     handleGoogleSignIn(user: user)
+                } else {
+                    errorMessage = "Google Sign-In returned no user."
+                    showError = true
                 }
             }
         }
         #else
-        print("Google Sign-In is only supported on iOS.")
+        errorMessage = "Google Sign-In is only supported on iOS."
+        showError = true
         #endif
     }
 
     private func handleGoogleSignIn(user: GIDGoogleUser) {
-        username = user.profile?.name ?? ""
+        username = user.profile?.name ?? "No Name"
         if let profileURL = user.profile?.imageURL(withDimension: 100) {
             loadImage(from: profileURL) { result in
-                // In this version, profileImage is just a string.
-                // You should change this to an Image later if needed.
                 profileImage = profileURL.absoluteString
             }
         }
