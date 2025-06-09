@@ -1,6 +1,8 @@
 import SwiftUI
 import AuthenticationServices
 import GoogleSignIn
+import FirebaseAuth
+import FirebaseFirestore
 
 #if canImport(UIKit)
 import UIKit
@@ -80,22 +82,51 @@ struct LoginView: View {
         }
     }
 
+    // MARK: - Apple Sign-In
     private func handleAppleSignIn(result: ASAuthorization) {
         if let appleIDCredential = result.credential as? ASAuthorizationAppleIDCredential {
-            if let fullName = appleIDCredential.fullName {
-                username = "\(fullName.givenName ?? "") \(fullName.familyName ?? "")"
-                print("Signed in with Apple: \(username)")
+            guard let identityToken = appleIDCredential.identityToken,
+                  let tokenString = String(data: identityToken, encoding: .utf8) else {
+                errorMessage = "Unable to fetch identity token"
+                showError = true
+                return
             }
-            profileImage = "system:person.circle" // Use your logic for profile image
-            saveJoinDate()
-            UserDefaults.standard.set(true, forKey: "isLoggedIn")
-            isLoggedIn = true
+
+            let credential = OAuthProvider.credential(withProviderID: "apple.com", idToken: tokenString, rawNonce: nil)
+
+            Auth.auth().signIn(with: credential) { authResult, error in
+                if let error = error {
+                    errorMessage = "Firebase Apple Sign-In failed: \(error.localizedDescription)"
+                    showError = true
+                    return
+                }
+
+                guard let user = authResult?.user else {
+                    errorMessage = "No Firebase user found"
+                    showError = true
+                    return
+                }
+
+                if let fullName = appleIDCredential.fullName {
+                    username = "\(fullName.givenName ?? "") \(fullName.familyName ?? "")"
+                } else {
+                    username = "Apple User"
+                }
+
+                profileImage = "system:person.circle"
+                saveUserToFirestore(uid: user.uid, username: username, profilePic: profileImage)
+                saveJoinDate()
+                UserDefaults.standard.set(true, forKey: "isLoggedIn")
+                isLoggedIn = true
+            }
+
         } else {
             errorMessage = "Apple credentials were not found."
             showError = true
         }
     }
 
+    // MARK: - Google Sign-In
     private func googleSignIn() {
         #if canImport(UIKit)
         guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
@@ -127,15 +158,34 @@ struct LoginView: View {
     private func handleGoogleSignIn(user: GIDGoogleUser) {
         username = user.profile?.name ?? "No Name"
         if let profileURL = user.profile?.imageURL(withDimension: 100) {
-            loadImage(from: profileURL) { result in
-                profileImage = profileURL.absoluteString
-            }
+            profileImage = profileURL.absoluteString
+        }
+        if let uid = Auth.auth().currentUser?.uid {
+            saveUserToFirestore(uid: uid, username: username, profilePic: profileImage)
         }
         saveJoinDate()
         UserDefaults.standard.set(true, forKey: "isLoggedIn")
         isLoggedIn = true
     }
 
+    // MARK: - Firestore
+    private func saveUserToFirestore(uid: String, username: String, profilePic: String?) {
+        let db = Firestore.firestore()
+        let userRef = db.collection("users").document(uid)
+
+        var data: [String: Any] = [
+            "username": username,
+            "joinDate": Timestamp(date: Date())
+        ]
+
+        if let profilePic = profilePic {
+            data["profilePic"] = profilePic
+        }
+
+        userRef.setData(data, merge: true)
+    }
+
+    // MARK: - Join Date
     private func saveJoinDate() {
         if UserDefaults.standard.string(forKey: "joinDate") == nil {
             let dateFormatter = DateFormatter()
@@ -144,12 +194,4 @@ struct LoginView: View {
             UserDefaults.standard.set(joinDate, forKey: "joinDate")
         }
     }
-}
-
-func loadImage(from url: URL, completion: @escaping (String) -> Void) {
-    URLSession.shared.dataTask(with: url) { data, _, _ in
-        DispatchQueue.main.async {
-            completion(url.absoluteString)
-        }
-    }.resume()
 }
