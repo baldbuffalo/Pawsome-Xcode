@@ -11,7 +11,7 @@ import UIKit
 struct LoginView: View {
     @Binding var isLoggedIn: Bool
     @Binding var username: String
-    @Binding var profileImage: String?
+    @Binding var profileImage: String  // Changed from optional to non-optional
 
     @State private var showError = false
     @State private var errorMessage = ""
@@ -159,7 +159,10 @@ struct LoginView: View {
         username = user.profile?.name ?? "No Name"
         if let profileURL = user.profile?.imageURL(withDimension: 100) {
             profileImage = profileURL.absoluteString
+        } else {
+            profileImage = "system:person.circle"
         }
+
         if let uid = Auth.auth().currentUser?.uid {
             saveUserToFirestore(uid: uid, username: username, profilePic: profileImage)
         }
@@ -169,18 +172,15 @@ struct LoginView: View {
     }
 
     // MARK: - Firestore
-    private func saveUserToFirestore(uid: String, username: String, profilePic: String?) {
+    private func saveUserToFirestore(uid: String, username: String, profilePic: String) {
         let db = Firestore.firestore()
         let userRef = db.collection("users").document(uid)
 
-        var data: [String: Any] = [
+        let data: [String: Any] = [
             "username": username,
+            "profilePic": profilePic,
             "joinDate": Timestamp(date: Date())
         ]
-
-        if let profilePic = profilePic {
-            data["profilePic"] = profilePic
-        }
 
         userRef.setData(data, merge: true)
     }
