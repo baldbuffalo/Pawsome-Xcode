@@ -6,17 +6,24 @@ import FirebaseAuth
 import Foundation
 
 #if os(iOS)
-import UIKit // Import UIKit to get UIImage for iOS
+import UIKit
 #endif
 
 #if os(macOS)
-import AppKit // Import AppKit to get NSImage for macOS
+import AppKit
+#endif
+
+// MARK: - Typealias for platform-specific image
+#if os(iOS)
+typealias PlatformImage = UIImage
+#elseif os(macOS)
+typealias PlatformImage = NSImage
 #endif
 
 // MARK: - ViewModel
 class ProfileViewModel: ObservableObject {
-    @Published var selectedImage: PlatformImage? // Using PlatformImage to support both iOS and macOS
-    @Published var profileImage: String? // Holds the image URL as a String
+    @Published var selectedImage: PlatformImage?
+    @Published var profileImage: String? // image URL string
     @Published var isImagePickerPresented = false
     @Published var username: String = "Anonymous"
     @Published var isImageLoading: Bool = false
@@ -47,28 +54,24 @@ class ProfileViewModel: ObservableObject {
         if let imageURL = data["profileImage"] as? String {
             self.profileImage = imageURL
         } else {
-            self.profileImage = nil // No image URL found, set to nil
+            self.profileImage = nil
         }
         self.isLoading = false
     }
 
-    func uploadProfileImageToFirebase(image: PlatformImage) { // Accept PlatformImage for both platforms
+    func uploadProfileImageToFirebase(image: PlatformImage) {
         let storageRef = Storage.storage().reference().child("profilePictures/\(UUID().uuidString).png")
 
         var imageData: Data?
 
-        // Handle both iOS and macOS images
         #if os(iOS)
-        if let uiImage = image as? UIImage { // For iOS (UIImage)
-            imageData = uiImage.pngData() // Convert UIImage to PNG data for iOS
+        if let uiImage = image as? UIImage {
+            imageData = uiImage.pngData()
         }
         #elseif os(macOS)
-        if let nsImage = image as? NSImage { // For macOS (NSImage)
-            guard let tiffData = nsImage.tiffRepresentation else {
-                print("Failed to get TIFF data from NSImage.")
-                return
-            }
-            imageData = tiffData // Use TIFF data for macOS
+        if let nsImage = image as? NSImage,
+           let tiffData = nsImage.tiffRepresentation {
+            imageData = tiffData
         }
         #endif
         
@@ -119,7 +122,7 @@ class ProfileViewModel: ObservableObject {
 struct ProfileView: View {
     @Binding var isLoggedIn: Bool
     @Binding var currentUsername: String
-    @Binding var profileImage: String? // Holds the profile image URL
+    @Binding var profileImage: String?
 
     @StateObject private var viewModel = ProfileViewModel()
 
@@ -131,7 +134,6 @@ struct ProfileView: View {
                     .padding()
             } else {
                 Group {
-                    // Use the profileImage directly, without optional unwrapping
                     if let imageUrlString = viewModel.profileImage ?? profileImage,
                        let imageUrl = URL(string: imageUrlString) {
                         AsyncImage(url: imageUrl) { phase in
