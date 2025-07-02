@@ -5,25 +5,10 @@ import FirebaseFirestore
 import FirebaseAuth
 import Foundation
 
-#if os(iOS)
-import UIKit
-#endif
-
-#if os(macOS)
-import AppKit
-#endif
-
-// MARK: - Typealias for platform-specific image
-#if os(iOS)
-typealias PlatformImage = UIImage
-#elseif os(macOS)
-typealias PlatformImage = NSImage
-#endif
-
 // MARK: - ViewModel
 class ProfileViewModel: ObservableObject {
-    @Published var selectedImage: PlatformImage?
-    @Published var profileImage: String? // image URL string
+    @Published var selectedImage: PlatformImage? // PlatformImage supports both platforms
+    @Published var profileImage: String? // Holds the image URL as a String
     @Published var isImagePickerPresented = false
     @Published var username: String = "Anonymous"
     @Published var isImageLoading: Bool = false
@@ -61,20 +46,16 @@ class ProfileViewModel: ObservableObject {
 
     func uploadProfileImageToFirebase(image: PlatformImage) {
         let storageRef = Storage.storage().reference().child("profilePictures/\(UUID().uuidString).png")
-
         var imageData: Data?
 
         #if os(iOS)
-        if let uiImage = image as? UIImage {
-            imageData = uiImage.pngData()
-        }
+        imageData = image.pngData()
         #elseif os(macOS)
-        if let nsImage = image as? NSImage,
-           let tiffData = nsImage.tiffRepresentation {
-            imageData = tiffData
+        if let tiffData = image.tiffRepresentation {
+            imageData = NSBitmapImageRep(data: tiffData)?.representation(using: .png, properties: [:])
         }
         #endif
-        
+
         guard let data = imageData else {
             print("Failed to get image data.")
             return
@@ -122,7 +103,7 @@ class ProfileViewModel: ObservableObject {
 struct ProfileView: View {
     @Binding var isLoggedIn: Bool
     @Binding var currentUsername: String
-    @Binding var profileImage: String?
+    @Binding var profileImage: String? // Holds the profile image URL
 
     @StateObject private var viewModel = ProfileViewModel()
 

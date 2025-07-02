@@ -11,7 +11,7 @@ import UIKit
 struct LoginView: View {
     @Binding var isLoggedIn: Bool
     @Binding var username: String
-    @Binding var profileImage: String  // Changed from optional to non-optional
+    @Binding var profileImage: String?
 
     @State private var showError = false
     @State private var errorMessage = ""
@@ -27,7 +27,7 @@ struct LoginView: View {
                 .font(.subheadline)
                 .padding(.bottom, 50)
 
-            // Apple Sign-In Button
+            // Apple Sign-In
             SignInWithAppleButton(
                 onRequest: { request in
                     request.requestedScopes = [.fullName, .email]
@@ -46,7 +46,7 @@ struct LoginView: View {
             .frame(height: 50)
             .padding(.horizontal, 40)
 
-            // Google Sign-In Button (iOS only)
+            // Google Sign-In
             #if canImport(UIKit)
             Button(action: {
                 googleSignIn()
@@ -114,12 +114,12 @@ struct LoginView: View {
                 }
 
                 profileImage = "system:person.circle"
+
                 saveUserToFirestore(uid: user.uid, username: username, profilePic: profileImage)
                 saveJoinDate()
                 UserDefaults.standard.set(true, forKey: "isLoggedIn")
                 isLoggedIn = true
             }
-
         } else {
             errorMessage = "Apple credentials were not found."
             showError = true
@@ -159,33 +159,41 @@ struct LoginView: View {
         username = user.profile?.name ?? "No Name"
         if let profileURL = user.profile?.imageURL(withDimension: 100) {
             profileImage = profileURL.absoluteString
-        } else {
-            profileImage = "system:person.circle"
         }
 
         if let uid = Auth.auth().currentUser?.uid {
             saveUserToFirestore(uid: uid, username: username, profilePic: profileImage)
         }
+
         saveJoinDate()
         UserDefaults.standard.set(true, forKey: "isLoggedIn")
         isLoggedIn = true
     }
 
-    // MARK: - Firestore
-    private func saveUserToFirestore(uid: String, username: String, profilePic: String) {
+    // MARK: - Save User to Firestore
+    private func saveUserToFirestore(uid: String, username: String, profilePic: String?) {
         let db = Firestore.firestore()
         let userRef = db.collection("users").document(uid)
 
-        let data: [String: Any] = [
+        var data: [String: Any] = [
             "username": username,
-            "profilePic": profilePic,
             "joinDate": Timestamp(date: Date())
         ]
 
-        userRef.setData(data, merge: true)
+        if let profilePic = profilePic {
+            data["profilePic"] = profilePic
+        }
+
+        userRef.setData(data, merge: true) { error in
+            if let error = error {
+                print("❌ Error saving user: \(error.localizedDescription)")
+            } else {
+                print("✅ User document saved successfully.")
+            }
+        }
     }
 
-    // MARK: - Join Date
+    // MARK: - Save Join Date (local)
     private func saveJoinDate() {
         if UserDefaults.standard.string(forKey: "joinDate") == nil {
             let dateFormatter = DateFormatter()
