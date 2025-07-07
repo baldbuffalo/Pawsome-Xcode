@@ -98,12 +98,12 @@ struct LoginView: View {
                 return
             }
 
+            // ✅ Modern API
             let credential = OAuthProvider.credential(
                 providerID: AuthProviderID.apple,
                 idToken: tokenString,
                 rawNonce: nonce
             )
-
 
             Auth.auth().signIn(with: credential) { authResult, error in
                 if let error = error {
