@@ -8,17 +8,16 @@ import Foundation
 // MARK: - ViewModel
 
 class ProfileViewModel: ObservableObject {
-    @Published var selectedImage: PlatformImage?
-    @Published var profileImage: String?
+    @Published var selectedImage: PlatformImage? // Cross-platform image
+    @Published var profileImage: String? // Firebase URL string
     @Published var isImagePickerPresented = false
     @Published var username: String
     @Published var isImageLoading: Bool = false
     @Published var isLoading: Bool = false
     @Published var isSaving: Bool = false
 
-    init(initialUsername: String, initialProfileImage: String?) {
+    init(initialUsername: String) {
         self.username = initialUsername
-        self.profileImage = initialProfileImage
     }
 
     func loadProfileData() {
@@ -32,9 +31,7 @@ class ProfileViewModel: ObservableObject {
             DispatchQueue.main.async {
                 self.isLoading = false
                 if let document = document, document.exists, let data = document.data() {
-                    if let savedUsername = data["username"] as? String, !savedUsername.isEmpty {
-                        self.username = savedUsername
-                    }
+                    self.username = data["username"] as? String ?? self.username
                     self.loadProfileImage(from: data)
                 } else {
                     print("No profile found or error: \(error?.localizedDescription ?? "unknown error")")
@@ -133,10 +130,7 @@ struct ProfileView: View {
         self._isLoggedIn = isLoggedIn
         self._currentUsername = currentUsername
         self._profileImage = profileImage
-        self._viewModel = StateObject(wrappedValue: ProfileViewModel(
-            initialUsername: currentUsername.wrappedValue,
-            initialProfileImage: profileImage.wrappedValue
-        ))
+        _viewModel = StateObject(wrappedValue: ProfileViewModel(initialUsername: currentUsername.wrappedValue))
     }
 
     var body: some View {
@@ -147,7 +141,7 @@ struct ProfileView: View {
                     .padding()
             } else {
                 Group {
-                    if let imageUrlString = viewModel.profileImage,
+                    if let imageUrlString = viewModel.profileImage ?? profileImage,
                        let imageUrl = URL(string: imageUrlString),
                        imageUrl.scheme?.hasPrefix("http") == true {
                         AsyncImage(url: imageUrl) { phase in
@@ -164,7 +158,6 @@ struct ProfileView: View {
                                 Image(systemName: "person.crop.circle")
                                     .resizable()
                                     .frame(width: 120, height: 120)
-                                    .foregroundColor(.gray) 
                             @unknown default:
                                 EmptyView()
                             }
@@ -182,8 +175,8 @@ struct ProfileView: View {
                     .font(.title2)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .focused($usernameFocused)
-                    .onChange(of: usernameFocused) { oldValue, newValue in
-                        if oldValue == true && newValue == false {
+                    .onChange(of: usernameFocused) {
+                        if !usernameFocused {
                             viewModel.saveUsernameToFirestore()
                         }
                     }
@@ -205,6 +198,9 @@ struct ProfileView: View {
         .padding()
         .onAppear {
             viewModel.loadProfileData()
+        }
+        .onChange(of: viewModel.username) {
+            currentUsername = viewModel.username
         }
         .sheet(isPresented: $viewModel.isImagePickerPresented) {
             ImagePickerView(selectedImage: $viewModel.selectedImage)
