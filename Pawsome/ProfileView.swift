@@ -6,6 +6,7 @@ import FirebaseAuth
 import Foundation
 
 // MARK: - ViewModel
+
 class ProfileViewModel: ObservableObject {
     @Published var selectedImage: PlatformImage? // Cross-platform image
     @Published var profileImage: String? // Firebase URL string
@@ -13,6 +14,7 @@ class ProfileViewModel: ObservableObject {
     @Published var username: String = "Anonymous"
     @Published var isImageLoading: Bool = false
     @Published var isLoading: Bool = false
+    @Published var isSaving: Bool = false
 
     func loadProfileData() {
         guard let userID = Auth.auth().currentUser?.uid else { return }
@@ -23,24 +25,19 @@ class ProfileViewModel: ObservableObject {
 
         profileRef.getDocument { document, error in
             DispatchQueue.main.async {
+                self.isLoading = false
                 if let document = document, document.exists, let data = document.data() {
                     self.username = data["username"] as? String ?? "Anonymous"
                     self.loadProfileImage(from: data)
                 } else {
                     print("No profile found or error: \(error?.localizedDescription ?? "unknown error")")
-                    self.isLoading = false
                 }
             }
         }
     }
 
     func loadProfileImage(from data: [String: Any]) {
-        if let imageURL = data["profileImage"] as? String {
-            self.profileImage = imageURL
-        } else {
-            self.profileImage = nil
-        }
-        self.isLoading = false
+        self.profileImage = data["profileImage"] as? String
     }
 
     func uploadProfileImageToFirebase(image: PlatformImage) {
@@ -83,9 +80,7 @@ class ProfileViewModel: ObservableObject {
         let db = Firestore.firestore()
         let profileRef = db.collection("users").document(userID)
 
-        profileRef.setData([
-            "profileImage": url.absoluteString
-        ], merge: true) { error in
+        profileRef.setData(["profileImage": url.absoluteString], merge: true) { error in
             DispatchQueue.main.async {
                 if let error = error {
                     print("Error saving image URL: \(error.localizedDescription)")
@@ -96,15 +91,36 @@ class ProfileViewModel: ObservableObject {
             }
         }
     }
+
+    func saveUsernameToFirestore() {
+        guard let userID = Auth.auth().currentUser?.uid else { return }
+        isSaving = true
+
+        let db = Firestore.firestore()
+        let userRef = db.collection("users").document(userID)
+
+        userRef.setData(["username": self.username], merge: true) { error in
+            DispatchQueue.main.async {
+                self.isSaving = false
+                if let error = error {
+                    print("❌ Error saving username: \(error.localizedDescription)")
+                } else {
+                    print("✅ Username updated.")
+                }
+            }
+        }
+    }
 }
 
-// MARK: - ProfileView
+// MARK: - View
+
 struct ProfileView: View {
     @Binding var isLoggedIn: Bool
     @Binding var currentUsername: String
     @Binding var profileImage: String?
 
     @StateObject private var viewModel = ProfileViewModel()
+    @FocusState private var usernameFocused: Bool
 
     var body: some View {
         VStack(spacing: 16) {
@@ -118,11 +134,9 @@ struct ProfileView: View {
                        let imageUrl = URL(string: imageUrlString) {
                         AsyncImage(url: imageUrl) { phase in
                             switch phase {
-                            case .empty:
-                                ProgressView()
+                            case .empty: ProgressView()
                             case .success(let image):
-                                image
-                                    .resizable()
+                                image.resizable()
                                     .scaledToFit()
                                     .frame(width: 120, height: 120)
                                     .clipShape(Circle())
@@ -143,9 +157,19 @@ struct ProfileView: View {
                 }
                 .padding(.top)
 
-                Text(viewModel.username)
-                    .font(.title)
-                    .padding(.bottom)
+                TextField("Username", text: $viewModel.username)
+                    .font(.title2)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .focused($usernameFocused)
+                    .onChange(of: usernameFocused) { oldValue, newValue in
+                        if oldValue == true && newValue == false {
+                            viewModel.saveUsernameToFirestore()
+                        }
+                    }
+
+                Text(viewModel.isSaving ? "Saving..." : "Saved")
+                    .font(.caption)
+                    .foregroundColor(viewModel.isSaving ? .gray : .green)
 
                 Button(action: {
                     viewModel.isImagePickerPresented = true
