@@ -14,7 +14,12 @@ struct PawsomeApp: App {
 
     @State private var isLoggedIn: Bool = false
     @State private var username: String = ""
-    @StateObject private var profileViewModel = ProfileViewModel() // Correct usage in SwiftUI App
+    @StateObject private var profileViewModel: ProfileViewModel
+
+    init() {
+        let savedUsername = UserDefaults.standard.string(forKey: "username") ?? ""
+        _profileViewModel = StateObject(wrappedValue: ProfileViewModel(initialUsername: savedUsername))
+    }
 
     var body: some Scene {
         WindowGroup {
@@ -60,7 +65,7 @@ struct PawsomeApp: App {
                             Label("Profile", systemImage: "person.crop.circle")
                         }
                     }
-                    .environmentObject(profileViewModel) // Inject ViewModel globally
+                    .environmentObject(profileViewModel)
                 }
             } else {
                 LoginView(
