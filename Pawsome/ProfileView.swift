@@ -8,13 +8,18 @@ import Foundation
 // MARK: - ViewModel
 
 class ProfileViewModel: ObservableObject {
-    @Published var selectedImage: PlatformImage? // Cross-platform image
-    @Published var profileImage: String? // Firebase URL string
+    @Published var selectedImage: PlatformImage?
+    @Published var profileImage: String?
     @Published var isImagePickerPresented = false
-    @Published var username: String = "Anonymous"
+    @Published var username: String
     @Published var isImageLoading: Bool = false
     @Published var isLoading: Bool = false
     @Published var isSaving: Bool = false
+
+    init(initialUsername: String, initialProfileImage: String?) {
+        self.username = initialUsername
+        self.profileImage = initialProfileImage
+    }
 
     func loadProfileData() {
         guard let userID = Auth.auth().currentUser?.uid else { return }
@@ -27,7 +32,9 @@ class ProfileViewModel: ObservableObject {
             DispatchQueue.main.async {
                 self.isLoading = false
                 if let document = document, document.exists, let data = document.data() {
-                    self.username = data["username"] as? String ?? "Anonymous"
+                    if let savedUsername = data["username"] as? String, !savedUsername.isEmpty {
+                        self.username = savedUsername
+                    }
                     self.loadProfileImage(from: data)
                 } else {
                     print("No profile found or error: \(error?.localizedDescription ?? "unknown error")")
@@ -119,8 +126,18 @@ struct ProfileView: View {
     @Binding var currentUsername: String
     @Binding var profileImage: String?
 
-    @StateObject private var viewModel = ProfileViewModel()
+    @StateObject private var viewModel: ProfileViewModel
     @FocusState private var usernameFocused: Bool
+
+    init(isLoggedIn: Binding<Bool>, currentUsername: Binding<String>, profileImage: Binding<String?>) {
+        self._isLoggedIn = isLoggedIn
+        self._currentUsername = currentUsername
+        self._profileImage = profileImage
+        self._viewModel = StateObject(wrappedValue: ProfileViewModel(
+            initialUsername: currentUsername.wrappedValue,
+            initialProfileImage: profileImage.wrappedValue
+        ))
+    }
 
     var body: some View {
         VStack(spacing: 16) {
@@ -130,7 +147,7 @@ struct ProfileView: View {
                     .padding()
             } else {
                 Group {
-                    if let imageUrlString = viewModel.profileImage ?? profileImage,
+                    if let imageUrlString = viewModel.profileImage,
                        let imageUrl = URL(string: imageUrlString),
                        imageUrl.scheme?.hasPrefix("http") == true {
                         AsyncImage(url: imageUrl) { phase in
@@ -144,9 +161,10 @@ struct ProfileView: View {
                                     .frame(width: 120, height: 120)
                                     .clipShape(Circle())
                             case .failure:
-                                Image(systemName: "person.crop.circle.badge.exclamationmark")
+                                Image(systemName: "person.crop.circle")
                                     .resizable()
                                     .frame(width: 120, height: 120)
+                                    .foregroundColor(.gray) 
                             @unknown default:
                                 EmptyView()
                             }
