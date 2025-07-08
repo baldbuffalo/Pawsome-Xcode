@@ -7,8 +7,8 @@ import Foundation
 
 // MARK: - ViewModel
 class ProfileViewModel: ObservableObject {
-    @Published var selectedImage: PlatformImage? // PlatformImage supports both platforms
-    @Published var profileImage: String? // Holds the image URL as a String
+    @Published var selectedImage: PlatformImage? // Cross-platform image
+    @Published var profileImage: String? // Firebase URL string
     @Published var isImagePickerPresented = false
     @Published var username: String = "Anonymous"
     @Published var isImageLoading: Bool = false
@@ -18,7 +18,6 @@ class ProfileViewModel: ObservableObject {
         guard let userID = Auth.auth().currentUser?.uid else { return }
 
         isLoading = true
-
         let db = Firestore.firestore()
         let profileRef = db.collection("users").document(userID)
 
@@ -103,7 +102,7 @@ class ProfileViewModel: ObservableObject {
 struct ProfileView: View {
     @Binding var isLoggedIn: Bool
     @Binding var currentUsername: String
-    @Binding var profileImage: String? // Holds the profile image URL
+    @Binding var profileImage: String?
 
     @StateObject private var viewModel = ProfileViewModel()
 
@@ -144,7 +143,7 @@ struct ProfileView: View {
                 }
                 .padding(.top)
 
-                Text(viewModel.username.isEmpty ? currentUsername : viewModel.username)
+                Text(viewModel.username)
                     .font(.title)
                     .padding(.bottom)
 
