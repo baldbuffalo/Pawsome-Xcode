@@ -13,12 +13,16 @@ struct PawsomeApp: App {
     #endif
 
     @State private var isLoggedIn: Bool = false
-    @State private var username: String = ""
+    @State private var username: String
     @StateObject private var profileViewModel: ProfileViewModel
 
     init() {
         let savedUsername = UserDefaults.standard.string(forKey: "username") ?? ""
-        _profileViewModel = StateObject(wrappedValue: ProfileViewModel(initialUsername: savedUsername))
+        
+        // Initialize State using workaround with local vars
+        var usernameState = State(initialValue: savedUsername)
+        _username = usernameState
+        _profileViewModel = StateObject(wrappedValue: ProfileViewModel(username: usernameState.projectedValue))
     }
 
     var body: some Scene {

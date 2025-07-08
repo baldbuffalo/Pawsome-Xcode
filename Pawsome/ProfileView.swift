@@ -5,19 +5,19 @@ import FirebaseFirestore
 import FirebaseAuth
 import Foundation
 
-// MARK: - ViewModel
+// MARK: - Profile ViewModel (combined in this file)
 
 class ProfileViewModel: ObservableObject {
-    @Published var selectedImage: PlatformImage? // Cross-platform image
-    @Published var profileImage: String? // Firebase URL string
+    @Published var selectedImage: PlatformImage?
+    @Published var profileImage: String?
     @Published var isImagePickerPresented = false
-    @Published var username: String
+    @Binding var username: String
     @Published var isImageLoading: Bool = false
     @Published var isLoading: Bool = false
     @Published var isSaving: Bool = false
 
-    init(initialUsername: String) {
-        self.username = initialUsername
+    init(username: Binding<String>) {
+        self._username = username
     }
 
     func loadProfileData() {
@@ -116,7 +116,7 @@ class ProfileViewModel: ObservableObject {
     }
 }
 
-// MARK: - View
+// MARK: - ProfileView
 
 struct ProfileView: View {
     @Binding var isLoggedIn: Bool
@@ -130,7 +130,7 @@ struct ProfileView: View {
         self._isLoggedIn = isLoggedIn
         self._currentUsername = currentUsername
         self._profileImage = profileImage
-        _viewModel = StateObject(wrappedValue: ProfileViewModel(initialUsername: currentUsername.wrappedValue))
+        _viewModel = StateObject(wrappedValue: ProfileViewModel(username: currentUsername))
     }
 
     var body: some View {
@@ -198,9 +198,6 @@ struct ProfileView: View {
         .padding()
         .onAppear {
             viewModel.loadProfileData()
-        }
-        .onChange(of: viewModel.username) {
-            currentUsername = viewModel.username
         }
         .sheet(isPresented: $viewModel.isImagePickerPresented) {
             ImagePickerView(selectedImage: $viewModel.selectedImage)
