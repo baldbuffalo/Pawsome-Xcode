@@ -98,9 +98,8 @@ struct LoginView: View {
                 return
             }
 
-            // ✅ Modern API
             let credential = OAuthProvider.credential(
-                providerID: AuthProviderID.apple,
+                providerID: .apple,
                 idToken: tokenString,
                 rawNonce: nonce
             )
@@ -125,9 +124,13 @@ struct LoginView: View {
                 }
 
                 profileImage = "system:person.circle"
-                saveUserToFirestore(uid: user.uid, username: username, profilePic: profileImage)
+
+                // ✅ Save to Firestore & local cache
+                saveUserToFirestore(uid: user.uid, username: username, profileImage: profileImage)
                 saveJoinDate()
+                UserDefaults.standard.set(username, forKey: "username")
                 UserDefaults.standard.set(true, forKey: "isLoggedIn")
+
                 isLoggedIn = true
             }
         } else {
@@ -172,16 +175,17 @@ struct LoginView: View {
         }
 
         if let uid = Auth.auth().currentUser?.uid {
-            saveUserToFirestore(uid: uid, username: username, profilePic: profileImage)
+            saveUserToFirestore(uid: uid, username: username, profileImage: profileImage)
         }
 
         saveJoinDate()
+        UserDefaults.standard.set(username, forKey: "username")
         UserDefaults.standard.set(true, forKey: "isLoggedIn")
         isLoggedIn = true
     }
 
     // MARK: - Firestore
-    private func saveUserToFirestore(uid: String, username: String, profilePic: String?) {
+    private func saveUserToFirestore(uid: String, username: String, profileImage: String?) {
         let db = Firestore.firestore()
         let userRef = db.collection("users").document(uid)
 
@@ -190,8 +194,8 @@ struct LoginView: View {
             "joinDate": Timestamp(date: Date())
         ]
 
-        if let profilePic = profilePic {
-            data["profilePic"] = profilePic
+        if let profileImage = profileImage {
+            data["profileImage"] = profileImage
         }
 
         userRef.setData(data, merge: true) { error in
@@ -231,10 +235,7 @@ struct LoginView: View {
             }
 
             randoms.forEach { random in
-                if remainingLength == 0 {
-                    return
-                }
-
+                if remainingLength == 0 { return }
                 if random < charset.count {
                     result.append(charset[Int(random)])
                     remainingLength -= 1

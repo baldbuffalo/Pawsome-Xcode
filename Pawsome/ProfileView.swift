@@ -165,7 +165,7 @@ struct ProfileView: View {
                         if oldValue == true && newValue == false {
                             viewModel.saveUsernameToFirestore()
                         }
-                    }
+                    }   
 
                 Text(viewModel.isSaving ? "Saving..." : "Saved")
                     .font(.caption)
