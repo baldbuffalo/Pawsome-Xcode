@@ -131,12 +131,15 @@ struct ProfileView: View {
             } else {
                 Group {
                     if let imageUrlString = viewModel.profileImage ?? profileImage,
-                       let imageUrl = URL(string: imageUrlString) {
+                       let imageUrl = URL(string: imageUrlString),
+                       imageUrl.scheme?.hasPrefix("http") == true {
                         AsyncImage(url: imageUrl) { phase in
                             switch phase {
-                            case .empty: ProgressView()
+                            case .empty:
+                                ProgressView()
                             case .success(let image):
-                                image.resizable()
+                                image
+                                    .resizable()
                                     .scaledToFit()
                                     .frame(width: 120, height: 120)
                                     .clipShape(Circle())
@@ -165,7 +168,7 @@ struct ProfileView: View {
                         if oldValue == true && newValue == false {
                             viewModel.saveUsernameToFirestore()
                         }
-                    }   
+                    }
 
                 Text(viewModel.isSaving ? "Saving..." : "Saved")
                     .font(.caption)
