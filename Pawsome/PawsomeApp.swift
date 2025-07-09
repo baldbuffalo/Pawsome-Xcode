@@ -18,9 +18,7 @@ struct PawsomeApp: App {
 
     init() {
         let savedUsername = UserDefaults.standard.string(forKey: "username") ?? ""
-        
-        // Initialize State using workaround with local vars
-        var usernameState = State(initialValue: savedUsername)
+        let usernameState = State(initialValue: savedUsername)
         _username = usernameState
         _profileViewModel = StateObject(wrappedValue: ProfileViewModel(username: usernameState.projectedValue))
     }
