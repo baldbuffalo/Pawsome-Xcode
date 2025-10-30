@@ -9,8 +9,6 @@ import AVFoundation
 #endif
 
 struct ScanView: View {
-    @Environment(\.managedObjectContext) private var viewContext
-
     #if os(iOS)
     @Binding var selectedImage: UIImage?
     #elseif os(macOS)
@@ -20,58 +18,59 @@ struct ScanView: View {
     @State private var isImagePickerPresented: Bool = false
     @State private var errorMessage: String?
     @State private var showForm: Bool = false
-    @State private var navigateToHome: Bool = false
-    @State private var showSourcePicker: Bool = false
-    @State private var useCamera: Bool = false
 
     var username: String = "YourUsername"
-    var onPostCreated: () -> Void
+    var onPostCreated: ((CatPost) -> Void)? // ✅ expects CatPost
+
+    @State private var useCamera: Bool = false
+    @State private var showSourcePicker: Bool = false
 
     var body: some View {
-        NavigationStack {
-            VStack {
-                Button("Choose Image") {
-                    showSourcePicker = true
-                }
-                .padding()
-                .foregroundColor(.white)
-                .background(Color.blue)
-                .cornerRadius(8)
-                .confirmationDialog("Select Image Source", isPresented: $showSourcePicker, titleVisibility: .visible) {
-                    #if os(iOS)
-                    Button("Open Camera") {
-                        useCamera = true
-                        isImagePickerPresented = true
-                    }
-                    #endif
-                    Button("Open Files") {
-                        useCamera = false
-                        isImagePickerPresented = true
-                    }
-                    Button("Cancel", role: .cancel) {}
-                }
-                .sheet(isPresented: $isImagePickerPresented) {
-                    mediaPickerView()
-                }
-
-                if let errorMessage = errorMessage {
-                    Text(errorMessage)
-                        .foregroundColor(.red)
-                        .padding()
-                }
+        VStack {
+            Button("Choose Image") {
+                showSourcePicker = true
             }
-            .navigationTitle("Scan Cat")
-            .navigationDestination(isPresented: $isImagePickerPresented) {
+            .padding()
+            .foregroundColor(.white)
+            .background(Color.blue)
+            .cornerRadius(8)
+            .confirmationDialog("Select Image Source", isPresented: $showSourcePicker, titleVisibility: .visible) {
+                #if os(iOS)
+                Button("Open Camera") {
+                    useCamera = true
+                    isImagePickerPresented = true
+                }
+                #endif
+                Button("Open Files") {
+                    useCamera = false
+                    isImagePickerPresented = true
+                }
+                Button("Cancel", role: .cancel) {}
+            }
+            .sheet(isPresented: $isImagePickerPresented) {
+                mediaPickerView()
+            }
+
+            if showForm {
                 FormView(
                     showForm: $showForm,
-                    navigateToHome: $navigateToHome,
+                    navigateToHome: .constant(false),
                     imageUIData: selectedImage?.pngData(),
                     videoURL: nil,
                     username: username,
-                    onPostCreated: {_ in
-                        onPostCreated()
+                    onPostCreated: { post in
+                        onPostCreated?(post) // ✅ send actual post
+                        selectedImage = nil
+                        showForm = false
                     }
                 )
+                .frame(maxHeight: 600)
+            }
+
+            if let errorMessage = errorMessage {
+                Text(errorMessage)
+                    .foregroundColor(.red)
+                    .padding()
             }
         }
     }
@@ -79,11 +78,9 @@ struct ScanView: View {
     @ViewBuilder
     private func mediaPickerView() -> some View {
         #if os(iOS)
-        ImagePicker(
-            selectedImage: $selectedImage,
-            useCamera: useCamera,
-            onImageCaptured: { }
-        )
+        ImagePicker(selectedImage: $selectedImage, useCamera: useCamera, onImageCaptured: {
+            showForm = true
+        })
         #elseif os(macOS)
         ImagePickerMac(selectedImage: $selectedImage)
         #endif
@@ -106,21 +103,14 @@ struct ImagePicker: UIViewControllerRepresentable {
     }
 
     func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
-    }
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
 
     class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
         let parent: ImagePicker
+        init(_ parent: ImagePicker) { self.parent = parent }
 
-        init(_ parent: ImagePicker) {
-            self.parent = parent
-        }
-
-        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
             defer { picker.dismiss(animated: true) }
-
             if let image = info[.originalImage] as? UIImage {
                 parent.selectedImage = image
                 parent.onImageCaptured()
@@ -151,9 +141,7 @@ struct ImagePickerMac: View {
         }
     }
 }
-#endif
 
-#if os(macOS)
 extension NSImage {
     func pngData() -> Data? {
         guard let tiffRepresentation = self.tiffRepresentation else { return nil }

@@ -13,14 +13,14 @@ struct FormView: View {
     var imageUIData: Data?
     var videoURL: URL?
     var username: String
-    var onPostCreated: ((Bool) -> Void)?
-    
+    var onPostCreated: ((CatPost) -> Void)? // ✅ Now passes CatPost
+
     @State private var catName: String = ""
     @State private var breed: String = ""
     @State private var age: String = ""
     @State private var location: String = ""
     @State private var description: String = ""
-    
+
     var body: some View {
         ScrollView {
             VStack {
@@ -35,22 +35,20 @@ struct FormView: View {
                         .foregroundColor(.gray)
                         .padding()
                 }
-                
+
                 inputField(placeholder: "Cat Name", text: $catName)
                 inputField(placeholder: "Breed", text: $breed)
-                
+
                 #if os(iOS)
                 inputField(placeholder: "Age", text: $age, keyboardType: .numberPad)
                 #else
                 inputField(placeholder: "Age", text: $age)
                 #endif
-                
+
                 inputField(placeholder: "Location", text: $location)
                 inputField(placeholder: "Description", text: $description)
-                
-                Button(action: {
-                    createPost()
-                }) {
+
+                Button(action: { createPost() }) {
                     Text("Post")
                         .foregroundColor(isFormComplete ? .blue : .gray)
                 }
@@ -65,58 +63,29 @@ struct FormView: View {
             #endif
         }
     }
-    
+
     private var isFormComplete: Bool {
-        return !catName.isEmpty && !breed.isEmpty && !age.isEmpty && !location.isEmpty && !description.isEmpty
+        !catName.isEmpty && !breed.isEmpty && !age.isEmpty && !location.isEmpty && !description.isEmpty
     }
-    
+
     private func createPost() {
-        guard let ageValue = Int32(age) else { return }
-        
+        guard let ageValue = Int(age) else { return }
+
         if let imageData = imageUIData {
             let storageRef = Storage.storage().reference().child("cat_images/\(UUID().uuidString).png")
-            
-            storageRef.putData(imageData, metadata: nil) { metadata, error in
-                guard error == nil else {
-                    print("Error uploading image: \(error!.localizedDescription)")
-                    return
-                }
-                
+            storageRef.putData(imageData, metadata: nil) { _, error in
+                guard error == nil else { print("Error: \(error!)"); return }
                 storageRef.downloadURL { url, error in
-                    guard let downloadURL = url, error == nil else {
-                        print("Error getting download URL: \(error!.localizedDescription)")
-                        return
-                    }
-                    
-                    let postData: [String: Any] = [
-                        "username": username,
-                        "catName": catName,
-                        "catBreed": breed,
-                        "catAge": ageValue,
-                        "location": location,
-                        "description": description,
-                        "imageURL": downloadURL.absoluteString,
-                        "timestamp": Timestamp(date: Date())
-                    ]
-                    
-                    Firestore.firestore().collection("posts").addDocument(data: postData) { error in
-                        if let error = error {
-                            print("Error saving post: \(error.localizedDescription)")
-                        } else {
-                            print("Post saved successfully!")
-                            showForm = false
-                            navigateToHome = true
-                            onPostCreated?(true) // Call the onPostCreated closure
-                        }
-                    }
+                    guard let downloadURL = url, error == nil else { print("Error: \(error!)"); return }
+                    savePostData(ageValue: ageValue, imageURL: downloadURL.absoluteString)
                 }
             }
         } else {
             savePostData(ageValue: ageValue, imageURL: "")
         }
     }
-    
-    private func savePostData(ageValue: Int32, imageURL: String) {
+
+    private func savePostData(ageValue: Int, imageURL: String) {
         let postData: [String: Any] = [
             "username": username,
             "catName": catName,
@@ -127,7 +96,7 @@ struct FormView: View {
             "imageURL": imageURL,
             "timestamp": Timestamp(date: Date())
         ]
-        
+
         Firestore.firestore().collection("posts").addDocument(data: postData) { error in
             if let error = error {
                 print("Error saving post: \(error.localizedDescription)")
@@ -135,25 +104,36 @@ struct FormView: View {
                 print("Post saved successfully!")
                 showForm = false
                 navigateToHome = true
-                onPostCreated?(true) // Call the onPostCreated closure
+
+                // ✅ Create CatPost and pass it back
+                let newPost = CatPost(
+                    id: nil,
+                    catName: catName,
+                    catBreed: breed,
+                    location: location,
+                    imageURL: imageURL,
+                    postDescription: description,
+                    likes: 0,
+                    comments: [],
+                    catAge: Int(ageValue),
+                    username: username,
+                    timestamp: Date(),
+                    form: nil
+                )
+                onPostCreated?(newPost)
             }
         }
     }
-    
+
     private func imageFromData(_ data: Data) -> Image? {
         #if os(iOS)
-        if let uiImage = UIImage(data: data) {
-            return Image(uiImage: uiImage)
-        }
+        if let uiImage = UIImage(data: data) { return Image(uiImage: uiImage) }
         #else
-        if let nsImage = NSImage(data: data) {
-            return Image(nsImage: nsImage)
-        }
+        if let nsImage = NSImage(data: data) { return Image(nsImage: nsImage) }
         #endif
         return nil
     }
-    
-    // iOS-specific inputField
+
     #if os(iOS)
     private func inputField(placeholder: String, text: Binding<String>, keyboardType: UIKeyboardType? = nil) -> some View {
         TextField(placeholder, text: text)
@@ -162,8 +142,7 @@ struct FormView: View {
             .padding()
     }
     #endif
-    
-    // macOS-specific inputField (no UIKeyboardType here)
+
     #if os(macOS)
     private func inputField(placeholder: String, text: Binding<String>) -> some View {
         TextField(placeholder, text: text)

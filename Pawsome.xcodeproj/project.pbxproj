@@ -59,7 +59,7 @@
 		624652A62CCD2351000B3F46 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		624652A92CCD2351000B3F46 /* ColorExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorExtensions.swift; sourceTree = "<group>"; };
 		624652AA2CCD2351000B3F46 /* CommentsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommentsView.swift; sourceTree = "<group>"; };
-		624652AB2CCD2351000B3F46 /* Form.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Form.swift; sourceTree = "<group>"; };
+		624652AB2CCD2351000B3F46 /* FormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormView.swift; sourceTree = "<group>"; };
 		624652AC2CCD2351000B3F46 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		624652AD2CCD2351000B3F46 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		624652AE2CCD2351000B3F46 /* ImageEditing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageEditing.swift; sourceTree = "<group>"; };
@@ -85,13 +85,6 @@
 			);
 			target = 62355CC42C84CC5400560D69 /* Pawsome */;
 		};
-		62F845252D5FFFB6000B1915 /* Exceptions for "CatPostModule" folder in "CatPostModule" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			publicHeaders = (
-				CatPostModule.h,
-			);
-			target = 62F845072D5FFFB6000B1915 /* CatPostModule */;
-		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -115,9 +108,6 @@
 		};
 		62F845092D5FFFB6000B1915 /* CatPostModule */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				62F845252D5FFFB6000B1915 /* Exceptions for "CatPostModule" folder in "CatPostModule" target */,
-			);
 			path = CatPostModule;
 			sourceTree = "<group>";
 		};
@@ -203,7 +193,7 @@
 				624652A82CCD2351000B3F46 /* CatPostModel.xcdatamodeld */,
 				624652A92CCD2351000B3F46 /* ColorExtensions.swift */,
 				624652AA2CCD2351000B3F46 /* CommentsView.swift */,
-				624652AB2CCD2351000B3F46 /* Form.swift */,
+				624652AB2CCD2351000B3F46 /* FormView.swift */,
 				624652AC2CCD2351000B3F46 /* GoogleService-Info.plist */,
 				624652AD2CCD2351000B3F46 /* HomeView.swift */,
 				624652AE2CCD2351000B3F46 /* ImageEditing.swift */,
