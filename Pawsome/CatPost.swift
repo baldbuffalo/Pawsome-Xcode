@@ -1,5 +1,6 @@
 import Foundation
 import FirebaseFirestore
+import Combine
 
 struct CatPost: Identifiable, Codable {
     var id: String?
@@ -13,12 +14,12 @@ struct CatPost: Identifiable, Codable {
     var catAge: Int?
     var username: String?
     var timestamp: Date?
-    var form: [String: String]? // ✅ Form data stored as [String: String]
+    var form: [String: String]? // ✅ Form data
 
-    static func from(data: [String: Any], id: String) -> CatPost? {
+    static func from(data: [String: Any], id: String) -> CatPost {
         return CatPost(
             id: id,
-            catName: data["catName"] as? String ?? "",
+            catName: data["catName"] as? String ?? "Unknown Cat",
             catBreed: data["catBreed"] as? String,
             location: data["location"] as? String,
             imageURL: data["imageURL"] as? String,
@@ -27,8 +28,42 @@ struct CatPost: Identifiable, Codable {
             comments: data["comments"] as? [String] ?? [],
             catAge: data["catAge"] as? Int,
             username: data["username"] as? String,
-            timestamp: (data["timestamp"] as? Timestamp)?.dateValue(),
-            form: data["form"] as? [String: String] // ✅ Decoding form field
+            timestamp: (data["timestamp"] as? Timestamp)?.dateValue() ?? Date(),
+            form: data["form"] as? [String: String]
         )
+    }
+}
+
+// MARK: - ViewModel
+
+class CatPostViewModel: ObservableObject {
+    @Published var posts: [CatPost] = []
+    private var db = Firestore.firestore()
+
+    func fetchPosts() {
+        db.collection("catPosts")
+            .order(by: "timestamp", descending: true)
+            .addSnapshotListener { snapshot, error in
+                if let error = error {
+                    print("Error fetching posts: \(error.localizedDescription)")
+                    return
+                }
+
+                guard let documents = snapshot?.documents else { return }
+                self.posts = documents.map { doc in
+                    CatPost.from(data: doc.data(), id: doc.documentID)
+                }
+            }
+    }
+
+    func addPost(_ post: CatPost) {
+        var data = try? Firestore.Encoder().encode(post)
+        db.collection("catPosts").addDocument(data: data ?? [:]) { error in
+            if let error = error {
+                print("Error adding post: \(error.localizedDescription)")
+            } else {
+                print("✅ Post added successfully")
+            }
+        }
     }
 }
