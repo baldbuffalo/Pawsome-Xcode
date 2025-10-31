@@ -1,17 +1,61 @@
 import SwiftUI
 import FirebaseFirestore
 
+// MARK: - HomeViewModel
+class HomeViewModel: ObservableObject {
+    @Published var posts: [CatPost] = []
+    @Published var isLoading = true
+    @Published var errorMessage: String?
+
+    private let db = Firestore.firestore()
+
+    func fetchPosts() {
+        isLoading = true
+        Task {
+            do {
+                let snapshot = try await db.collection("posts")
+                    .order(by: "timestamp", descending: true)
+                    .getDocuments()
+                
+                let fetchedPosts = snapshot.documents.compactMap { doc -> CatPost? in
+                    CatPost.from(data: doc.data(), id: doc.documentID)
+                }
+                
+                await MainActor.run {
+                    self.posts = fetchedPosts
+                    self.isLoading = false
+                }
+            } catch {
+                await MainActor.run {
+                    self.errorMessage = "Failed to load posts: \(error.localizedDescription)"
+                    self.isLoading = false
+                }
+            }
+        }
+    }
+
+    func deletePost(_ post: CatPost) {
+        guard let postID = post.id else { return }
+        db.collection("posts").document(postID).delete { error in
+            DispatchQueue.main.async {
+                if let error = error {
+                    self.errorMessage = "Failed to delete post: \(error.localizedDescription)"
+                } else {
+                    self.posts.removeAll { $0.id == postID }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - HomeView
 struct HomeView: View {
     @Binding var isLoggedIn: Bool
     @Binding var currentUsername: String
     @Binding var profileImage: String?
 
-    @State private var posts: [CatPost] = []
-    @State private var isLoading = true
-    @State private var errorMessage: String?
+    @StateObject private var viewModel = HomeViewModel()
     @State private var postToDelete: CatPost?
-
-    private let db = Firestore.firestore()
 
     var onPostCreated: (() -> Void)? = nil
 
@@ -21,16 +65,16 @@ struct HomeView: View {
                 .navigationTitle("Pawsome")
                 .toolbar {
                     ToolbarItem(placement: .primaryAction) {
-                        Button(action: fetchPosts) {
+                        Button(action: viewModel.fetchPosts) {
                             Image(systemName: "arrow.clockwise")
                         }
                     }
                 }
                 .alert("Error", isPresented: Binding(
-                    get: { errorMessage != nil },
-                    set: { _ in errorMessage = nil }
+                    get: { viewModel.errorMessage != nil },
+                    set: { _ in viewModel.errorMessage = nil }
                 )) {
-                    Text(errorMessage ?? "Unknown error")
+                    Text(viewModel.errorMessage ?? "Unknown error")
                 }
                 .confirmationDialog("Delete Post?", isPresented: Binding(
                     get: { postToDelete != nil },
@@ -38,64 +82,35 @@ struct HomeView: View {
                 )) {
                     if let post = postToDelete {
                         Button("Delete", role: .destructive) {
-                            deletePost(post)
+                            viewModel.deletePost(post)
                         }
                     }
                     Button("Cancel", role: .cancel) {}
                 }
-                .onAppear { fetchPosts() }
-                .refreshable { fetchPosts() }
+                .onAppear { viewModel.fetchPosts() }
+                .refreshable { viewModel.fetchPosts() }
         }
     }
 
     @ViewBuilder
     private var content: some View {
-        if isLoading {
+        if viewModel.isLoading {
             ProgressView("Loading posts...")
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else if posts.isEmpty {
+        } else if viewModel.posts.isEmpty {
             Text("No posts available.")
                 .font(.title)
                 .foregroundColor(.gray)
                 .padding()
         } else {
-            List(posts) { post in
+            List(viewModel.posts) { post in
                 PostCell(post: post)
                     .swipeActions(edge: .trailing) {
                         deleteButton(post: post)
                     }
-                    .contextMenu {
-                        deleteButton(post: post)
-                    }
+                    .contextMenu { deleteButton(post: post) }
             }
             .listStyle(.plain)
-        }
-    }
-
-    private func fetchPosts() {
-        isLoading = true
-        db.collection("posts").order(by: "timestamp", descending: true)
-            .getDocuments { snapshot, error in
-                if let error = error {
-                    errorMessage = "Failed to load posts: \(error.localizedDescription)"
-                } else {
-                    posts = snapshot?.documents.compactMap { doc in
-                        let data = doc.data()
-                        return CatPost.from(data: data, id: doc.documentID)
-                    } ?? []
-                }
-                isLoading = false
-            }
-    }
-
-    private func deletePost(_ post: CatPost) {
-        guard let postID = post.id else { return }
-        db.collection("posts").document(postID).delete { error in
-            if let error = error {
-                errorMessage = "Failed to delete post: \(error.localizedDescription)"
-            } else {
-                posts.removeAll { $0.id == postID }
-            }
         }
     }
 
@@ -108,6 +123,7 @@ struct HomeView: View {
     }
 }
 
+// MARK: - PostCell
 private struct PostCell: View {
     let post: CatPost
 
