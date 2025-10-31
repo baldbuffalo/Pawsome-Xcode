@@ -1,55 +1,66 @@
-#if canImport(UIKit)
+import SwiftUI
+import FirebaseCore
+import FirebaseAuth
+import FirebaseFirestore
+import FirebaseStorage
+
+#if os(iOS)
 import UIKit
-import Firebase
-import GoogleSignIn
-import AVFoundation
-import CoreData
+#elseif os(macOS)
+import AppKit
+#endif
 
-class AppDelegate: NSObject, UIApplicationDelegate {
-    var window: UIWindow?
-    var photoOutput: AVCapturePhotoOutput?
-
-    lazy var persistentContainer: NSPersistentContainer = {
-        let container = NSPersistentContainer(name: "CatPostModel")
-        container.loadPersistentStores { storeDescription, error in
-            if let error = error as NSError? {
-                fatalError("Unresolved error \(error), \(error.userInfo)")
-            }
+// MARK: - AppDelegate
+class AppDelegate: NSObject {
+    
+    // Shared instance (optional, if you wanna access globally)
+    static let shared = AppDelegate()
+    
+    // Firebase setup
+    func setupFirebase() {
+        if FirebaseApp.app() == nil {
+            FirebaseApp.configure()
+            print("✅ Firebase configured")
         }
-        return container
-    }()
-
-    func application(_ application: UIApplication,
-                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        FirebaseApp.configure()
-        return true
     }
-
-    func application(_ app: UIApplication, open url: URL,
-                     options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
-        return GIDSignIn.sharedInstance.handle(url)
-    }
-
-    func saveContext() {
-        let context = persistentContainer.viewContext
-        if context.hasChanges {
-            do {
-                try context.save()
-            } catch {
-                let nserror = error as NSError
-                fatalError("Unresolved error \(nserror), \(nserror.userInfo)")
-            }
-        }
+    
+    // Additional setup for notifications or other services can go here
+    func setupServices() {
+        // e.g., Push Notifications, Analytics, etc.
     }
 }
 
-#elseif canImport(AppKit)
-import AppKit
-import Firebase
+#if os(iOS)
+extension AppDelegate: UIApplicationDelegate {
+    
+    func application(_ application: UIApplication,
+                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        setupFirebase()
+        setupServices()
+        return true
+    }
+    
+    // Handle URL for Google Sign-In / other auth methods
+    func application(_ app: UIApplication, open url: URL,
+                     options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
+        // Google Sign-In URL handling
+        return GIDSignIn.sharedInstance.handle(url)
+    }
+}
 
-class AppDelegate: NSObject, NSApplicationDelegate {
+#elseif os(macOS)
+extension AppDelegate: NSApplicationDelegate {
+    
     func applicationDidFinishLaunching(_ notification: Notification) {
-        FirebaseApp.configure()
+        setupFirebase()
+        setupServices()
+    }
+    
+    // Optional: handle open URL or other macOS-specific app events
+    func application(_ application: NSApplication, open urls: [URL]) {
+        for url in urls {
+            print("Opened URL: \(url.absoluteString)")
+        }
     }
 }
 #endif
