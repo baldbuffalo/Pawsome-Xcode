@@ -50,7 +50,8 @@ struct PawsomeApp: App {
                         ScanView(
                             selectedImage: .constant(nil),
                             username: username,
-                            onPostCreated: {
+                            onPostCreated: { post in
+                                print("🔥 New post: \(post.catName)")
                                 profileViewModel.loadProfileData()
                             }
                         )
