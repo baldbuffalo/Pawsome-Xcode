@@ -5,21 +5,19 @@ import MobileCoreServices
 #endif
 #if os(macOS)
 import AppKit
-import AVFoundation
 #endif
 
 // ------------------- NSImage Extension -------------------
 #if os(macOS)
 extension NSImage {
     func pngData() -> Data? {
-        guard let tiffRepresentation = self.tiffRepresentation else { return nil }
-        let bitmap = NSBitmapImageRep(data: tiffRepresentation)
-        return bitmap?.representation(using: .png, properties: [:])
+        guard let tiff = self.tiffRepresentation,
+              let bitmap = NSBitmapImageRep(data: tiff) else { return nil }
+        return bitmap.representation(using: .png, properties: [:])
     }
 }
 #endif
 
-// ------------------- ScanView -------------------
 struct ScanView: View {
     #if os(iOS)
     @Binding var selectedImage: UIImage?
@@ -28,16 +26,15 @@ struct ScanView: View {
     #endif
 
     @State private var isImagePickerPresented: Bool = false
-    @State private var showForm: Bool = false
     @State private var showSourcePicker: Bool = false
+    @State private var useCamera: Bool = false
+    @State private var showForm: Bool = false // triggers navigationDestination
 
     var username: String
     var onPostCreated: ((CatPost) -> Void)?
 
-    @State private var useCamera: Bool = false
-
     var body: some View {
-        ZStack {
+        NavigationStack {
             VStack {
                 Button("Choose Image") {
                     showSourcePicker = true
@@ -46,8 +43,7 @@ struct ScanView: View {
                 .foregroundColor(.white)
                 .background(Color.blue)
                 .cornerRadius(8)
-
-                // ------------------- iOS Confirmation Dialog -------------------
+                // ------------------- Confirmation Dialog -------------------
                 #if os(iOS)
                 .confirmationDialog("Select Image Source", isPresented: $showSourcePicker, titleVisibility: .visible) {
                     Button("Open Camera") { useCamera = true; isImagePickerPresented = true }
@@ -55,67 +51,42 @@ struct ScanView: View {
                     Button("Cancel", role: .cancel) {}
                 }
                 #elseif os(macOS)
-                // ------------------- macOS Confirmation Dialog -------------------
                 .confirmationDialog("Select Image Source", isPresented: $showSourcePicker, titleVisibility: .visible) {
-                    Button("Open Files") {
-                        openMacFilePicker()
-                        if selectedImage != nil { showForm = true }
-                    }
+                    Button("Open Files") { openMacFilePicker() }
                     Button("Cancel", role: .cancel) {}
                 }
                 #endif
 
-                // ------------------- Show FormView -------------------
-                if showForm {
-                    #if os(iOS)
-                    if let imageData = selectedImage?.pngData() {
-                        FormView(
-                            showForm: $showForm,
-                            navigateToHome: .constant(false),
-                            imageUIData: imageData,
-                            videoURL: nil,
-                            username: username,
-                            onPostCreated: { post in
-                                onPostCreated?(post)
-                                selectedImage = nil
-                                showForm = false
-                            }
-                        )
-                        .frame(maxHeight: 600)
+                #if os(iOS)
+                // ------------------- iOS Image Picker Sheet -------------------
+                .sheet(isPresented: $isImagePickerPresented) {
+                    ZStack {
+                        Color.black.opacity(0.001)
+                            .ignoresSafeArea()
+                            .onTapGesture { isImagePickerPresented = false }
+                        ImagePicker(selectedImage: $selectedImage, useCamera: useCamera) {
+                            showForm = true
+                        }
                     }
-                    #elseif os(macOS)
-                    if let imageData = selectedImage?.pngData() {
-                        FormView(
-                            showForm: $showForm,
-                            navigateToHome: .constant(false),
-                            imageUIData: imageData,
-                            videoURL: nil,
-                            username: username,
-                            onPostCreated: { post in
-                                onPostCreated?(post)
-                                selectedImage = nil
-                                showForm = false
-                            }
-                        )
-                        .frame(maxHeight: 600)
-                    }
-                    #endif
+                }
+                #endif
+            }
+            // ------------------- NavigationDestination to FormView -------------------
+            .navigationDestination(isPresented: $showForm) {
+                if let imageData = selectedImage?.pngData() {
+                    FormView(
+                        showForm: $showForm,
+                        navigateToHome: .constant(false),
+                        imageUIData: imageData,
+                        videoURL: nil,
+                        username: username,
+                        onPostCreated: { post in
+                            onPostCreated?(post)
+                            selectedImage = nil
+                        }
+                    )
                 }
             }
-        }
-        // ------------------- iOS Sheet -------------------
-        .sheet(isPresented: $isImagePickerPresented) {
-            #if os(iOS)
-            ZStack {
-                Color.black.opacity(0.001)
-                    .ignoresSafeArea()
-                    .onTapGesture { isImagePickerPresented = false }
-
-                ImagePicker(selectedImage: $selectedImage, useCamera: useCamera, onImageCaptured: {
-                    showForm = true
-                })
-            }
-            #endif
         }
     }
 
@@ -129,6 +100,7 @@ struct ScanView: View {
            let url = panel.urls.first,
            let image = NSImage(contentsOf: url) {
             selectedImage = image
+            showForm = true // triggers navigationDestination
         }
     }
     #endif
