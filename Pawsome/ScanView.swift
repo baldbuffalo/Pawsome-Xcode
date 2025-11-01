@@ -5,37 +5,28 @@ import MobileCoreServices
 #endif
 #if os(macOS)
 import AppKit
-#endif
-
-// ------------------- NSImage Extension -------------------
-#if os(macOS)
-extension NSImage {
-    func pngData() -> Data? {
-        guard let tiff = self.tiffRepresentation,
-              let bitmap = NSBitmapImageRep(data: tiff) else { return nil }
-        return bitmap.representation(using: .png, properties: [:])
-    }
-}
+import AVFoundation
 #endif
 
 struct ScanView: View {
     #if os(iOS)
-    @Binding var selectedImage: UIImage?
+    @State private var selectedImage: UIImage?
     #elseif os(macOS)
-    @Binding var selectedImage: NSImage?
+    @State private var selectedImage: NSImage?
     #endif
 
-    @State private var isImagePickerPresented: Bool = false
-    @State private var showSourcePicker: Bool = false
-    @State private var useCamera: Bool = false
-    @State private var showForm: Bool = false // triggers navigationDestination
+    @State private var isImagePickerPresented = false
+    @State private var showForm = false
+    @State private var showSourcePicker = false
 
-    var username: String
+    var username: String = "YourUsername"
     var onPostCreated: ((CatPost) -> Void)?
+
+    @State private var useCamera: Bool = false
 
     var body: some View {
         NavigationStack {
-            VStack {
+            VStack(spacing: 20) {
                 Button("Choose Image") {
                     showSourcePicker = true
                 }
@@ -43,70 +34,65 @@ struct ScanView: View {
                 .foregroundColor(.white)
                 .background(Color.blue)
                 .cornerRadius(8)
-                // ------------------- Confirmation Dialog -------------------
-                #if os(iOS)
                 .confirmationDialog("Select Image Source", isPresented: $showSourcePicker, titleVisibility: .visible) {
-                    Button("Open Camera") { useCamera = true; isImagePickerPresented = true }
-                    Button("Open Files") { useCamera = false; isImagePickerPresented = true }
-                    Button("Cancel", role: .cancel) {}
-                }
-                #elseif os(macOS)
-                .confirmationDialog("Select Image Source", isPresented: $showSourcePicker, titleVisibility: .visible) {
-                    Button("Open Files") { openMacFilePicker() }
-                    Button("Cancel", role: .cancel) {}
-                }
-                #endif
-
-                #if os(iOS)
-                // ------------------- iOS Image Picker Sheet -------------------
-                .sheet(isPresented: $isImagePickerPresented) {
-                    ZStack {
-                        Color.black.opacity(0.001)
-                            .ignoresSafeArea()
-                            .onTapGesture { isImagePickerPresented = false }
-                        ImagePicker(selectedImage: $selectedImage, useCamera: useCamera) {
-                            showForm = true
-                        }
+                    #if os(iOS)
+                    Button("Open Camera") {
+                        useCamera = true
+                        isImagePickerPresented = true
                     }
+                    #endif
+                    Button("Open Files") {
+                        useCamera = false
+                        #if os(macOS)
+                        openMacFiles()
+                        #else
+                        isImagePickerPresented = true
+                        #endif
+                    }
+                    Button("Cancel", role: .cancel) {}
+                }
+            }
+            .padding()
+            .sheet(isPresented: $isImagePickerPresented) {
+                #if os(iOS)
+                ImagePicker(selectedImage: $selectedImage, useCamera: useCamera) {
+                    showForm = true
                 }
                 #endif
             }
-            // ------------------- NavigationDestination to FormView -------------------
             .navigationDestination(isPresented: $showForm) {
-                if let imageData = selectedImage?.pngData() {
-                    FormView(
-                        showForm: $showForm,
-                        navigateToHome: .constant(false),
-                        imageUIData: imageData,
-                        videoURL: nil,
-                        username: username,
-                        onPostCreated: { post in
-                            onPostCreated?(post)
-                            selectedImage = nil
-                        }
-                    )
-                }
+                FormView(
+                    showForm: $showForm,
+                    navigateToHome: .constant(false),
+                    imageUIData: getImageData(),
+                    username: username,
+                    onPostCreated: onPostCreated
+                )
             }
         }
     }
 
-    // ------------------- macOS File Picker -------------------
+    private func getImageData() -> Data? {
+        #if os(iOS)
+        return selectedImage?.pngData()
+        #elseif os(macOS)
+        return selectedImage?.pngData()
+        #endif
+    }
+
     #if os(macOS)
-    private func openMacFilePicker() {
+    private func openMacFiles() {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.image]
         panel.allowsMultipleSelection = false
-        if panel.runModal() == .OK,
-           let url = panel.urls.first,
-           let image = NSImage(contentsOf: url) {
+        if panel.runModal() == .OK, let url = panel.urls.first, let image = NSImage(contentsOf: url) {
             selectedImage = image
-            showForm = true // triggers navigationDestination
+            showForm = true
         }
     }
     #endif
 }
 
-// ------------------- iOS Image Picker -------------------
 #if os(iOS)
 struct ImagePicker: UIViewControllerRepresentable {
     @Binding var selectedImage: UIImage?
@@ -123,6 +109,7 @@ struct ImagePicker: UIViewControllerRepresentable {
     }
 
     func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
     class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
@@ -140,6 +127,16 @@ struct ImagePicker: UIViewControllerRepresentable {
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
             picker.dismiss(animated: true)
         }
+    }
+}
+#endif
+
+#if os(macOS)
+extension NSImage {
+    func pngData() -> Data? {
+        guard let tiff = tiffRepresentation else { return nil }
+        let bitmap = NSBitmapImageRep(data: tiff)
+        return bitmap?.representation(using: .png, properties: [:])
     }
 }
 #endif
