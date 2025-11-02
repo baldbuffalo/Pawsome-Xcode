@@ -1,49 +1,30 @@
 import SwiftUI
-import FirebaseFirestore
 
-// MARK: - HomeViewModel
+// MARK: - HomeViewModel (Local Version)
 class HomeViewModel: ObservableObject {
     @Published var posts: [CatPost] = []
     @Published var isLoading = true
     @Published var errorMessage: String?
 
-    private let db = Firestore.firestore()
+    init() {
+        fetchPosts()
+    }
 
     func fetchPosts() {
         isLoading = true
-        Task {
-            do {
-                let snapshot = try await db.collection("posts")
-                    .order(by: "timestamp", descending: true)
-                    .getDocuments()
-                
-                let fetchedPosts = snapshot.documents.compactMap { doc -> CatPost? in
-                    CatPost.from(data: doc.data(), id: doc.documentID)
-                }
-                
-                await MainActor.run {
-                    self.posts = fetchedPosts
-                    self.isLoading = false
-                }
-            } catch {
-                await MainActor.run {
-                    self.errorMessage = "Failed to load posts: \(error.localizedDescription)"
-                    self.isLoading = false
-                }
-            }
+        // Simulate loading delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            self.posts = [
+                CatPost(id: "1", catName: "Fluffy", catBreed: "Persian", location: "Dubai", imageURL: nil, postDescription: "Super cute!", likes: 5, comments: [], catAge: 2, username: "User1", timestamp: Date(), form: nil),
+                CatPost(id: "2", catName: "Mittens", catBreed: "Siamese", location: "Abu Dhabi", imageURL: nil, postDescription: "Loves naps", likes: 3, comments: [], catAge: 1, username: "User2", timestamp: Date(), form: nil)
+            ]
+            self.isLoading = false
         }
     }
 
     func deletePost(_ post: CatPost) {
-        guard let postID = post.id else { return }
-        db.collection("posts").document(postID).delete { error in
-            DispatchQueue.main.async {
-                if let error = error {
-                    self.errorMessage = "Failed to delete post: \(error.localizedDescription)"
-                } else {
-                    self.posts.removeAll { $0.id == postID }
-                }
-            }
+        if let index = posts.firstIndex(where: { $0.id == post.id }) {
+            posts.remove(at: index)
         }
     }
 }
@@ -87,8 +68,6 @@ struct HomeView: View {
                     }
                     Button("Cancel", role: .cancel) {}
                 }
-                .onAppear { viewModel.fetchPosts() }
-                .refreshable { viewModel.fetchPosts() }
         }
     }
 

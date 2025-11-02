@@ -5,7 +5,7 @@ import FirebaseFirestore
 import FirebaseAuth
 import Foundation
 
-// MARK: - Profile ViewModel (combined in this file)
+// MARK: - Profile ViewModel
 
 class ProfileViewModel: ObservableObject {
     @Published var selectedImage: PlatformImage?
@@ -22,7 +22,6 @@ class ProfileViewModel: ObservableObject {
 
     func loadProfileData() {
         guard let userID = Auth.auth().currentUser?.uid else { return }
-
         isLoading = true
         let db = Firestore.firestore()
         let profileRef = db.collection("users").document(userID)
@@ -32,16 +31,12 @@ class ProfileViewModel: ObservableObject {
                 self.isLoading = false
                 if let document = document, document.exists, let data = document.data() {
                     self.username = data["username"] as? String ?? self.username
-                    self.loadProfileImage(from: data)
+                    self.profileImage = data["profileImage"] as? String
                 } else {
                     print("No profile found or error: \(error?.localizedDescription ?? "unknown error")")
                 }
             }
         }
-    }
-
-    func loadProfileImage(from data: [String: Any]) {
-        self.profileImage = data["profileImage"] as? String
     }
 
     func uploadProfileImageToFirebase(image: PlatformImage) {
@@ -56,11 +51,7 @@ class ProfileViewModel: ObservableObject {
         }
         #endif
 
-        guard let data = imageData else {
-            print("Failed to get image data.")
-            return
-        }
-
+        guard let data = imageData else { return }
         isImageLoading = true
 
         Task {
@@ -72,9 +63,7 @@ class ProfileViewModel: ObservableObject {
                 }
             } catch {
                 print("Error uploading image: \(error.localizedDescription)")
-                await MainActor.run {
-                    isImageLoading = false
-                }
+                await MainActor.run { isImageLoading = false }
             }
         }
     }
@@ -146,8 +135,7 @@ struct ProfileView: View {
                        imageUrl.scheme?.hasPrefix("http") == true {
                         AsyncImage(url: imageUrl) { phase in
                             switch phase {
-                            case .empty:
-                                ProgressView()
+                            case .empty: ProgressView()
                             case .success(let image):
                                 image
                                     .resizable()
@@ -158,8 +146,7 @@ struct ProfileView: View {
                                 Image(systemName: "person.crop.circle")
                                     .resizable()
                                     .frame(width: 120, height: 120)
-                            @unknown default:
-                                EmptyView()
+                            @unknown default: EmptyView()
                             }
                         }
                     } else {
@@ -175,8 +162,8 @@ struct ProfileView: View {
                     .font(.title2)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .focused($usernameFocused)
-                    .onChange(of: usernameFocused) {
-                        if !usernameFocused {
+                    .onChange(of: usernameFocused) { oldValue, newValue in
+                        if !newValue {
                             viewModel.saveUsernameToFirestore()
                         }
                     }
@@ -185,9 +172,7 @@ struct ProfileView: View {
                     .font(.caption)
                     .foregroundColor(viewModel.isSaving ? .gray : .green)
 
-                Button(action: {
-                    viewModel.isImagePickerPresented = true
-                }) {
+                Button(action: { viewModel.isImagePickerPresented = true }) {
                     Label("Change Profile Picture", systemImage: "camera")
                 }
                 .padding()
@@ -196,9 +181,7 @@ struct ProfileView: View {
             }
         }
         .padding()
-        .onAppear {
-            viewModel.loadProfileData()
-        }
+        .onAppear { viewModel.loadProfileData() }
         .sheet(isPresented: $viewModel.isImagePickerPresented) {
             ImagePickerView(selectedImage: $viewModel.selectedImage)
                 .onDisappear {

@@ -1,8 +1,4 @@
 import SwiftUI
-import FirebaseCore
-import FirebaseAuth
-import FirebaseStorage
-import FirebaseFirestore
 
 @main
 struct PawsomeApp: App {
@@ -13,34 +9,20 @@ struct PawsomeApp: App {
     #endif
 
     @State private var isLoggedIn: Bool = false
-    @State private var username: String
-    @StateObject private var profileViewModel: ProfileViewModel
-
-    init() {
-        let savedUsername = UserDefaults.standard.string(forKey: "username") ?? ""
-        let usernameState = State(initialValue: savedUsername)
-        _username = usernameState
-        _profileViewModel = StateObject(wrappedValue: ProfileViewModel(username: usernameState.projectedValue))
-    }
+    @State private var username: String = "Guest"
+    @State private var profileImage: PlatformImage? = nil // ✅ cross-platform image type
 
     var body: some Scene {
         WindowGroup {
             if isLoggedIn {
-                if profileViewModel.isLoading {
-                    ProgressView("Loading Profile...")
-                        .progressViewStyle(CircularProgressViewStyle())
-                        .padding()
-                        .onAppear {
-                            profileViewModel.loadProfileData()
-                        }
-                } else {
+                NavigationStack {
                     TabView {
                         HomeView(
                             isLoggedIn: $isLoggedIn,
                             currentUsername: $username,
-                            profileImage: $profileViewModel.profileImage,
+                            profileImage: $profileImage,
                             onPostCreated: {
-                                profileViewModel.loadProfileData()
+                                print("New post created!")
                             }
                         )
                         .tabItem {
@@ -52,7 +34,6 @@ struct PawsomeApp: App {
                             username: username,
                             onPostCreated: { post in
                                 print("🔥 New post: \(post.catName)")
-                                profileViewModel.loadProfileData()
                             }
                         )
                         .tabItem {
@@ -62,19 +43,21 @@ struct PawsomeApp: App {
                         ProfileView(
                             isLoggedIn: $isLoggedIn,
                             currentUsername: $username,
-                            profileImage: $profileViewModel.profileImage
+                            profileImage: $profileImage
                         )
                         .tabItem {
                             Label("Profile", systemImage: "person.crop.circle")
                         }
                     }
-                    .environmentObject(profileViewModel)
+                    #if os(macOS)
+                    .tabViewStyle(DefaultTabViewStyle()) // fixes TabContent issue
+                    #endif
                 }
             } else {
                 LoginView(
                     isLoggedIn: $isLoggedIn,
                     username: $username,
-                    profileImage: $profileViewModel.profileImage
+                    profileImage: $profileImage
                 )
             }
         }
