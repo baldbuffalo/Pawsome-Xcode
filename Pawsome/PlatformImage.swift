@@ -7,4 +7,3 @@ public typealias PlatformImage = UIImage
 import AppKit
 public typealias PlatformImage = NSImage
 #endif
-

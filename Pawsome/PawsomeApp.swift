@@ -3,14 +3,6 @@ import FirebaseCore
 import FirebaseAuth
 import FirebaseFirestore
 
-#if os(iOS)
-import UIKit
-typealias PlatformImage = UIImage
-#elseif os(macOS)
-import AppKit
-typealias PlatformImage = NSImage
-#endif
-
 @main
 struct PawsomeApp: App {
     #if os(iOS)
@@ -21,7 +13,7 @@ struct PawsomeApp: App {
 
     @State private var isLoggedIn: Bool
     @State private var username: String
-    @State private var profileImage: PlatformImage? = nil
+    @State private var profileImage: PlatformImage? = nil // ✅ cross-platform image type
 
     init() {
         let savedUsername = UserDefaults.standard.string(forKey: "username") ?? "Guest"
@@ -66,13 +58,5 @@ struct PawsomeApp: App {
                 )
             }
         }
-    }
-}
-
-class AppDelegate: NSObject, UIApplicationDelegate {
-    func application(_ application: UIApplication,
-                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
-        FirebaseApp.configure()
-        return true
     }
 }
