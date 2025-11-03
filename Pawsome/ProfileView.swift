@@ -1,112 +1,95 @@
 import SwiftUI
-import FirebaseAuth
-import FirebaseFirestore
+import Firebase
 import FirebaseStorage
+import FirebaseFirestore
+import FirebaseAuth
+import Foundation
 
-// MARK: - ProfileViewModel
+// MARK: - Profile ViewModel
 class ProfileViewModel: ObservableObject {
     @Published var selectedImage: PlatformImage?
-    @Published var profileImage: PlatformImage?
+    @Published var profileImage: String?
     @Published var isImagePickerPresented = false
     @Binding var username: String
-    @Published var isSaving: Bool = false
-    @Published var isLoading: Bool = false
-    @Published var isImageLoading: Bool = false
+    @Published var isImageLoading = false
+    @Published var isLoading = false
+    @Published var isSaving = false
 
     init(username: Binding<String>) {
         self._username = username
     }
 
-    // Load existing profile data from Firestore
     func loadProfileData() {
-        guard let uid = Auth.auth().currentUser?.uid else { return }
+        guard let userID = Auth.auth().currentUser?.uid else { return }
         isLoading = true
+        let db = Firestore.firestore()
+        let profileRef = db.collection("users").document(userID)
 
-        let userRef = Firestore.firestore().collection("users").document(uid)
-        userRef.getDocument { snapshot, error in
+        profileRef.getDocument { document, error in
             DispatchQueue.main.async {
                 self.isLoading = false
-                guard let data = snapshot?.data(), snapshot?.exists == true else { return }
-                self.username = data["username"] as? String ?? self.username
-
-                if let urlStr = data["profileImageURL"] as? String, let url = URL(string: urlStr) {
-                    self.downloadImageFromURL(url: url)
+                if let document = document, document.exists, let data = document.data() {
+                    self.username = data["username"] as? String ?? self.username
+                    self.profileImage = data["profileImage"] as? String
+                } else {
+                    print("⚠️ No profile found or error: \(error?.localizedDescription ?? "unknown")")
                 }
             }
         }
     }
 
-    // MARK: - Download image from URL
-    private func downloadImageFromURL(url: URL) {
-        isImageLoading = true
-        URLSession.shared.dataTask(with: url) { data, _, _ in
-            if let data = data {
-                #if os(iOS)
-                self.profileImage = UIImage(data: data)
-                #elseif os(macOS)
-                self.profileImage = NSImage(data: data)
-                #endif
-            }
-            DispatchQueue.main.async { self.isImageLoading = false }
-        }.resume()
-    }
-
-    // MARK: - Upload new profile image
     func uploadProfileImageToFirebase(image: PlatformImage) {
-        guard let uid = Auth.auth().currentUser?.uid else { return }
-        let storageRef = Storage.storage().reference().child("profilePictures/\(uid).png")
-
+        let storageRef = Storage.storage().reference().child("profilePictures/\(UUID().uuidString).png")
         var imageData: Data?
+
         #if os(iOS)
         imageData = image.pngData()
         #elseif os(macOS)
-        if let tiff = image.tiffRepresentation {
-            imageData = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:])
+        if let tiffData = image.tiffRepresentation {
+            imageData = NSBitmapImageRep(data: tiffData)?.representation(using: .png, properties: [:])
         }
         #endif
-        guard let data = imageData else { return }
 
+        guard let data = imageData else { return }
         isImageLoading = true
 
-        storageRef.putData(data, metadata: nil) { _, error in
-            if let error = error {
-                print("❌ Upload error: \(error.localizedDescription)")
-                DispatchQueue.main.async { self.isImageLoading = false }
-                return
-            }
-
-            storageRef.downloadURL { url, _ in
-                if let url = url {
-                    self.saveProfileImageURLToFirestore(url: url)
-                } else {
-                    DispatchQueue.main.async { self.isImageLoading = false }
+        Task {
+            do {
+                _ = try await storageRef.putDataAsync(data)
+                let downloadURL = try await storageRef.downloadURL()
+                await MainActor.run {
+                    self.saveProfileImageURLToFirestore(url: downloadURL)
                 }
+            } catch {
+                print("❌ Error uploading image: \(error.localizedDescription)")
+                await MainActor.run { self.isImageLoading = false }
             }
         }
     }
 
-    // MARK: - Save profile image URL to Firestore
-    private func saveProfileImageURLToFirestore(url: URL) {
-        guard let uid = Auth.auth().currentUser?.uid else { return }
-        let userRef = Firestore.firestore().collection("users").document(uid)
+    func saveProfileImageURLToFirestore(url: URL) {
+        guard let userID = Auth.auth().currentUser?.uid else { return }
+        let db = Firestore.firestore()
+        let profileRef = db.collection("users").document(userID)
 
-        userRef.setData(["profileImageURL": url.absoluteString], merge: true) { error in
+        profileRef.setData(["profileImage": url.absoluteString], merge: true) { error in
             DispatchQueue.main.async {
                 if let error = error {
-                    print("❌ Error saving profile URL: \(error.localizedDescription)")
+                    print("❌ Error saving image URL: \(error.localizedDescription)")
                 } else {
-                    self.profileImage = self.selectedImage
+                    self.profileImage = url.absoluteString
+                    print("✅ Profile image updated.")
                 }
                 self.isImageLoading = false
             }
         }
     }
 
-    // MARK: - Save username to Firestore
     func saveUsernameToFirestore() {
-        guard let uid = Auth.auth().currentUser?.uid else { return }
+        guard let userID = Auth.auth().currentUser?.uid else { return }
         isSaving = true
-        let userRef = Firestore.firestore().collection("users").document(uid)
+        let db = Firestore.firestore()
+        let userRef = db.collection("users").document(userID)
 
         userRef.setData(["username": self.username], merge: true) { error in
             DispatchQueue.main.async {
@@ -114,7 +97,7 @@ class ProfileViewModel: ObservableObject {
                 if let error = error {
                     print("❌ Error saving username: \(error.localizedDescription)")
                 } else {
-                    print("✅ Username updated")
+                    print("✅ Username updated.")
                 }
             }
         }
@@ -125,12 +108,12 @@ class ProfileViewModel: ObservableObject {
 struct ProfileView: View {
     @Binding var isLoggedIn: Bool
     @Binding var currentUsername: String
-    @Binding var profileImage: PlatformImage?
+    @Binding var profileImage: String?
 
     @StateObject private var viewModel: ProfileViewModel
     @FocusState private var usernameFocused: Bool
 
-    init(isLoggedIn: Binding<Bool>, currentUsername: Binding<String>, profileImage: Binding<PlatformImage?>) {
+    init(isLoggedIn: Binding<Bool>, currentUsername: Binding<String>, profileImage: Binding<String?>) {
         self._isLoggedIn = isLoggedIn
         self._currentUsername = currentUsername
         self._profileImage = profileImage
@@ -138,77 +121,75 @@ struct ProfileView: View {
     }
 
     var body: some View {
-        VStack(spacing: 20) {
-            if viewModel.isLoading || viewModel.isImageLoading {
+        VStack(spacing: 16) {
+            if viewModel.isLoading {
                 ProgressView("Loading Profile...")
                     .progressViewStyle(CircularProgressViewStyle())
                     .padding()
             } else {
-                profileImageView
-                usernameField
-                changePictureButton
+                Group {
+                    if let imageUrlString = viewModel.profileImage ?? profileImage,
+                       let imageUrl = URL(string: imageUrlString),
+                       imageUrl.scheme?.hasPrefix("http") == true {
+                        AsyncImage(url: imageUrl) { phase in
+                            switch phase {
+                            case .empty:
+                                ProgressView()
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 120, height: 120)
+                                    .clipShape(Circle())
+                            case .failure:
+                                Image(systemName: "person.crop.circle.fill")
+                                    .resizable()
+                                    .frame(width: 120, height: 120)
+                                    .foregroundColor(.gray)
+                            @unknown default:
+                                EmptyView()
+                            }
+                        }
+                    } else {
+                        Image(systemName: "person.crop.circle.fill")
+                            .resizable()
+                            .frame(width: 120, height: 120)
+                            .foregroundColor(.gray)
+                    }
+                }
+                .padding(.top)
+
+                TextField("Username", text: $viewModel.username)
+                    .font(.title2)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .focused($usernameFocused)
+                    .onChange(of: usernameFocused) { oldValue, newValue in
+                        if !newValue {
+                            viewModel.saveUsernameToFirestore()
+                        }
+                    }
+
+                Text(viewModel.isSaving ? "Saving..." : "Saved")
+                    .font(.caption)
+                    .foregroundColor(viewModel.isSaving ? .gray : .green)
+
+                Button(action: { viewModel.isImagePickerPresented = true }) {
+                    Label("Change Profile Picture", systemImage: "camera")
+                }
+                .padding()
+
                 Spacer()
             }
         }
         .padding()
-        .onAppear {
-            viewModel.loadProfileData()
-        }
+        .onAppear { viewModel.loadProfileData() }
         .sheet(isPresented: $viewModel.isImagePickerPresented) {
             ImagePickerView(selectedImage: $viewModel.selectedImage)
                 .onDisappear {
-                    if let selected = viewModel.selectedImage {
-                        viewModel.uploadProfileImageToFirebase(image: selected)
-                        self.profileImage = selected
+                    if let image = viewModel.selectedImage {
+                        viewModel.uploadProfileImageToFirebase(image: image)
                     }
                 }
-        }
-    }
-
-    private var profileImageView: some View {
-        Group {
-            if let img = viewModel.profileImage ?? profileImage {
-                #if os(iOS)
-                Image(uiImage: img)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 120, height: 120)
-                    .clipShape(Circle())
-                #elseif os(macOS)
-                Image(nsImage: img)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 120, height: 120)
-                    .clipShape(Circle())
-                #endif
-            } else {
-                Image(systemName: "person.crop.circle")
-                    .resizable()
-                    .frame(width: 120, height: 120)
-                    .foregroundColor(.gray)
-            }
-        }
-    }
-
-    private var usernameField: some View {
-        VStack {
-            TextField("Username", text: $viewModel.username)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .font(.title2)
-                .focused($usernameFocused)
-                .onChange(of: usernameFocused) { newValue in
-                    if !newValue { viewModel.saveUsernameToFirestore() }
-                }
-
-            Text(viewModel.isSaving ? "Saving..." : "Saved")
-                .font(.caption)
-                .foregroundColor(viewModel.isSaving ? .gray : .green)
-        }
-    }
-
-    private var changePictureButton: some View {
-        Button(action: { viewModel.isImagePickerPresented = true }) {
-            Label("Change Profile Picture", systemImage: "camera")
         }
     }
 }
