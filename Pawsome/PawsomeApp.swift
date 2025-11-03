@@ -1,7 +1,15 @@
 import SwiftUI
-import Firebase
+import FirebaseCore
 import FirebaseAuth
 import FirebaseFirestore
+
+#if os(iOS)
+import UIKit
+typealias PlatformImage = UIImage
+#elseif os(macOS)
+import AppKit
+typealias PlatformImage = NSImage
+#endif
 
 @main
 struct PawsomeApp: App {
@@ -11,98 +19,60 @@ struct PawsomeApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var delegate
     #endif
 
-    @State private var isLoggedIn: Bool = false
-    @State private var username: String = "Guest"
+    @State private var isLoggedIn: Bool
+    @State private var username: String
     @State private var profileImage: PlatformImage? = nil
 
     init() {
-        FirebaseApp.configure()
+        let savedUsername = UserDefaults.standard.string(forKey: "username") ?? "Guest"
+        let loggedIn = UserDefaults.standard.bool(forKey: "isLoggedIn")
+        _username = State(initialValue: savedUsername)
+        _isLoggedIn = State(initialValue: loggedIn)
     }
 
     var body: some Scene {
         WindowGroup {
-            Group {
-                if isLoggedIn {
-                    NavigationStack {
-                        TabView {
-                            HomeView(
-                                isLoggedIn: $isLoggedIn,
-                                currentUsername: $username,
-                                profileImage: $profileImage,
-                                onPostCreated: {
-                                    print("New post created!")
-                                }
-                            )
-                            .tabItem {
-                                Label("Home", systemImage: "house")
-                            }
+            if isLoggedIn {
+                NavigationStack {
+                    TabView {
+                        HomeView(
+                            isLoggedIn: $isLoggedIn,
+                            currentUsername: $username,
+                            profileImage: $profileImage,
+                            onPostCreated: { print("🔥 New post!") }
+                        )
+                        .tabItem { Label("Home", systemImage: "house") }
 
-                            ScanView(
-                                selectedImage: .constant(nil),
-                                username: username,
-                                onPostCreated: { post in
-                                    print("🔥 New post: \(post.catName)")
-                                }
-                            )
-                            .tabItem {
-                                Label("Post", systemImage: "plus.app")
-                            }
+                        ScanView(
+                            selectedImage: .constant(nil),
+                            username: username,
+                            onPostCreated: { post in print("📸 New post: \(post.catName)") }
+                        )
+                        .tabItem { Label("Post", systemImage: "plus.app") }
 
-                            ProfileView(
-                                isLoggedIn: $isLoggedIn,
-                                currentUsername: $username,
-                                profileImage: $profileImage
-                            )
-                            .tabItem {
-                                Label("Profile", systemImage: "person.crop.circle")
-                            }
-                        }
-                        #if os(macOS)
-                        .tabViewStyle(DefaultTabViewStyle()) // fixes TabContent issue
-                        #endif
+                        ProfileView(
+                            isLoggedIn: $isLoggedIn,
+                            currentUsername: $username,
+                            profileImage: $profileImage
+                        )
+                        .tabItem { Label("Profile", systemImage: "person.crop.circle") }
                     }
-                } else {
-                    LoginView(
-                        isLoggedIn: $isLoggedIn,
-                        username: $username,
-                        profileImage: $profileImage
-                    )
                 }
-            }
-            .onAppear {
-                autoLoginCheck()
+            } else {
+                LoginView(
+                    isLoggedIn: $isLoggedIn,
+                    username: $username,
+                    profileImage: $profileImage
+                )
             }
         }
     }
+}
 
-    // MARK: - Auto Login Logic
-    private func autoLoginCheck() {
-        if let user = Auth.auth().currentUser {
-            isLoggedIn = true
-            username = user.displayName ?? "User"
-            loadUserProfile(userID: user.uid)
-        } else {
-            isLoggedIn = false
-        }
-    }
-
-    // MARK: - Load User Profile (PFP)
-    private func loadUserProfile(userID: String) {
-        let db = Firestore.firestore()
-        db.collection("users").document(userID).getDocument { doc, err in
-            guard let data = doc?.data() else { return }
-            if let name = data["displayName"] as? String {
-                username = name
-            }
-            if let imageURL = data["profileImageURL"] as? String,
-               let url = URL(string: imageURL),
-               let imageData = try? Data(contentsOf: url) {
-#if os(iOS)
-                profileImage = UIImage(data: imageData)
-#elseif os(macOS)
-                profileImage = NSImage(data: imageData)
-#endif
-            }
-        }
+class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(_ application: UIApplication,
+                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        FirebaseApp.configure()
+        return true
     }
 }

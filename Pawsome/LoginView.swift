@@ -5,23 +5,21 @@ import FirebaseFirestore
 struct LoginView: View {
     @Binding var isLoggedIn: Bool
     @Binding var username: String
-    @Binding var profileImage: String?
+    @Binding var profileImage: PlatformImage?
 
     @State private var showError = false
     @State private var errorMessage = ""
 
     var body: some View {
-        VStack(spacing: 20) {
-            Text("Welcome to Pawsome!")
+        VStack(spacing: 25) {
+            Text("🐾 Welcome to Pawsome!")
                 .font(.largeTitle)
                 .bold()
-                .padding()
 
-            Text("Please sign in to continue")
+            Text("Sign in to start finding cute cats 😻")
                 .font(.subheadline)
                 .padding(.bottom, 50)
 
-            // Universal Login Button (placeholder)
             Button(action: {
                 universalSignIn()
             }) {
@@ -30,11 +28,12 @@ struct LoginView: View {
                     .frame(width: 280, height: 50)
                     .background(Color.blue)
                     .foregroundColor(.white)
-                    .cornerRadius(8)
+                    .cornerRadius(10)
             }
 
             Spacer()
         }
+        .padding()
         .alert("Sign-In Error", isPresented: $showError) {
             Button("OK", role: .cancel) {}
         } message: {
@@ -44,7 +43,6 @@ struct LoginView: View {
 
     // MARK: - Universal Sign-In Handler
     private func universalSignIn() {
-        // Example: just use anonymous login for now
         Auth.auth().signInAnonymously { authResult, error in
             if let error = error {
                 showErrorWithMessage("Login failed: \(error.localizedDescription)")
@@ -56,37 +54,42 @@ struct LoginView: View {
                 return
             }
 
-            // ✅ Set default username & profile pic
-            username = "User\(Int.random(in: 1000...9999))"
-            profileImage = "system:person.circle"
-
-            // ✅ Save user info to Firestore if first login
-            saveUserToFirestoreIfFirstTime(uid: user.uid, username: username, profileImage: profileImage)
-        }
-    }
-
-    // MARK: - Firestore Save (first login only)
-    private func saveUserToFirestoreIfFirstTime(uid: String, username: String, profileImage: String?) {
-        let userRef = Firestore.firestore().collection("users").document(uid)
-        userRef.getDocument { snapshot, error in
-            if let snapshot = snapshot, snapshot.exists {
-                finishLogin()
-            } else {
-                var data: [String: Any] = [
-                    "username": username,
-                    "joinDate": Timestamp(date: Date())
-                ]
-                if let profileImage = profileImage {
-                    data["profileImage"] = profileImage
-                }
-
-                userRef.setData(data) { error in
-                    if let error = error {
-                        print("❌ Failed saving user: \(error.localizedDescription)")
-                    } else {
-                        print("✅ New user saved to Firestore.")
+            let userRef = Firestore.firestore().collection("users").document(user.uid)
+            userRef.getDocument { snapshot, error in
+                if let snapshot = snapshot, snapshot.exists {
+                    // ✅ Existing user — load data and skip Firestore write
+                    if let data = snapshot.data(),
+                       let savedUsername = data["username"] as? String {
+                        username = savedUsername
                     }
+
+                    if let imageURL = snapshot.data()?["profileImage"] as? String,
+                       let url = URL(string: imageURL),
+                       let imageData = try? Data(contentsOf: url),
+                       let img = PlatformImage(data: imageData) {
+                        profileImage = img
+                    }
+
                     finishLogin()
+                } else {
+                    // 🆕 New user — generate username & set Firestore
+                    username = "User\(Int.random(in: 1000...9999))"
+                    profileImage = nil
+
+                    let data: [String: Any] = [
+                        "username": username,
+                        "joinDate": Timestamp(date: Date()),
+                        "profileImage": ""
+                    ]
+
+                    userRef.setData(data) { err in
+                        if let err = err {
+                            print("❌ Error saving user: \(err.localizedDescription)")
+                        } else {
+                            print("✅ New user saved.")
+                        }
+                        finishLogin()
+                    }
                 }
             }
         }
@@ -99,7 +102,7 @@ struct LoginView: View {
         isLoggedIn = true
     }
 
-    // MARK: - Helpers
+    // MARK: - Error Helper
     private func showErrorWithMessage(_ msg: String) {
         errorMessage = msg
         showError = true
