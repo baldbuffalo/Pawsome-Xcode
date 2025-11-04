@@ -3,6 +3,8 @@ import FirebaseCore
 import FirebaseAuth
 import FirebaseFirestore
 import FirebaseStorage
+import GoogleSignIn
+
 
 #if os(iOS)
 import UIKit
