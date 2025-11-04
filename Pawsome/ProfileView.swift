@@ -163,7 +163,7 @@ struct ProfileView: View {
                     .font(.title2)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .focused($usernameFocused)
-                    .onChange(of: usernameFocused) { oldValue, newValue in
+                    .onChange(of: usernameFocused) { _, newValue in
                         if !newValue {
                             viewModel.saveUsernameToFirestore()
                         }
