@@ -1,12 +1,11 @@
 import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore
-import FirebaseStorage
 
 struct LoginView: View {
     @Binding var isLoggedIn: Bool
     @Binding var username: String
-    @Binding var profileImage: PlatformImage?
+    @Binding var profileImage: String?
 
     @State private var showError = false
     @State private var errorMessage = ""
@@ -22,7 +21,7 @@ struct LoginView: View {
                 .font(.subheadline)
                 .padding(.bottom, 50)
 
-            Button(action: { universalSignIn() }) {
+            Button(action: universalSignIn) {
                 Text("Sign In")
                     .bold()
                     .frame(width: 280, height: 50)
@@ -40,7 +39,6 @@ struct LoginView: View {
         }
     }
 
-    // MARK: - Universal Sign-In
     private func universalSignIn() {
         Auth.auth().signInAnonymously { authResult, error in
             if let error = error {
@@ -53,67 +51,30 @@ struct LoginView: View {
                 return
             }
 
-            let defaultUsername = "User\(Int.random(in: 1000...9999))"
-            username = defaultUsername
+            username = "User\(Int.random(in: 1000...9999))"
+            profileImage = nil // default blank
 
-            // Default profile image
-            #if os(iOS)
-            let defaultProfile = UIImage(systemName: "person.circle")
-            #elseif os(macOS)
-            let defaultProfile = NSImage(systemSymbolName: "person.circle", accessibilityDescription: nil)
-            #endif
-            profileImage = defaultProfile
-
-            saveUserToFirestoreIfFirstTime(uid: user.uid)
+            saveUserToFirestore(uid: user.uid)
         }
     }
 
-    // MARK: - Firestore Save
-    private func saveUserToFirestoreIfFirstTime(uid: String) {
+    private func saveUserToFirestore(uid: String) {
         let userRef = Firestore.firestore().collection("users").document(uid)
         userRef.getDocument { snapshot, error in
             if let snapshot = snapshot, snapshot.exists {
-                // Existing user, fetch data
-                fetchUserData(uid: uid)
+                finishLogin()
             } else {
-                // First login, save new user
-                var data: [String: Any] = [
+                userRef.setData([
                     "username": username,
                     "joinDate": Timestamp(date: Date())
-                ]
-
-                // Optionally upload default profile pic to Storage
-                uploadDefaultProfileImage { url in
-                    if let url = url { data["profileImageURL"] = url.absoluteString }
-
-                    userRef.setData(data) { error in
-                        if let error = error {
-                            print("❌ Failed saving user: \(error.localizedDescription)")
-                        } else {
-                            print("✅ New user saved to Firestore.")
-                        }
-                        finishLogin()
+                ]) { error in
+                    if let error = error {
+                        print("❌ Failed saving user: \(error.localizedDescription)")
+                    } else {
+                        print("✅ New user saved to Firestore.")
                     }
-                }
-            }
-        }
-    }
-
-    private func fetchUserData(uid: String) {
-        let userRef = Firestore.firestore().collection("users").document(uid)
-        userRef.getDocument { snapshot, error in
-            if let data = snapshot?.data() {
-                username = data["username"] as? String ?? username
-                if let profileURLStr = data["profileImageURL"] as? String, let url = URL(string: profileURLStr) {
-                    downloadImageFromURL(url: url) { img in
-                        profileImage = img
-                        finishLogin()
-                    }
-                } else {
                     finishLogin()
                 }
-            } else {
-                finishLogin()
             }
         }
     }
@@ -127,41 +88,5 @@ struct LoginView: View {
     private func showErrorWithMessage(_ msg: String) {
         errorMessage = msg
         showError = true
-    }
-
-    // MARK: - Upload/Download Helpers
-    private func uploadDefaultProfileImage(completion: @escaping (URL?) -> Void) {
-        guard let image = profileImage else { completion(nil); return }
-        let storageRef = Storage.storage().reference().child("profilePictures/\(UUID().uuidString).png")
-        var imageData: Data?
-        #if os(iOS)
-        imageData = image.pngData()
-        #elseif os(macOS)
-        if let tiff = image.tiffRepresentation {
-            imageData = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:])
-        }
-        #endif
-        guard let data = imageData else { completion(nil); return }
-
-        storageRef.putData(data, metadata: nil) { _, error in
-            if let error = error { print("❌ Upload error: \(error.localizedDescription)"); completion(nil); return }
-            storageRef.downloadURL { url, _ in
-                completion(url)
-            }
-        }
-    }
-
-    private func downloadImageFromURL(url: URL, completion: @escaping (PlatformImage?) -> Void) {
-        URLSession.shared.dataTask(with: url) { data, _, _ in
-            var img: PlatformImage? = nil
-            if let data = data {
-                #if os(iOS)
-                img = UIImage(data: data)
-                #elseif os(macOS)
-                img = NSImage(data: data)
-                #endif
-            }
-            DispatchQueue.main.async { completion(img) }
-        }.resume()
     }
 }
