@@ -4,7 +4,7 @@ import FirebaseFirestore
 import FirebaseStorage
 
 class ProfileViewModel: ObservableObject {
-    @Published var profileImage: String?
+    @Published var profileImageURL: String?
     @Published var selectedImage: PlatformImage?
     @Published var isImageLoading = false
     @Published var isSaving = false
@@ -25,7 +25,7 @@ class ProfileViewModel: ObservableObject {
                 self.isLoading = false
                 if let data = snapshot?.data() {
                     self.username = data["username"] as? String ?? self.username
-                    self.profileImage = data["profileImage"] as? String
+                    self.profileImageURL = data["profileImage"] as? String
                 }
             }
         }
@@ -60,7 +60,7 @@ class ProfileViewModel: ObservableObject {
         do {
             _ = try await ref.putDataAsync(uploadData)
             let url = try await ref.downloadURL()
-            profileImage = url.absoluteString
+            profileImageURL = url.absoluteString
             Firestore.firestore().collection("users").document(uid)
                 .setData(["profileImage": url.absoluteString], merge: true)
         } catch {
@@ -74,15 +74,15 @@ class ProfileViewModel: ObservableObject {
 struct ProfileView: View {
     @Binding var isLoggedIn: Bool
     @Binding var currentUsername: String
-    @Binding var profileImage: String?
+    @Binding var profileImageURL: String?
 
     @StateObject private var vm: ProfileViewModel
     @FocusState private var usernameFocused: Bool
 
-    init(isLoggedIn: Binding<Bool>, currentUsername: Binding<String>, profileImage: Binding<String?>) {
+    init(isLoggedIn: Binding<Bool>, currentUsername: Binding<String>, profileImageURL: Binding<String?>) {
         self._isLoggedIn = isLoggedIn
         self._currentUsername = currentUsername
-        self._profileImage = profileImage
+        self._profileImageURL = profileImageURL
         _vm = StateObject(wrappedValue: ProfileViewModel(username: currentUsername))
     }
 
@@ -91,7 +91,7 @@ struct ProfileView: View {
             if vm.isLoading {
                 ProgressView("Loading Profile...").padding()
             } else {
-                if let urlString = vm.profileImage ?? profileImage,
+                if let urlString = vm.profileImageURL ?? profileImageURL,
                    let url = URL(string: urlString) {
                     AsyncImage(url: url) { image in
                         image.resizable().scaledToFit()
@@ -118,7 +118,9 @@ struct ProfileView: View {
                     .foregroundColor(vm.isSaving ? .gray : .green)
                     .font(.caption)
 
-                Button("Change Profile Picture") { vm.isImagePickerPresented = true }
+                Button("Change Profile Picture") {
+                    vm.isImagePickerPresented = true
+                }
 
                 Spacer()
             }
