@@ -115,17 +115,51 @@ struct LoginView: View {
 
     // MARK: - Save user to Firestore
     private func saveUserToFirestore(uid: String) async throws {
-        let userRef = Firestore.firestore().collection("users").document(uid)
+        let db = Firestore.firestore()
+        let userRef = db.collection("users").document(uid)
         let snapshot = try await userRef.getDocument()
 
-        if snapshot.exists { return }
-
-        try await userRef.setData([
+        var data: [String: Any] = [
             "username": username,
             "profileImage": profileImage ?? "",
-            "joinDate": Timestamp(date: Date())
-        ])
-        print("✅ User saved to Firestore.")
+            "lastLogin": Timestamp(date: Date()),
+            "uid": uid
+        ]
+
+        if let currentUser = Auth.auth().currentUser {
+            data["email"] = currentUser.email ?? ""
+            data["displayName"] = currentUser.displayName ?? username
+            data["providerIDs"] = currentUser.providerData.map { $0.providerID }
+        }
+
+        var assignedUserId: Int
+
+        if snapshot.exists {
+            if let existing = snapshot.data() {
+                if let storedUsername = existing["username"] as? String, !storedUsername.isEmpty {
+                    await MainActor.run { self.username = storedUsername }
+                }
+                if let storedProfile = existing["profileImage"] as? String, !storedProfile.isEmpty {
+                    await MainActor.run { self.profileImage = storedProfile }
+                }
+                if let existingUserId = (existing["userId"] as? Int) ?? (existing["userId"] as? NSNumber)?.intValue {
+                    assignedUserId = existingUserId
+                } else {
+                    assignedUserId = try await allocateNextUserId()
+                }
+            } else {
+                assignedUserId = try await allocateNextUserId()
+            }
+            data["userId"] = assignedUserId
+            try await userRef.setData(data, merge: true)
+            print("✅ Existing user updated in Firestore. userId=\(assignedUserId)")
+        } else {
+            assignedUserId = try await allocateNextUserId()
+            data["userId"] = assignedUserId
+            data["joinDate"] = Timestamp(date: Date())
+            try await userRef.setData(data, merge: true)
+            print("✅ New user created in Firestore. userId=\(assignedUserId)")
+        }
     }
 
     // MARK: - Error handler
@@ -152,9 +186,11 @@ struct LoginView: View {
                         await showErrorWithMessage("Apple Sign-In failed: Missing login state (nonce).")
                         return
                     }
-                    let appleCredential = OAuthProvider.credential(withProviderID: "apple.com",
-                                                                   idToken: idTokenString,
-                                                                   rawNonce: nonce)
+                    let appleCredential = OAuthProvider.credential(
+                        providerID: AuthProviderID.apple,
+                        idToken: idTokenString,
+                        rawNonce: nonce
+                    )
                     let result = try await Auth.auth().signIn(with: appleCredential)
                     let user = result.user
                     self.currentNonce = nil
@@ -192,5 +228,40 @@ struct LoginView: View {
         let inputData = Data(input.utf8)
         let hashed = SHA256.hash(data: inputData)
         return hashed.map { String(format: "%02x", $0) }.joined()
+    }
+
+    // MARK: - User ID allocation (sequential 1, 2, 3, ...)
+    private func allocateNextUserId() async throws -> Int {
+        try await withCheckedThrowingContinuation { continuation in
+            let db = Firestore.firestore()
+            let countersRef = db.collection("counters").document("users")
+            db.runTransaction({ (transaction, errorPointer) -> Any? in
+                do {
+                    let snapshot = try transaction.getDocument(countersRef)
+                    let lastAny = snapshot.data()?["lastUserId"]
+                    let last: Int
+                    if let v = lastAny as? Int { last = v }
+                    else if let v = lastAny as? Int64 { last = Int(v) }
+                    else if let v = lastAny as? NSNumber { last = v.intValue }
+                    else { last = 0 }
+                    let next = last + 1
+                    transaction.setData(["lastUserId": next], forDocument: countersRef, merge: true)
+                    return next
+                } catch let error as NSError {
+                    errorPointer?.pointee = error
+                    return nil
+                }
+            }, completion: { (result, error) in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else if let next = result as? Int {
+                    continuation.resume(returning: next)
+                } else if let num = result as? NSNumber {
+                    continuation.resume(returning: num.intValue)
+                } else {
+                    continuation.resume(throwing: NSError(domain: "Pawsome", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to allocate next user id"]))
+                }
+            })
+        }
     }
 }

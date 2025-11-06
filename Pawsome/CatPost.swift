@@ -57,7 +57,7 @@ class CatPostViewModel: ObservableObject {
     }
 
     func addPost(_ post: CatPost) {
-        var data = try? Firestore.Encoder().encode(post)
+        let data = try? Firestore.Encoder().encode(post)
         db.collection("catPosts").addDocument(data: data ?? [:]) { error in
             if let error = error {
                 print("Error adding post: \(error.localizedDescription)")
@@ -67,3 +67,4 @@ class CatPostViewModel: ObservableObject {
         }
     }
 }
+

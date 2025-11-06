@@ -60,6 +60,16 @@ struct PawsomeApp: App {
                 Label("Home", systemImage: "house.fill")
             }
 
+            ScanView(
+                username: currentUsername,
+                onPostCreated: { _ in
+                    print("📸 Post created via Scan!")
+                }
+            )
+            .tabItem {
+                Label("Scan", systemImage: "camera.viewfinder")
+            }
+
             ProfileView(
                 isLoggedIn: $isLoggedIn,
                 currentUsername: $currentUsername,   // non-optional
