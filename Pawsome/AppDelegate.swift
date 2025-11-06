@@ -19,8 +19,10 @@ final class AppDelegate: NSObject, AppPlatformDelegate {
 
     // MARK: - Launch
     #if os(iOS)
-    func application(_ application: UIApplication,
-                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+    ) -> Bool {
         initializeApp()
         return true
     }
@@ -32,24 +34,28 @@ final class AppDelegate: NSObject, AppPlatformDelegate {
 
     // MARK: - Firebase Init
     private func initializeApp() {
-        guard FirebaseApp.app() == nil else { return }
-        FirebaseApp.configure()
-        print("✅ Firebase configured successfully")
+        // Only configure Firebase if not already done
+        if FirebaseApp.app() == nil {
+            FirebaseApp.configure()
+            print("✅ Firebase configured successfully")
+        }
         setupServices()
     }
 
     // MARK: - Extra Services
     private func setupServices() {
-        // 🔧 Add analytics, notifications, or any custom setup here
+        // 🔧 Add analytics, notifications, or other custom setup here
         print("⚙️ Services initialized")
     }
 
     // MARK: - Google Sign-In (iOS only)
     #if os(iOS)
-    func application(_ app: UIApplication,
-                     open url: URL,
-                     options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
-        GIDSignIn.sharedInstance.handle(url)
+    func application(
+        _ app: UIApplication,
+        open url: URL,
+        options: [UIApplication.OpenURLOptionsKey: Any] = [:]
+    ) -> Bool {
+        return GIDSignIn.sharedInstance.handle(url) // Return true/false properly
     }
     #endif
 

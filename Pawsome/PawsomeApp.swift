@@ -1,5 +1,4 @@
 import SwiftUI
-import Firebase
 import FirebaseAuth
 
 @main
@@ -20,8 +19,7 @@ struct PawsomeApp: App {
         WindowGroup {
             contentView
                 .onAppear {
-                    setupFirebaseIfNeeded()
-                    setupAuthStateObserver()
+                    setupAuthStateObserver() // just the listener
                 }
         }
     }
@@ -32,7 +30,6 @@ struct PawsomeApp: App {
         if isLoggedIn {
             mainTabView
         } else {
-            // LoginView expects `username: Binding<String>` and `profileImage: Binding<String?>`
             LoginView(
                 isLoggedIn: $isLoggedIn,
                 username: $currentUsername,
@@ -49,7 +46,7 @@ struct PawsomeApp: App {
         TabView {
             HomeView(
                 isLoggedIn: $isLoggedIn,
-                currentUsername: $currentUsername,   // non-optional
+                currentUsername: $currentUsername,
                 profileImageURL: Binding<String?>(
                     get: { profileImageURL.isEmpty ? nil : profileImageURL },
                     set: { profileImageURL = $0 ?? "" }
@@ -72,7 +69,7 @@ struct PawsomeApp: App {
 
             ProfileView(
                 isLoggedIn: $isLoggedIn,
-                currentUsername: $currentUsername,   // non-optional
+                currentUsername: $currentUsername,
                 profileImageURL: Binding<String?>(
                     get: { profileImageURL.isEmpty ? nil : profileImageURL },
                     set: { profileImageURL = $0 ?? "" }
@@ -83,14 +80,6 @@ struct PawsomeApp: App {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    // MARK: - Firebase setup
-    private func setupFirebaseIfNeeded() {
-        if FirebaseApp.app() == nil {
-            FirebaseApp.configure()
-            print("✅ Firebase configured")
-        }
     }
 
     // MARK: - Firebase Auth listener
