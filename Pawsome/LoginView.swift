@@ -3,7 +3,8 @@ import FirebaseAuth
 import FirebaseFirestore
 import FirebaseCore
 import GoogleSignIn
-#if os(iOS)
+import CryptoKit
+#if canImport(AuthenticationServices)
 import AuthenticationServices
 #endif
 
@@ -14,6 +15,7 @@ struct LoginView: View {
 
     @State private var showError = false
     @State private var errorMessage = ""
+    @State private var currentNonce: String? = nil
 
     var body: some View {
         VStack(spacing: 20) {
@@ -26,16 +28,16 @@ struct LoginView: View {
                 .font(.subheadline)
                 .padding(.bottom, 50)
 
-            // Anonymous Sign-In
-            Button("Sign in Anonymously") { Task { await universalSignIn(authType: .anonymous) } }
-
             // Google Sign-In
             Button("Sign in with Google") { Task { await universalSignIn(authType: .google) } }
 
-            // Apple Sign-In (iOS only)
-            #if os(iOS)
+            // Apple Sign-In
+            #if canImport(AuthenticationServices)
             SignInWithAppleButton(.signIn) { request in
                 request.requestedScopes = [.fullName, .email]
+                let nonce = randomNonceString()
+                self.currentNonce = nonce
+                request.nonce = sha256(nonce)
             } onCompletion: { result in
                 Task { await handleAppleSignIn(result: result) }
             }
@@ -51,7 +53,7 @@ struct LoginView: View {
     }
 
     // MARK: - Auth Types
-    enum AuthType { case anonymous, google }
+    enum AuthType { case google }
 
     // MARK: - Universal Sign-In
     private func universalSignIn(authType: AuthType) async {
@@ -59,12 +61,6 @@ struct LoginView: View {
             let user: User
 
             switch authType {
-            case .anonymous:
-                let result = try await Auth.auth().signInAnonymously()
-                user = result.user
-                username = "User\(Int.random(in: 1000...9999))"
-                profileImage = nil
-
             case .google:
                 #if os(iOS)
                 guard let clientID = FirebaseApp.app()?.options.clientID else { return }
@@ -140,20 +136,28 @@ struct LoginView: View {
         }
     }
 
-    // MARK: - Apple Sign-In (iOS only)
-    #if os(iOS)
+    // MARK: - Apple Sign-In
+    #if canImport(AuthenticationServices)
     private func handleAppleSignIn(result: Result<ASAuthorization, Error>) async {
         do {
             switch result {
             case .success(let auth):
                 if let credential = auth.credential as? ASAuthorizationAppleIDCredential {
-                    let token = credential.identityToken
-                    let idTokenString = token.flatMap { String(data: $0, encoding: .utf8) } ?? ""
+                    guard let token = credential.identityToken,
+                          let idTokenString = String(data: token, encoding: .utf8) else {
+                        await showErrorWithMessage("Apple Sign-In failed: Unable to fetch identity token.")
+                        return
+                    }
+                    guard let nonce = currentNonce else {
+                        await showErrorWithMessage("Apple Sign-In failed: Missing login state (nonce).")
+                        return
+                    }
                     let appleCredential = OAuthProvider.credential(withProviderID: "apple.com",
-                                                                    idToken: idTokenString,
-                                                                    rawNonce: nil)
+                                                                   idToken: idTokenString,
+                                                                   rawNonce: nonce)
                     let result = try await Auth.auth().signIn(with: appleCredential)
                     let user = result.user
+                    self.currentNonce = nil
 
                     username = credential.fullName?.givenName ?? "User\(Int.random(in: 1000...9999))"
                     profileImage = nil
@@ -171,4 +175,22 @@ struct LoginView: View {
         }
     }
     #endif
+
+    // MARK: - Nonce helpers for Sign in with Apple
+    private func randomNonceString(length: Int = 32) -> String {
+        precondition(length > 0)
+        let charset = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
+        var result = ""
+        var generator = SystemRandomNumberGenerator()
+        for _ in 0..<length {
+            result.append(charset.randomElement(using: &generator)!)
+        }
+        return result
+    }
+
+    private func sha256(_ input: String) -> String {
+        let inputData = Data(input.utf8)
+        let hashed = SHA256.hash(data: inputData)
+        return hashed.map { String(format: "%02x", $0) }.joined()
+    }
 }

@@ -137,6 +137,27 @@ struct ProfileView: View {
                 Button("Change Profile Picture") {
                     vm.isImagePickerPresented = true
                 }
+                
+                Button(role: .destructive) {
+                    // Sign out from Firebase
+                    do {
+                        try Auth.auth().signOut()
+                    } catch {
+                        print("❌ Sign out failed: \(error.localizedDescription)")
+                    }
+                    // Clear local state
+                    currentUsername = ""
+                    profileImageURL = nil
+                    UserDefaults.standard.removeObject(forKey: "username")
+                    UserDefaults.standard.set(false, forKey: "isLoggedIn")
+                    // Update login binding
+                    isLoggedIn = false
+                } label: {
+                    Text("Log Out")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.red)
 
                 Spacer()
             }
