@@ -5,64 +5,58 @@ import FirebaseFirestore
 import FirebaseStorage
 import GoogleSignIn
 
-
 #if os(iOS)
 import UIKit
+typealias AppPlatformDelegate = UIApplicationDelegate
 #elseif os(macOS)
 import AppKit
+typealias AppPlatformDelegate = NSApplicationDelegate
 #endif
 
 // MARK: - AppDelegate
-class AppDelegate: NSObject {
-    
-    // Shared instance (optional, if you wanna access globally)
+final class AppDelegate: NSObject, AppPlatformDelegate {
     static let shared = AppDelegate()
-    
-    // Firebase setup
-    func setupFirebase() {
-        if FirebaseApp.app() == nil {
-            FirebaseApp.configure()
-            print("✅ Firebase configured")
-        }
-    }
-    
-    // Additional setup for notifications or other services can go here
-    func setupServices() {
-        // e.g., Push Notifications, Analytics, etc.
-    }
-}
 
-#if os(iOS)
-extension AppDelegate: UIApplicationDelegate {
-    
+    // MARK: - Launch
+    #if os(iOS)
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
-        setupFirebase()
-        setupServices()
+        initializeApp()
         return true
     }
-    
-    // Handle URL for Google Sign-In / other auth methods
-    func application(_ app: UIApplication, open url: URL,
-                     options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
-        // Google Sign-In URL handling
-        return GIDSignIn.sharedInstance.handle(url)
-    }
-}
-
-#elseif os(macOS)
-extension AppDelegate: NSApplicationDelegate {
-    
+    #elseif os(macOS)
     func applicationDidFinishLaunching(_ notification: Notification) {
-        setupFirebase()
+        initializeApp()
+    }
+    #endif
+
+    // MARK: - Firebase Init
+    private func initializeApp() {
+        guard FirebaseApp.app() == nil else { return }
+        FirebaseApp.configure()
+        print("✅ Firebase configured successfully")
         setupServices()
     }
-    
-    // Optional: handle open URL or other macOS-specific app events
-    func application(_ application: NSApplication, open urls: [URL]) {
-        for url in urls {
-            print("Opened URL: \(url.absoluteString)")
-        }
+
+    // MARK: - Extra Services
+    private func setupServices() {
+        // 🔧 Add analytics, notifications, or any custom setup here
+        print("⚙️ Services initialized")
     }
+
+    // MARK: - Google Sign-In (iOS only)
+    #if os(iOS)
+    func application(_ app: UIApplication,
+                     open url: URL,
+                     options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
+        GIDSignIn.sharedInstance.handle(url)
+    }
+    #endif
+
+    // MARK: - macOS URL Handling
+    #if os(macOS)
+    func application(_ application: NSApplication, open urls: [URL]) {
+        urls.forEach { print("🌐 Opened URL: \($0.absoluteString)") }
+    }
+    #endif
 }
-#endif
