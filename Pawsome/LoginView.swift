@@ -29,7 +29,9 @@ struct LoginView: View {
                 .padding(.bottom, 50)
 
             // Google Sign-In
-            Button("Sign in with Google") { Task { await universalSignIn(authType: .google) } }
+            Button("Sign in with Google") {
+                Task { await universalSignIn(authType: .google) }
+            }
 
             // Apple Sign-In
             #if canImport(AuthenticationServices)
@@ -63,41 +65,45 @@ struct LoginView: View {
             switch authType {
             case .google:
                 #if os(iOS)
-                guard let clientID = FirebaseApp.app()?.options.clientID else { return }
-                let config = GIDConfiguration(clientID: clientID)
-                guard let root = UIApplication.shared.windows.first?.rootViewController else { return }
-                let signInResult = try await GIDSignIn.sharedInstance.signIn(for: config, presenting: root)
-                #elseif os(macOS)
-                guard let window = NSApp.keyWindow else { return }
-                let signInResult = try await GIDSignIn.sharedInstance.signIn(withPresenting: window)
-                #endif
+                // Get top view controller
+                guard let rootVC = UIApplication.shared.connectedScenes
+                        .compactMap({ ($0 as? UIWindowScene)?.keyWindow?.rootViewController })
+                        .first else { return }
 
+                let signInResult = try await GIDSignIn.sharedInstance.signIn(withPresenting: rootVC)
                 let gidUser = signInResult.user
 
-                #if os(iOS)
-                // On iOS, idToken is optional; accessToken.tokenString is non-optional
                 guard let idTokenString = gidUser.idToken?.tokenString else {
                     await showErrorWithMessage("Google ID token missing")
                     return
                 }
                 let accessTokenString = gidUser.accessToken.tokenString
-                #elseif os(macOS)
-                // On macOS, idToken is optional; accessToken.tokenString is non-optional in latest SDK
-                guard let idTokenString = gidUser.idToken?.tokenString else {
-                    await showErrorWithMessage("Google ID token missing")
-                    return
-                }
-                let accessTokenString = gidUser.accessToken.tokenString
-                #endif
 
-                let credential = GoogleAuthProvider.credential(withIDToken: idTokenString,
-                                                               accessToken: accessTokenString)
+                let credential = GoogleAuthProvider.credential(withIDToken: idTokenString, accessToken: accessTokenString)
                 let result = try await Auth.auth().signIn(with: credential)
                 user = result.user
 
                 // Safe profile info
                 username = gidUser.profile?.name ?? "User\(Int.random(in: 1000...9999))"
                 profileImage = gidUser.profile?.imageURL(withDimension: 200)?.absoluteString
+                #elseif os(macOS)
+                guard let window = NSApp.keyWindow else { return }
+                let signInResult = try await GIDSignIn.sharedInstance.signIn(withPresenting: window)
+                let gidUser = signInResult.user
+
+                guard let idTokenString = gidUser.idToken?.tokenString else {
+                    await showErrorWithMessage("Google ID token missing")
+                    return
+                }
+                let accessTokenString = gidUser.accessToken.tokenString
+
+                let credential = GoogleAuthProvider.credential(withIDToken: idTokenString, accessToken: accessTokenString)
+                let result = try await Auth.auth().signIn(with: credential)
+                user = result.user
+
+                username = gidUser.profile?.name ?? "User\(Int.random(in: 1000...9999))"
+                profileImage = gidUser.profile?.imageURL(withDimension: 200)?.absoluteString
+                #endif
             }
 
             // Save user to Firestore
