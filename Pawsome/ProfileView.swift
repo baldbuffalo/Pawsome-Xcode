@@ -3,25 +3,29 @@ import FirebaseAuth
 import FirebaseFirestore
 import FirebaseStorage
 
+// MARK: - ViewModel
+@MainActor
 class ProfileViewModel: ObservableObject {
+    @Published var username: String
     @Published var profileImageURL: String?
     @Published var selectedImage: PlatformImage?
     @Published var isImageLoading = false
     @Published var isSaving = false
     @Published var isImagePickerPresented = false
-    @Binding var username: String
     @Published var isLoading = false
 
-    init(username: Binding<String>) {
-        self._username = username
+    init(username: String) {
+        self.username = username
     }
 
     func loadProfile() {
         guard let uid = Auth.auth().currentUser?.uid else { return }
         isLoading = true
         let docRef = Firestore.firestore().collection("users").document(uid)
-        docRef.getDocument { snapshot, error in
-            DispatchQueue.main.async {
+
+        docRef.getDocument { [weak self] snapshot, _ in
+            guard let self = self else { return }
+            Task { @MainActor in
                 self.isLoading = false
                 if let data = snapshot?.data() {
                     self.username = data["username"] as? String ?? self.username
@@ -34,11 +38,14 @@ class ProfileViewModel: ObservableObject {
     func saveUsername() {
         guard let uid = Auth.auth().currentUser?.uid else { return }
         isSaving = true
-        Firestore.firestore().collection("users").document(uid).setData(
-            ["username": username], merge: true
-        ) { _ in
-            DispatchQueue.main.async { self.isSaving = false }
-        }
+
+        Firestore.firestore().collection("users").document(uid)
+            .setData(["username": username], merge: true) { [weak self] _ in
+                guard let self = self else { return }
+                Task { @MainActor in
+                    self.isSaving = false
+                }
+            }
     }
 
     func uploadProfileImage(image: PlatformImage) async {
@@ -55,22 +62,25 @@ class ProfileViewModel: ObservableObject {
         #endif
 
         guard let uploadData = data else { return }
+
         isImageLoading = true
 
         do {
             _ = try await ref.putDataAsync(uploadData)
             let url = try await ref.downloadURL()
             profileImageURL = url.absoluteString
-            Firestore.firestore().collection("users").document(uid)
+
+            try await Firestore.firestore().collection("users").document(uid)
                 .setData(["profileImage": url.absoluteString], merge: true)
         } catch {
             print("❌ Image upload failed: \(error.localizedDescription)")
         }
 
-        DispatchQueue.main.async { self.isImageLoading = false }
+        isImageLoading = false
     }
 }
 
+// MARK: - View
 struct ProfileView: View {
     @Binding var isLoggedIn: Bool
     @Binding var currentUsername: String
@@ -83,7 +93,7 @@ struct ProfileView: View {
         self._isLoggedIn = isLoggedIn
         self._currentUsername = currentUsername
         self._profileImageURL = profileImageURL
-        _vm = StateObject(wrappedValue: ProfileViewModel(username: currentUsername))
+        _vm = StateObject(wrappedValue: ProfileViewModel(username: currentUsername.wrappedValue))
     }
 
     var body: some View {
@@ -91,6 +101,7 @@ struct ProfileView: View {
             if vm.isLoading {
                 ProgressView("Loading Profile...").padding()
             } else {
+                // Profile image
                 if let urlString = vm.profileImageURL ?? profileImageURL,
                    let url = URL(string: urlString) {
                     AsyncImage(url: url) { image in
@@ -107,12 +118,17 @@ struct ProfileView: View {
                         .foregroundColor(.gray)
                 }
 
+                // Username field
                 TextField("Username", text: $vm.username)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .focused($usernameFocused)
-                    .onChange(of: usernameFocused) { focused in
-                        if !focused { vm.saveUsername() }
+                    .onChange(of: usernameFocused) { oldValue, newValue in
+                        if !newValue { // focus lost
+                            vm.saveUsername()
+                            currentUsername = vm.username
+                        }
                     }
+
 
                 Text(vm.isSaving ? "Saving..." : "Saved")
                     .foregroundColor(vm.isSaving ? .gray : .green)
@@ -131,7 +147,9 @@ struct ProfileView: View {
             ImagePickerView(selectedImage: $vm.selectedImage)
                 .onDisappear {
                     if let image = vm.selectedImage {
-                        Task { await vm.uploadProfileImage(image: image) }
+                        Task { [weak vm] in
+                            await vm?.uploadProfileImage(image: image)
+                        }
                     }
                 }
         }
