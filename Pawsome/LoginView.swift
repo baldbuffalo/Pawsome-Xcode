@@ -77,16 +77,29 @@ struct LoginView: View {
                 #endif
 
                 let gidUser = signInResult.user
-                guard let idToken = gidUser.idToken?.tokenString,
-                      let accessToken = gidUser.accessToken?.tokenString else {
-                    await showErrorWithMessage("Google auth tokens missing")
+
+                #if os(iOS)
+                // On iOS, idToken is optional; accessToken.tokenString is non-optional
+                guard let idTokenString = gidUser.idToken?.tokenString else {
+                    await showErrorWithMessage("Google ID token missing")
                     return
                 }
+                let accessTokenString = gidUser.accessToken.tokenString
+                #elseif os(macOS)
+                // On macOS, idToken is optional; accessToken.tokenString is non-optional in latest SDK
+                guard let idTokenString = gidUser.idToken?.tokenString else {
+                    await showErrorWithMessage("Google ID token missing")
+                    return
+                }
+                let accessTokenString = gidUser.accessToken.tokenString
+                #endif
 
-                let credential = GoogleAuthProvider.credential(withIDToken: idToken, accessToken: accessToken)
+                let credential = GoogleAuthProvider.credential(withIDToken: idTokenString,
+                                                               accessToken: accessTokenString)
                 let result = try await Auth.auth().signIn(with: credential)
                 user = result.user
 
+                // Safe profile info
                 username = gidUser.profile?.name ?? "User\(Int.random(in: 1000...9999))"
                 profileImage = gidUser.profile?.imageURL(withDimension: 200)?.absoluteString
             }
@@ -94,7 +107,7 @@ struct LoginView: View {
             // Save user to Firestore
             try await saveUserToFirestore(uid: user.uid)
 
-            // Login success
+            // Persist login locally
             UserDefaults.standard.set(username, forKey: "username")
             UserDefaults.standard.set(true, forKey: "isLoggedIn")
             isLoggedIn = true
@@ -104,9 +117,11 @@ struct LoginView: View {
         }
     }
 
+    // MARK: - Save user to Firestore
     private func saveUserToFirestore(uid: String) async throws {
         let userRef = Firestore.firestore().collection("users").document(uid)
         let snapshot = try await userRef.getDocument()
+
         if snapshot.exists { return }
 
         try await userRef.setData([
@@ -117,6 +132,7 @@ struct LoginView: View {
         print("✅ User saved to Firestore.")
     }
 
+    // MARK: - Error handler
     private func showErrorWithMessage(_ msg: String) async {
         await MainActor.run {
             errorMessage = msg
@@ -124,6 +140,7 @@ struct LoginView: View {
         }
     }
 
+    // MARK: - Apple Sign-In (iOS only)
     #if os(iOS)
     private func handleAppleSignIn(result: Result<ASAuthorization, Error>) async {
         do {
@@ -131,8 +148,10 @@ struct LoginView: View {
             case .success(let auth):
                 if let credential = auth.credential as? ASAuthorizationAppleIDCredential {
                     let token = credential.identityToken
-                    let idTokenString = String(data: token!, encoding: .utf8)!
-                    let appleCredential = OAuthProvider.credential(withProviderID: "apple.com", idToken: idTokenString, rawNonce: nil)
+                    let idTokenString = token.flatMap { String(data: $0, encoding: .utf8) } ?? ""
+                    let appleCredential = OAuthProvider.credential(withProviderID: "apple.com",
+                                                                    idToken: idTokenString,
+                                                                    rawNonce: nil)
                     let result = try await Auth.auth().signIn(with: appleCredential)
                     let user = result.user
 
