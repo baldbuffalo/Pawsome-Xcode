@@ -13,14 +13,6 @@ struct PawsomeApp: App {
     // MARK: - App state
     @StateObject private var appState = AppState()
 
-    init() {
-        // Ensure Firebase is configured immediately
-        if FirebaseApp.app() == nil {
-            FirebaseApp.configure()
-            print("✅ Firebase configured (init)")
-        }
-    }
-
     var body: some Scene {
         WindowGroup {
             if appState.isLoggedIn {
@@ -76,7 +68,9 @@ struct MainTabView: View {
 
             ScanView(
                 username: appState.currentUsername,
-                onPostCreated: { _ in print("📸 Scan post created!") }
+                onPostCreated: {
+                    print("📸 Scan post created!")
+                }
             )
             .tabItem { Label("Scan", systemImage: "camera.viewfinder") }
 

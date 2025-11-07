@@ -5,13 +5,13 @@ struct FormView: View {
     @Binding var navigateToHome: Bool
     var image: PlatformImage
     var username: String
-    var onPostCreated: ((CatPost) -> Void)?
+    var onPostCreated: (() -> Void)?
 
-    @State private var catName = ""
-    @State private var breed = ""
-    @State private var age = ""
-    @State private var location = ""
+    @State private var name = ""
     @State private var description = ""
+    @State private var imageURL = ""
+
+    @StateObject private var viewModel = CatPostViewModel()
 
     var body: some View {
         ScrollView {
@@ -30,31 +30,22 @@ struct FormView: View {
                     .cornerRadius(10)
                 #endif
 
-                inputField("Cat Name", $catName)
-                inputField("Breed", $breed)
-                inputField("Age", $age)
-                inputField("Location", $location)
+                inputField("Cat Name", $name)
                 inputField("Description", $description)
+                inputField("Image URL (optional)", $imageURL)
 
-                Button("Post") {
+                Button("Post 🐾") {
+                    viewModel.addPost(
+                        name: name,
+                        description: description,
+                        imageURL: imageURL.isEmpty ? "" : imageURL
+                    )
+                    name = ""
+                    description = ""
+                    imageURL = ""
                     showForm = false
                     navigateToHome = true
-
-                    let newPost = CatPost(
-                        id: nil,
-                        catName: catName,
-                        catBreed: breed,
-                        location: location,
-                        imageURL: "", // no Firebase
-                        postDescription: description,
-                        likes: 0,
-                        comments: [],
-                        catAge: Int(age) ?? 0,
-                        username: username,
-                        timestamp: Date(),
-                        form: nil
-                    )
-                    onPostCreated?(newPost)
+                    onPostCreated?()
                 }
                 .disabled(!isFormComplete)
                 .foregroundColor(isFormComplete ? .blue : .gray)
@@ -65,7 +56,7 @@ struct FormView: View {
     }
 
     private var isFormComplete: Bool {
-        !catName.isEmpty && !breed.isEmpty && !age.isEmpty && !location.isEmpty && !description.isEmpty
+        !name.isEmpty && !description.isEmpty
     }
 
     private func inputField(_ placeholder: String, _ binding: Binding<String>) -> some View {

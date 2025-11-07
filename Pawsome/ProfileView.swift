@@ -18,6 +18,7 @@ class ProfileViewModel: ObservableObject {
         self.username = username
     }
 
+    // Load profile safely after Firebase is configured
     func loadProfile() {
         guard let uid = Auth.auth().currentUser?.uid else { return }
         isLoading = true
@@ -93,6 +94,7 @@ struct ProfileView: View {
         self._isLoggedIn = isLoggedIn
         self._currentUsername = currentUsername
         self._profileImageURL = profileImageURL
+        // Initialize StateObject without Firebase calls
         _vm = StateObject(wrappedValue: ProfileViewModel(username: currentUsername.wrappedValue))
     }
 
@@ -122,13 +124,12 @@ struct ProfileView: View {
                 TextField("Username", text: $vm.username)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .focused($usernameFocused)
-                    .onChange(of: usernameFocused) { oldValue, newValue in
-                        if !newValue { // focus lost
-                            vm.saveUsername()
+                    .onChange(of: usernameFocused) { _, newValue in
+                        if !newValue {
+                            vm.saveUsername() // Firebase safely called here
                             currentUsername = vm.username
                         }
                     }
-
 
                 Text(vm.isSaving ? "Saving..." : "Saved")
                     .foregroundColor(vm.isSaving ? .gray : .green)
@@ -137,24 +138,16 @@ struct ProfileView: View {
                 Button("Change Profile Picture") {
                     vm.isImagePickerPresented = true
                 }
-                
+
                 Button(role: .destructive) {
-                    // Sign out from Firebase
-                    do {
-                        try Auth.auth().signOut()
-                    } catch {
-                        print("❌ Sign out failed: \(error.localizedDescription)")
-                    }
-                    // Clear local state
+                    do { try Auth.auth().signOut() } catch { print(error) }
                     currentUsername = ""
                     profileImageURL = nil
                     UserDefaults.standard.removeObject(forKey: "username")
                     UserDefaults.standard.set(false, forKey: "isLoggedIn")
-                    // Update login binding
                     isLoggedIn = false
                 } label: {
-                    Text("Log Out")
-                        .frame(maxWidth: .infinity)
+                    Text("Log Out").frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.red)
@@ -163,14 +156,12 @@ struct ProfileView: View {
             }
         }
         .padding()
-        .onAppear { vm.loadProfile() }
+        .onAppear { vm.loadProfile() } // Firebase calls only here
         .sheet(isPresented: $vm.isImagePickerPresented) {
             ImagePickerView(selectedImage: $vm.selectedImage)
                 .onDisappear {
                     if let image = vm.selectedImage {
-                        Task { [weak vm] in
-                            await vm?.uploadProfileImage(image: image)
-                        }
+                        Task { await vm.uploadProfileImage(image: image) }
                     }
                 }
         }

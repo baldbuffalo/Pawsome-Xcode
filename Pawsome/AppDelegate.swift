@@ -13,12 +13,16 @@ typealias AppPlatformDelegate = NSApplicationDelegate
 final class AppDelegate: NSObject, AppPlatformDelegate {
     static let shared = AppDelegate()
 
+    // MARK: - Launch
     #if os(iOS)
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
-        // Firebase already configured in @main init
+        if FirebaseApp.app() == nil {
+            FirebaseApp.configure()
+            print("✅ Firebase configured in AppDelegate")
+        }
         return true
     }
 
@@ -31,7 +35,10 @@ final class AppDelegate: NSObject, AppPlatformDelegate {
     }
     #elseif os(macOS)
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Firebase already configured in @main init
+        if FirebaseApp.app() == nil {
+            FirebaseApp.configure()
+            print("✅ Firebase configured in AppDelegate (macOS)")
+        }
     }
     #endif
 }
