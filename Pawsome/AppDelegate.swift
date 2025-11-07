@@ -13,7 +13,6 @@ import AppKit
 typealias AppPlatformDelegate = NSApplicationDelegate
 #endif
 
-// MARK: - AppDelegate
 final class AppDelegate: NSObject, AppPlatformDelegate {
     static let shared = AppDelegate()
 
@@ -34,7 +33,6 @@ final class AppDelegate: NSObject, AppPlatformDelegate {
 
     // MARK: - Firebase Init
     private func initializeApp() {
-        // Only configure Firebase if not already done
         if FirebaseApp.app() == nil {
             FirebaseApp.configure()
             print("✅ Firebase configured successfully")
@@ -42,20 +40,19 @@ final class AppDelegate: NSObject, AppPlatformDelegate {
         setupServices()
     }
 
-    // MARK: - Extra Services
     private func setupServices() {
-        // 🔧 Add analytics, notifications, or other custom setup here
-        print("⚙️ Services initialized")
+        print("⚙️ Extra services initialized")
+        // Analytics, push notifications, etc.
     }
 
-    // MARK: - Google Sign-In (iOS only)
+    // MARK: - Google Sign-In (iOS)
     #if os(iOS)
     func application(
         _ app: UIApplication,
         open url: URL,
         options: [UIApplication.OpenURLOptionsKey: Any] = [:]
     ) -> Bool {
-        return GIDSignIn.sharedInstance.handle(url) // Return true/false properly
+        return GIDSignIn.sharedInstance.handle(url)
     }
     #endif
 

@@ -1,30 +1,36 @@
 import SwiftUI
 import FirebaseAuth
+import FirebaseCore
+import GoogleSignIn
 
 @main
 struct PawsomeApp: App {
-    // MARK: - AppDelegate adaptor
-    #if os(iOS)
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
-    #elseif os(macOS)
-    @NSApplicationDelegateAdaptor(AppDelegate.self) var delegate
-    #endif
 
     // MARK: - App state
+    @State private var isFirebaseConfigured = false
     @State private var isLoggedIn = false
-    @State private var currentUsername: String = ""    // non-optional
-    @State private var profileImageURL: String = ""    // non-optional internally
+    @State private var currentUsername: String = ""
+    @State private var profileImageURL: String = ""
 
     var body: some Scene {
         WindowGroup {
-            contentView
-                .onAppear {
-                    setupAuthStateObserver() // just the listener
-                }
+            if isFirebaseConfigured {
+                contentView
+                    .onAppear { setupAuthStateObserver() }
+            } else {
+                ProgressView("Loading Firebase…")
+                    .onAppear {
+                        if FirebaseApp.app() == nil {
+                            FirebaseApp.configure()
+                        }
+                        isFirebaseConfigured = true
+                    }
+            }
         }
     }
 
-    // MARK: - Conditional content
+    // MARK: - Main content
     @ViewBuilder
     private var contentView: some View {
         if isLoggedIn {
@@ -41,7 +47,6 @@ struct PawsomeApp: App {
         }
     }
 
-    // MARK: - Main TabView
     private var mainTabView: some View {
         TabView {
             HomeView(
@@ -53,19 +58,13 @@ struct PawsomeApp: App {
                 ),
                 onPostCreated: { print("🔥 Post created!") }
             )
-            .tabItem {
-                Label("Home", systemImage: "house.fill")
-            }
+            .tabItem { Label("Home", systemImage: "house.fill") }
 
             ScanView(
                 username: currentUsername,
-                onPostCreated: { _ in
-                    print("📸 Post created via Scan!")
-                }
+                onPostCreated: { _ in print("📸 Scan post created!") }
             )
-            .tabItem {
-                Label("Scan", systemImage: "camera.viewfinder")
-            }
+            .tabItem { Label("Scan", systemImage: "camera.viewfinder") }
 
             ProfileView(
                 isLoggedIn: $isLoggedIn,
@@ -75,9 +74,7 @@ struct PawsomeApp: App {
                     set: { profileImageURL = $0 ?? "" }
                 )
             )
-            .tabItem {
-                Label("Profile", systemImage: "person.fill")
-            }
+            .tabItem { Label("Profile", systemImage: "person.fill") }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
