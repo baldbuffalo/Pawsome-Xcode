@@ -16,6 +16,7 @@ struct PawsomeApp: App {
         }
     }
 
+    // MARK: - Main content
     @ViewBuilder
     private var contentView: some View {
         if isLoggedIn {
@@ -64,6 +65,7 @@ struct PawsomeApp: App {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
+    // MARK: - Firebase Auth listener
     private func setupAuthStateObserver() {
         _ = Auth.auth().addStateDidChangeListener { _, user in
             DispatchQueue.main.async {

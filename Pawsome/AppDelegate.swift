@@ -1,8 +1,6 @@
 import SwiftUI
 import FirebaseCore
 import FirebaseAuth
-import FirebaseFirestore
-import FirebaseStorage
 import GoogleSignIn
 
 #if os(iOS)
@@ -18,40 +16,29 @@ final class AppDelegate: NSObject, AppPlatformDelegate {
 
     // MARK: - Launch
     #if os(iOS)
-    func application(
-        _ application: UIApplication,
-        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
-    ) -> Bool {
-        initializeApp()
+    func application(_ application: UIApplication,
+                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        configureFirebase()
         return true
     }
     #elseif os(macOS)
     func applicationDidFinishLaunching(_ notification: Notification) {
-        initializeApp()
+        configureFirebase()
     }
     #endif
 
-    // MARK: - Firebase Init
-    private func initializeApp() {
-        if FirebaseApp.app() == nil {
-            FirebaseApp.configure()
-            print("✅ Firebase configured successfully")
-        }
-        setupServices()
-    }
-
-    private func setupServices() {
-        print("⚙️ Extra services initialized")
-        // Analytics, push notifications, etc.
+    // MARK: - Firebase config
+    private func configureFirebase() {
+        guard FirebaseApp.app() == nil else { return }
+        FirebaseApp.configure()
+        print("✅ Firebase configured")
     }
 
     // MARK: - Google Sign-In (iOS)
     #if os(iOS)
-    func application(
-        _ app: UIApplication,
-        open url: URL,
-        options: [UIApplication.OpenURLOptionsKey: Any] = [:]
-    ) -> Bool {
+    func application(_ app: UIApplication,
+                     open url: URL,
+                     options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
         return GIDSignIn.sharedInstance.handle(url)
     }
     #endif
