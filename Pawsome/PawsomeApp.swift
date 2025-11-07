@@ -1,4 +1,5 @@
 import SwiftUI
+import FirebaseCore
 import FirebaseAuth
 import GoogleSignIn
 
@@ -10,75 +11,85 @@ struct PawsomeApp: App {
     #endif
 
     // MARK: - App state
-    @State private var isLoggedIn = false
-    @State private var currentUsername = ""
-    @State private var profileImageURL = ""
+    @StateObject private var appState = AppState()
+
+    init() {
+        // Ensure Firebase is configured immediately
+        if FirebaseApp.app() == nil {
+            FirebaseApp.configure()
+            print("✅ Firebase configured (init)")
+        }
+    }
 
     var body: some Scene {
         WindowGroup {
-            contentView
-                .onAppear { setupAuthStateObserver() }
-        }
-    }
-
-    // MARK: - Main content
-    @ViewBuilder
-    private var contentView: some View {
-        if isLoggedIn {
-            mainTabView
-        } else {
-            LoginView(
-                isLoggedIn: $isLoggedIn,
-                username: $currentUsername,
-                profileImage: Binding<String?>(
-                    get: { profileImageURL.isEmpty ? nil : profileImageURL },
-                    set: { profileImageURL = $0 ?? "" }
+            if appState.isLoggedIn {
+                MainTabView(appState: appState)
+            } else {
+                LoginView(
+                    isLoggedIn: $appState.isLoggedIn,
+                    username: $appState.currentUsername,
+                    profileImage: Binding<String?>(
+                        get: { appState.profileImageURL.isEmpty ? nil : appState.profileImageURL },
+                        set: { appState.profileImageURL = $0 ?? "" }
+                    )
                 )
-            )
+                .onAppear { appState.listenAuthState() }
+            }
         }
     }
+}
 
-    // MARK: - Main TabView
-    private var mainTabView: some View {
+// MARK: - App State
+final class AppState: ObservableObject {
+    @Published var isLoggedIn = false
+    @Published var currentUsername = ""
+    @Published var profileImageURL = ""
+
+    func listenAuthState() {
+        _ = Auth.auth().addStateDidChangeListener { [weak self] _, user in
+            DispatchQueue.main.async {
+                self?.isLoggedIn = (user != nil)
+                self?.currentUsername = user?.displayName ?? "User\(Int.random(in: 1000...9999))"
+                self?.profileImageURL = user?.photoURL?.absoluteString ?? ""
+            }
+        }
+    }
+}
+
+// MARK: - Main TabView
+struct MainTabView: View {
+    @ObservedObject var appState: AppState
+
+    var body: some View {
         TabView {
             HomeView(
-                isLoggedIn: $isLoggedIn,
-                currentUsername: $currentUsername,
+                isLoggedIn: $appState.isLoggedIn,
+                currentUsername: $appState.currentUsername,
                 profileImageURL: Binding<String?>(
-                    get: { profileImageURL.isEmpty ? nil : profileImageURL },
-                    set: { profileImageURL = $0 ?? "" }
+                    get: { appState.profileImageURL.isEmpty ? nil : appState.profileImageURL },
+                    set: { appState.profileImageURL = $0 ?? "" }
                 ),
                 onPostCreated: { print("🔥 Post created!") }
             )
             .tabItem { Label("Home", systemImage: "house.fill") }
 
             ScanView(
-                username: currentUsername,
+                username: appState.currentUsername,
                 onPostCreated: { _ in print("📸 Scan post created!") }
             )
             .tabItem { Label("Scan", systemImage: "camera.viewfinder") }
 
             ProfileView(
-                isLoggedIn: $isLoggedIn,
-                currentUsername: $currentUsername,
+                isLoggedIn: $appState.isLoggedIn,
+                currentUsername: $appState.currentUsername,
                 profileImageURL: Binding<String?>(
-                    get: { profileImageURL.isEmpty ? nil : profileImageURL },
-                    set: { profileImageURL = $0 ?? "" }
+                    get: { appState.profileImageURL.isEmpty ? nil : appState.profileImageURL },
+                    set: { appState.profileImageURL = $0 ?? "" }
                 )
             )
             .tabItem { Label("Profile", systemImage: "person.fill") }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    // MARK: - Firebase Auth listener
-    private func setupAuthStateObserver() {
-        _ = Auth.auth().addStateDidChangeListener { _, user in
-            DispatchQueue.main.async {
-                self.isLoggedIn = (user != nil)
-                self.currentUsername = user?.displayName ?? "User\(Int.random(in: 1000...9999))"
-                self.profileImageURL = user?.photoURL?.absoluteString ?? ""
-            }
-        }
     }
 }

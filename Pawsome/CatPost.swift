@@ -1,70 +1,92 @@
-import Foundation
+import SwiftUI
 import FirebaseFirestore
-import Combine
+import FirebaseAuth
 
-struct CatPost: Identifiable, Codable {
-    var id: String?
-    var catName: String
-    var catBreed: String?
-    var location: String?
-    var imageURL: String?
-    var postDescription: String?
-    var likes: Int
-    var comments: [String]
-    var catAge: Int?
-    var username: String?
-    var timestamp: Date?
-    var form: [String: String]? // ✅ Form data
-
-    static func from(data: [String: Any], id: String) -> CatPost {
-        return CatPost(
-            id: id,
-            catName: data["catName"] as? String ?? "Unknown Cat",
-            catBreed: data["catBreed"] as? String,
-            location: data["location"] as? String,
-            imageURL: data["imageURL"] as? String,
-            postDescription: data["description"] as? String,
-            likes: data["likes"] as? Int ?? 0,
-            comments: data["comments"] as? [String] ?? [],
-            catAge: data["catAge"] as? Int,
-            username: data["username"] as? String,
-            timestamp: (data["timestamp"] as? Timestamp)?.dateValue() ?? Date(),
-            form: data["form"] as? [String: String]
-        )
-    }
+struct CatPost: Identifiable {
+    var id = UUID()
+    var name: String
+    var description: String
+    var imageURL: String
+    var userID: String
 }
-
-// MARK: - ViewModel
 
 class CatPostViewModel: ObservableObject {
     @Published var posts: [CatPost] = []
+
     private var db = Firestore.firestore()
 
     func fetchPosts() {
-        db.collection("catPosts")
-            .order(by: "timestamp", descending: true)
-            .addSnapshotListener { snapshot, error in
-                if let error = error {
-                    print("Error fetching posts: \(error.localizedDescription)")
-                    return
-                }
-
-                guard let documents = snapshot?.documents else { return }
-                self.posts = documents.map { doc in
-                    CatPost.from(data: doc.data(), id: doc.documentID)
-                }
+        db.collection("catPosts").addSnapshotListener { querySnapshot, error in
+            guard let documents = querySnapshot?.documents else {
+                print("❌ No posts found")
+                return
             }
+
+            self.posts = documents.compactMap { doc -> CatPost? in
+                let data = doc.data()
+                guard let name = data["name"] as? String,
+                      let description = data["description"] as? String,
+                      let imageURL = data["imageURL"] as? String,
+                      let userID = data["userID"] as? String else {
+                    return nil
+                }
+                return CatPost(name: name, description: description, imageURL: imageURL, userID: userID)
+            }
+        }
     }
 
-    func addPost(_ post: CatPost) {
-        let data = try? Firestore.Encoder().encode(post)
-        db.collection("catPosts").addDocument(data: data ?? [:]) { error in
-            if let error = error {
-                print("Error adding post: \(error.localizedDescription)")
-            } else {
-                print("✅ Post added successfully")
+    func addPost(name: String, description: String, imageURL: String) {
+        guard let userID = Auth.auth().currentUser?.uid else { return }
+        db.collection("catPosts").addDocument(data: [
+            "name": name,
+            "description": description,
+            "imageURL": imageURL,
+            "userID": userID
+        ])
+    }
+}
+
+struct CatPostView: View {
+    @StateObject private var viewModel = CatPostViewModel()
+    @State private var name = ""
+    @State private var description = ""
+    @State private var imageURL = ""
+
+    var body: some View {
+        NavigationView {
+            VStack {
+                TextField("Cat Name", text: $name)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                TextField("Description", text: $description)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                TextField("Image URL", text: $imageURL)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+
+                Button("Post 🐾") {
+                    viewModel.addPost(name: name, description: description, imageURL: imageURL)
+                    name = ""
+                    description = ""
+                    imageURL = ""
+                }
+
+                List(viewModel.posts) { post in
+                    VStack(alignment: .leading) {
+                        Text(post.name).font(.headline)
+                        Text(post.description).font(.subheadline)
+                        AsyncImage(url: URL(string: post.imageURL)) { image in
+                            image.resizable().scaledToFit()
+                        } placeholder: {
+                            ProgressView()
+                        }
+                    }
+                    .padding()
+                }
+            }
+            .padding()
+            .navigationTitle("Cat Posts 😺")
+            .onAppear {
+                viewModel.fetchPosts()
             }
         }
     }
 }
-
