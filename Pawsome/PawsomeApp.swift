@@ -1,5 +1,4 @@
 import SwiftUI
-import FirebaseCore
 import FirebaseAuth
 import GoogleSignIn
 
@@ -10,24 +9,6 @@ struct PawsomeApp: App {
     @State private var currentUsername: String = ""
     @State private var profileImageURL: String = ""
 
-    // MARK: - Init
-    init() {
-        // Configure Firebase once
-        if FirebaseApp.app() == nil {
-            FirebaseApp.configure()
-            print("✅ Firebase configured")
-        }
-        
-        // Optionally set up Google Sign-In (iOS)
-        #if os(iOS)
-        GIDSignIn.sharedInstance.restorePreviousSignIn { user, error in
-            if let user = user {
-                print("🌐 Google user restored: \(user.profile?.name ?? "No Name")")
-            }
-        }
-        #endif
-    }
-
     var body: some Scene {
         WindowGroup {
             contentView
@@ -35,7 +16,6 @@ struct PawsomeApp: App {
         }
     }
 
-    // MARK: - Main content
     @ViewBuilder
     private var contentView: some View {
         if isLoggedIn {
@@ -84,7 +64,6 @@ struct PawsomeApp: App {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    // MARK: - Firebase Auth listener
     private func setupAuthStateObserver() {
         _ = Auth.auth().addStateDidChangeListener { _, user in
             DispatchQueue.main.async {
