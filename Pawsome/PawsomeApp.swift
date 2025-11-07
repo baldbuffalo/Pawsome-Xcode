@@ -4,10 +4,15 @@ import GoogleSignIn
 
 @main
 struct PawsomeApp: App {
+    // MARK: - AppDelegate adaptor (iOS only)
+    #if os(iOS)
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
+    #endif
+
     // MARK: - App state
     @State private var isLoggedIn = false
-    @State private var currentUsername: String = ""
-    @State private var profileImageURL: String = ""
+    @State private var currentUsername = ""
+    @State private var profileImageURL = ""
 
     var body: some Scene {
         WindowGroup {
@@ -33,6 +38,7 @@ struct PawsomeApp: App {
         }
     }
 
+    // MARK: - Main TabView
     private var mainTabView: some View {
         TabView {
             HomeView(
