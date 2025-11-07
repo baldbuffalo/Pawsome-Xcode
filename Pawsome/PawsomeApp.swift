@@ -1,32 +1,37 @@
 import SwiftUI
-import FirebaseAuth
 import FirebaseCore
+import FirebaseAuth
 import GoogleSignIn
 
 @main
 struct PawsomeApp: App {
-    @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
-
     // MARK: - App state
-    @State private var isFirebaseConfigured = false
     @State private var isLoggedIn = false
     @State private var currentUsername: String = ""
     @State private var profileImageURL: String = ""
 
+    // MARK: - Init
+    init() {
+        // Configure Firebase once
+        if FirebaseApp.app() == nil {
+            FirebaseApp.configure()
+            print("✅ Firebase configured")
+        }
+        
+        // Optionally set up Google Sign-In (iOS)
+        #if os(iOS)
+        GIDSignIn.sharedInstance.restorePreviousSignIn { user, error in
+            if let user = user {
+                print("🌐 Google user restored: \(user.profile?.name ?? "No Name")")
+            }
+        }
+        #endif
+    }
+
     var body: some Scene {
         WindowGroup {
-            if isFirebaseConfigured {
-                contentView
-                    .onAppear { setupAuthStateObserver() }
-            } else {
-                ProgressView("Loading Firebase…")
-                    .onAppear {
-                        if FirebaseApp.app() == nil {
-                            FirebaseApp.configure()
-                        }
-                        isFirebaseConfigured = true
-                    }
-            }
+            contentView
+                .onAppear { setupAuthStateObserver() }
         }
     }
 
