@@ -5,12 +5,12 @@ import GoogleSignIn
 
 @main
 struct PawsomeApp: App {
-    // MARK: - AppDelegate adaptor (iOS only)
+    // MARK: - AppDelegate adaptor
     #if os(iOS)
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
     #endif
 
-    // MARK: - App state
+    // MARK: - App State
     @StateObject private var appState = AppState()
 
     var body: some Scene {
