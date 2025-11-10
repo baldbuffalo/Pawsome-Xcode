@@ -1,5 +1,4 @@
 import SwiftUI
-import FirebaseCore
 import FirebaseAuth
 import GoogleSignIn
 
@@ -68,9 +67,7 @@ struct MainTabView: View {
 
             ScanView(
                 username: appState.currentUsername,
-                onPostCreated: {
-                    print("📸 Scan post created!")
-                }
+                onPostCreated: { print("📸 Scan post created!") }
             )
             .tabItem { Label("Scan", systemImage: "camera.viewfinder") }
 
