@@ -20,25 +20,7 @@
 		62D804A52CAD1F6B00D13EFA /* FirebaseAppCheck in Frameworks */ = {isa = PBXBuildFile; platformFilter = ios; productRef = 62D804A42CAD1F6B00D13EFA /* FirebaseAppCheck */; };
 		62D804A72CAD1F6B00D13EFA /* FirebaseAppDistribution-Beta in Frameworks */ = {isa = PBXBuildFile; productRef = 62D804A62CAD1F6B00D13EFA /* FirebaseAppDistribution-Beta */; };
 		62F842302DB7671E006B3279 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 62F8422F2DB7671E006B3279 /* FirebaseFirestore */; };
-		62F845122D5FFFB6000B1915 /* CatPostModule.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 62F845082D5FFFB6000B1915 /* CatPostModule.framework */; };
 /* End PBXBuildFile section */
-
-/* Begin PBXContainerItemProxy section */
-		62F845132D5FFFB6000B1915 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 62355CBD2C84CC5400560D69 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 62F845072D5FFFB6000B1915;
-			remoteInfo = CatPostModule;
-		};
-		62F845152D5FFFB6000B1915 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 62355CBD2C84CC5400560D69 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 62355CC42C84CC5400560D69;
-			remoteInfo = Pawsome;
-		};
-/* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		6246526C2CCD1A9C000B3F46 /* Embed PlugIns */ = {
@@ -55,13 +37,24 @@
 /* Begin PBXFileReference section */
 		62355CC52C84CC5400560D69 /* Pawsome.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Pawsome.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		629E68092CC6F53B0018ACEF /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.1.sdk/System/Library/Frameworks/CoreData.framework; sourceTree = DEVELOPER_DIR; };
-		62F845082D5FFFB6000B1915 /* CatPostModule.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = CatPostModule.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		62F845112D5FFFB6000B1915 /* CatPostModuleTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CatPostModuleTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		6236F75F2EC361E000C6B87E /* Exceptions for "Pawsome" folder in "Pawsome" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 62355CC42C84CC5400560D69 /* Pawsome */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		62355CC72C84CC5400560D69 /* Pawsome */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				6236F75F2EC361E000C6B87E /* Exceptions for "Pawsome" folder in "Pawsome" target */,
+			);
 			path = Pawsome;
 			sourceTree = "<group>";
 		};
@@ -86,17 +79,6 @@
 				62F842302DB7671E006B3279 /* FirebaseFirestore in Frameworks */,
 			);
 		};
-		62F845052D5FFFB6000B1915 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			files = (
-			);
-		};
-		62F8450E2D5FFFB6000B1915 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			files = (
-				62F845122D5FFFB6000B1915 /* CatPostModule.framework in Frameworks */,
-			);
-		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -113,8 +95,6 @@
 			isa = PBXGroup;
 			children = (
 				62355CC52C84CC5400560D69 /* Pawsome.app */,
-				62F845082D5FFFB6000B1915 /* CatPostModule.framework */,
-				62F845112D5FFFB6000B1915 /* CatPostModuleTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -128,14 +108,6 @@
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
-
-/* Begin PBXHeadersBuildPhase section */
-		62F845032D5FFFB6000B1915 /* Headers */ = {
-			isa = PBXHeadersBuildPhase;
-			files = (
-			);
-		};
-/* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
 		62355CC42C84CC5400560D69 /* Pawsome */ = {
@@ -171,41 +143,6 @@
 			productReference = 62355CC52C84CC5400560D69 /* Pawsome.app */;
 			productType = "com.apple.product-type.application";
 		};
-		62F845072D5FFFB6000B1915 /* CatPostModule */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 62F845242D5FFFB6000B1915 /* Build configuration list for PBXNativeTarget "CatPostModule" */;
-			buildPhases = (
-				62F845032D5FFFB6000B1915 /* Headers */,
-				62F845042D5FFFB6000B1915 /* Sources */,
-				62F845052D5FFFB6000B1915 /* Frameworks */,
-				62F845062D5FFFB6000B1915 /* Resources */,
-			);
-			buildRules = (
-			);
-			name = CatPostModule;
-			productName = CatPostModule;
-			productReference = 62F845082D5FFFB6000B1915 /* CatPostModule.framework */;
-			productType = "com.apple.product-type.framework";
-		};
-		62F845102D5FFFB6000B1915 /* CatPostModuleTests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 62F845262D5FFFB6000B1915 /* Build configuration list for PBXNativeTarget "CatPostModuleTests" */;
-			buildPhases = (
-				62F8450D2D5FFFB6000B1915 /* Sources */,
-				62F8450E2D5FFFB6000B1915 /* Frameworks */,
-				62F8450F2D5FFFB6000B1915 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				62F845142D5FFFB6000B1915 /* PBXTargetDependency */,
-				62F845162D5FFFB6000B1915 /* PBXTargetDependency */,
-			);
-			name = CatPostModuleTests;
-			productName = CatPostModuleTests;
-			productReference = 62F845112D5FFFB6000B1915 /* CatPostModuleTests.xctest */;
-			productType = "com.apple.product-type.bundle.unit-test";
-		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -214,17 +151,10 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1620;
-				LastUpgradeCheck = 2600;
+				LastUpgradeCheck = 2620;
 				TargetAttributes = {
 					62355CC42C84CC5400560D69 = {
 						CreatedOnToolsVersion = 16.1;
-					};
-					62F845072D5FFFB6000B1915 = {
-						CreatedOnToolsVersion = 16.2;
-					};
-					62F845102D5FFFB6000B1915 = {
-						CreatedOnToolsVersion = 16.2;
-						TestTargetID = 62355CC42C84CC5400560D69;
 					};
 				};
 			};
@@ -247,24 +177,12 @@
 			projectRoot = "";
 			targets = (
 				62355CC42C84CC5400560D69 /* Pawsome */,
-				62F845072D5FFFB6000B1915 /* CatPostModule */,
-				62F845102D5FFFB6000B1915 /* CatPostModuleTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		62355CC32C84CC5400560D69 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			files = (
-			);
-		};
-		62F845062D5FFFB6000B1915 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			files = (
-			);
-		};
-		62F8450F2D5FFFB6000B1915 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
 			);
@@ -277,30 +195,7 @@
 			files = (
 			);
 		};
-		62F845042D5FFFB6000B1915 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			files = (
-			);
-		};
-		62F8450D2D5FFFB6000B1915 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			files = (
-			);
-		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXTargetDependency section */
-		62F845142D5FFFB6000B1915 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 62F845072D5FFFB6000B1915 /* CatPostModule */;
-			targetProxy = 62F845132D5FFFB6000B1915 /* PBXContainerItemProxy */;
-		};
-		62F845162D5FFFB6000B1915 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 62355CC42C84CC5400560D69 /* Pawsome */;
-			targetProxy = 62F845152D5FFFB6000B1915 /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		62355CED2C84CC5600560D69 /* Debug configuration for PBXNativeTarget "Pawsome" */ = {
@@ -527,114 +422,6 @@
 			};
 			name = Release;
 		};
-		62F845202D5FFFB6000B1915 /* Debug configuration for PBXNativeTarget "CatPostModule" */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
-				CODE_SIGN_IDENTITY = "";
-				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
-				DEFINES_MODULE = YES;
-				DYLIB_COMPATIBILITY_VERSION = 1;
-				DYLIB_CURRENT_VERSION = 1;
-				DYLIB_INSTALL_NAME_BASE = "@rpath";
-				ENABLE_MODULE_VERIFIER = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-					"@loader_path/Frameworks",
-				);
-				MACOSX_DEPLOYMENT_TARGET = 15.2;
-				MARKETING_VERSION = 1.0;
-				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
-				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
-				PRODUCT_BUNDLE_IDENTIFIER = com.GameBuster.pawsome.CatPostModule;
-				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
-				SDKROOT = macosx;
-				SKIP_INSTALL = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_INSTALL_OBJC_HEADER = NO;
-				SWIFT_VERSION = 5.0;
-				VERSIONING_SYSTEM = "apple-generic";
-				VERSION_INFO_PREFIX = "";
-			};
-			name = Debug;
-		};
-		62F845212D5FFFB6000B1915 /* Release configuration for PBXNativeTarget "CatPostModule" */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
-				CODE_SIGN_IDENTITY = "";
-				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
-				DEFINES_MODULE = YES;
-				DYLIB_COMPATIBILITY_VERSION = 1;
-				DYLIB_CURRENT_VERSION = 1;
-				DYLIB_INSTALL_NAME_BASE = "@rpath";
-				ENABLE_MODULE_VERIFIER = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-					"@loader_path/Frameworks",
-				);
-				MACOSX_DEPLOYMENT_TARGET = 15.2;
-				MARKETING_VERSION = 1.0;
-				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
-				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
-				PRODUCT_BUNDLE_IDENTIFIER = com.GameBuster.pawsome.CatPostModule;
-				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
-				SDKROOT = macosx;
-				SKIP_INSTALL = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_INSTALL_OBJC_HEADER = NO;
-				SWIFT_VERSION = 5.0;
-				VERSIONING_SYSTEM = "apple-generic";
-				VERSION_INFO_PREFIX = "";
-			};
-			name = Release;
-		};
-		62F845222D5FFFB6000B1915 /* Debug configuration for PBXNativeTarget "CatPostModuleTests" */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 15.2;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.GameBuster.pawsome.CatPostModuleTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Pawsome.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Pawsome";
-			};
-			name = Debug;
-		};
-		62F845232D5FFFB6000B1915 /* Release configuration for PBXNativeTarget "CatPostModuleTests" */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 15.2;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.GameBuster.pawsome.CatPostModuleTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Pawsome.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Pawsome";
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -651,22 +438,6 @@
 			buildConfigurations = (
 				62355CED2C84CC5600560D69 /* Debug configuration for PBXNativeTarget "Pawsome" */,
 				62355CEE2C84CC5600560D69 /* Release configuration for PBXNativeTarget "Pawsome" */,
-			);
-			defaultConfigurationName = Release;
-		};
-		62F845242D5FFFB6000B1915 /* Build configuration list for PBXNativeTarget "CatPostModule" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				62F845202D5FFFB6000B1915 /* Debug configuration for PBXNativeTarget "CatPostModule" */,
-				62F845212D5FFFB6000B1915 /* Release configuration for PBXNativeTarget "CatPostModule" */,
-			);
-			defaultConfigurationName = Release;
-		};
-		62F845262D5FFFB6000B1915 /* Build configuration list for PBXNativeTarget "CatPostModuleTests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				62F845222D5FFFB6000B1915 /* Debug configuration for PBXNativeTarget "CatPostModuleTests" */,
-				62F845232D5FFFB6000B1915 /* Release configuration for PBXNativeTarget "CatPostModuleTests" */,
 			);
 			defaultConfigurationName = Release;
 		};

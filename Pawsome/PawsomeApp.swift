@@ -5,20 +5,20 @@ import GoogleSignIn
 
 @main
 struct PawsomeApp: App {
-    // MARK: - AppDelegate adaptor
+    // MARK: - Platform Delegates
     #if os(iOS)
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
+    #elseif os(macOS)
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var delegate
     #endif
 
-    // MARK: - App State
     @StateObject private var appState = AppState()
 
-    // MARK: - Init (safety net)
     init() {
-        // In case SwiftUI builds before AppDelegate finishes
+        // Safety net: if delegate hasn’t configured yet, do it here
         if FirebaseApp.app() == nil {
             FirebaseApp.configure()
-            print("⚙️ Firebase configured early in PawsomeApp to prevent race condition")
+            print("⚙️ Firebase configured early in PawsomeApp (failsafe)")
         }
     }
 
@@ -35,16 +35,10 @@ struct PawsomeApp: App {
                         set: { appState.profileImageURL = $0 ?? "" }
                     )
                 )
-                // Wait until Firebase is actually ready
                 .onAppear {
+                    // Delay to guarantee Firebase config finished
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                        if FirebaseApp.app() != nil {
-                            appState.listenAuthState()
-                        } else {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                                appState.listenAuthState()
-                            }
-                        }
+                        appState.listenAuthState()
                     }
                 }
             }
