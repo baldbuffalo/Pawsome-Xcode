@@ -65,26 +65,6 @@
 			path = Pawsome;
 			sourceTree = "<group>";
 		};
-		62355CDC2C84CC5600560D69 /* PawsomeTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = PawsomeTests;
-			sourceTree = "<group>";
-		};
-		62355CE62C84CC5600560D69 /* PawsomeUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = PawsomeUITests;
-			sourceTree = "<group>";
-		};
-		62F845092D5FFFB6000B1915 /* CatPostModule */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = CatPostModule;
-			sourceTree = "<group>";
-		};
-		62F845172D5FFFB6000B1915 /* CatPostModuleTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = CatPostModuleTests;
-			sourceTree = "<group>";
-		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -124,10 +104,6 @@
 			isa = PBXGroup;
 			children = (
 				62355CC72C84CC5400560D69 /* Pawsome */,
-				62355CDC2C84CC5600560D69 /* PawsomeTests */,
-				62355CE62C84CC5600560D69 /* PawsomeUITests */,
-				62F845092D5FFFB6000B1915 /* CatPostModule */,
-				62F845172D5FFFB6000B1915 /* CatPostModuleTests */,
 				629E68082CC6F53B0018ACEF /* Frameworks */,
 				62355CC62C84CC5400560D69 /* Products */,
 			);
@@ -206,9 +182,6 @@
 			);
 			buildRules = (
 			);
-			fileSystemSynchronizedGroups = (
-				62F845092D5FFFB6000B1915 /* CatPostModule */,
-			);
 			name = CatPostModule;
 			productName = CatPostModule;
 			productReference = 62F845082D5FFFB6000B1915 /* CatPostModule.framework */;
@@ -227,9 +200,6 @@
 			dependencies = (
 				62F845142D5FFFB6000B1915 /* PBXTargetDependency */,
 				62F845162D5FFFB6000B1915 /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				62F845172D5FFFB6000B1915 /* CatPostModuleTests */,
 			);
 			name = CatPostModuleTests;
 			productName = CatPostModuleTests;
