@@ -54,45 +54,14 @@
 
 /* Begin PBXFileReference section */
 		62355CC52C84CC5400560D69 /* Pawsome.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Pawsome.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		624652A32CCD2351000B3F46 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
-		624652A52CCD2351000B3F46 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		624652A62CCD2351000B3F46 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		624652A92CCD2351000B3F46 /* ColorExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorExtensions.swift; sourceTree = "<group>"; };
-		624652AA2CCD2351000B3F46 /* CommentsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommentsView.swift; sourceTree = "<group>"; };
-		624652AB2CCD2351000B3F46 /* FormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormView.swift; sourceTree = "<group>"; };
-		624652AC2CCD2351000B3F46 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
-		624652AD2CCD2351000B3F46 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
-		624652AE2CCD2351000B3F46 /* ImageEditing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageEditing.swift; sourceTree = "<group>"; };
-		624652AF2CCD2351000B3F46 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		624652B02CCD2351000B3F46 /* Item.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Item.swift; sourceTree = "<group>"; };
-		624652B12CCD2351000B3F46 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
-		624652B22CCD2351000B3F46 /* Pawsome.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Pawsome.entitlements; sourceTree = "<group>"; };
-		624652B32CCD2351000B3F46 /* PawsomeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PawsomeApp.swift; sourceTree = "<group>"; };
-		624652B42CCD2351000B3F46 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
-		624652B52CCD2351000B3F46 /* ScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanView.swift; sourceTree = "<group>"; };
-		624652B72CCD2351000B3F46 /* CatPostModel.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = CatPostModel.xcdatamodel; sourceTree = "<group>"; };
-		6268EC362CCD7F7400238C8F /* PersistenceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceController.swift; sourceTree = "<group>"; };
 		629E68092CC6F53B0018ACEF /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.1.sdk/System/Library/Frameworks/CoreData.framework; sourceTree = DEVELOPER_DIR; };
 		62F845082D5FFFB6000B1915 /* CatPostModule.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = CatPostModule.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		62F845112D5FFFB6000B1915 /* CatPostModuleTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CatPostModuleTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		62355CEB2C84CC5600560D69 /* Exceptions for "Pawsome" folder in "Pawsome" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = 62355CC42C84CC5400560D69 /* Pawsome */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		62355CC72C84CC5400560D69 /* Pawsome */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				62355CEB2C84CC5600560D69 /* Exceptions for "Pawsome" folder in "Pawsome" target */,
-			);
 			path = Pawsome;
 			sourceTree = "<group>";
 		};
@@ -157,7 +126,6 @@
 				62355CC72C84CC5400560D69 /* Pawsome */,
 				62355CDC2C84CC5600560D69 /* PawsomeTests */,
 				62355CE62C84CC5600560D69 /* PawsomeUITests */,
-				624652B62CCD2351000B3F46 /* Pawsome */,
 				62F845092D5FFFB6000B1915 /* CatPostModule */,
 				62F845172D5FFFB6000B1915 /* CatPostModuleTests */,
 				629E68082CC6F53B0018ACEF /* Frameworks */,
@@ -173,39 +141,6 @@
 				62F845112D5FFFB6000B1915 /* CatPostModuleTests.xctest */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		624652A42CCD2351000B3F46 /* Preview Content */ = {
-			isa = PBXGroup;
-			children = (
-				624652A32CCD2351000B3F46 /* Preview Assets.xcassets */,
-			);
-			path = "Preview Content";
-			sourceTree = "<group>";
-		};
-		624652B62CCD2351000B3F46 /* Pawsome */ = {
-			isa = PBXGroup;
-			children = (
-				6268EC362CCD7F7400238C8F /* PersistenceController.swift */,
-				624652A42CCD2351000B3F46 /* Preview Content */,
-				624652A52CCD2351000B3F46 /* AppDelegate.swift */,
-				624652A62CCD2351000B3F46 /* Assets.xcassets */,
-				624652A82CCD2351000B3F46 /* CatPostModel.xcdatamodeld */,
-				624652A92CCD2351000B3F46 /* ColorExtensions.swift */,
-				624652AA2CCD2351000B3F46 /* CommentsView.swift */,
-				624652AB2CCD2351000B3F46 /* FormView.swift */,
-				624652AC2CCD2351000B3F46 /* GoogleService-Info.plist */,
-				624652AD2CCD2351000B3F46 /* HomeView.swift */,
-				624652AE2CCD2351000B3F46 /* ImageEditing.swift */,
-				624652AF2CCD2351000B3F46 /* Info.plist */,
-				624652B02CCD2351000B3F46 /* Item.swift */,
-				624652B12CCD2351000B3F46 /* LoginView.swift */,
-				624652B22CCD2351000B3F46 /* Pawsome.entitlements */,
-				624652B32CCD2351000B3F46 /* PawsomeApp.swift */,
-				624652B42CCD2351000B3F46 /* ProfileView.swift */,
-				624652B52CCD2351000B3F46 /* ScanView.swift */,
-			);
-			path = Pawsome;
 			sourceTree = "<group>";
 		};
 		629E68082CC6F53B0018ACEF /* Frameworks */ = {
@@ -844,19 +779,6 @@
 			productName = FirebaseFirestore;
 		};
 /* End XCSwiftPackageProductDependency section */
-
-/* Begin XCVersionGroup section */
-		624652A82CCD2351000B3F46 /* CatPostModel.xcdatamodeld */ = {
-			isa = XCVersionGroup;
-			children = (
-				624652B72CCD2351000B3F46 /* CatPostModel.xcdatamodel */,
-			);
-			currentVersion = 624652B72CCD2351000B3F46 /* CatPostModel.xcdatamodel */;
-			path = CatPostModel.xcdatamodeld;
-			sourceTree = "<group>";
-			versionGroupType = wrapper.xcdatamodel;
-		};
-/* End XCVersionGroup section */
 	};
 	rootObject = 62355CBD2C84CC5400560D69 /* Project object */;
 }
