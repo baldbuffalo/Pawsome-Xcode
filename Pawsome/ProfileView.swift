@@ -3,7 +3,6 @@ import FirebaseAuth
 import FirebaseFirestore
 import FirebaseStorage
 
-// MARK: - ViewModel
 @MainActor
 class ProfileViewModel: ObservableObject {
     @Published var username: String
@@ -18,7 +17,6 @@ class ProfileViewModel: ObservableObject {
         self.username = username
     }
 
-    // Load profile safely after Firebase is configured
     func loadProfile() {
         guard let uid = Auth.auth().currentUser?.uid else { return }
         isLoading = true
@@ -39,7 +37,6 @@ class ProfileViewModel: ObservableObject {
     func saveUsername() {
         guard let uid = Auth.auth().currentUser?.uid else { return }
         isSaving = true
-
         Firestore.firestore().collection("users").document(uid)
             .setData(["username": username], merge: true) { [weak self] _ in
                 guard let self = self else { return }
@@ -63,14 +60,12 @@ class ProfileViewModel: ObservableObject {
         #endif
 
         guard let uploadData = data else { return }
-
         isImageLoading = true
 
         do {
             _ = try await ref.putDataAsync(uploadData)
             let url = try await ref.downloadURL()
             profileImageURL = url.absoluteString
-
             try await Firestore.firestore().collection("users").document(uid)
                 .setData(["profileImage": url.absoluteString], merge: true)
         } catch {
@@ -81,7 +76,6 @@ class ProfileViewModel: ObservableObject {
     }
 }
 
-// MARK: - View
 struct ProfileView: View {
     @Binding var isLoggedIn: Bool
     @Binding var currentUsername: String
@@ -94,7 +88,6 @@ struct ProfileView: View {
         self._isLoggedIn = isLoggedIn
         self._currentUsername = currentUsername
         self._profileImageURL = profileImageURL
-        // Initialize StateObject without Firebase calls
         _vm = StateObject(wrappedValue: ProfileViewModel(username: currentUsername.wrappedValue))
     }
 
@@ -103,7 +96,6 @@ struct ProfileView: View {
             if vm.isLoading {
                 ProgressView("Loading Profile...").padding()
             } else {
-                // Profile image
                 if let urlString = vm.profileImageURL ?? profileImageURL,
                    let url = URL(string: urlString) {
                     AsyncImage(url: url) { image in
@@ -120,13 +112,12 @@ struct ProfileView: View {
                         .foregroundColor(.gray)
                 }
 
-                // Username field
                 TextField("Username", text: $vm.username)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .focused($usernameFocused)
                     .onChange(of: usernameFocused) { _, newValue in
                         if !newValue {
-                            vm.saveUsername() // Firebase safely called here
+                            vm.saveUsername()
                             currentUsername = vm.username
                         }
                     }
@@ -139,13 +130,18 @@ struct ProfileView: View {
                     vm.isImagePickerPresented = true
                 }
 
+                // ✅ Logout Button
                 Button(role: .destructive) {
-                    do { try Auth.auth().signOut() } catch { print(error) }
-                    currentUsername = ""
-                    profileImageURL = nil
-                    UserDefaults.standard.removeObject(forKey: "username")
-                    UserDefaults.standard.set(false, forKey: "isLoggedIn")
-                    isLoggedIn = false
+                    do {
+                        try Auth.auth().signOut()
+                        currentUsername = ""
+                        profileImageURL = nil
+                        UserDefaults.standard.removeObject(forKey: "username")
+                        UserDefaults.standard.set(false, forKey: "isLoggedIn")
+                        isLoggedIn = false
+                    } catch {
+                        print("❌ Logout failed: \(error)")
+                    }
                 } label: {
                     Text("Log Out").frame(maxWidth: .infinity)
                 }
@@ -156,7 +152,7 @@ struct ProfileView: View {
             }
         }
         .padding()
-        .onAppear { vm.loadProfile() } // Firebase calls only here
+        .onAppear { vm.loadProfile() }
         .sheet(isPresented: $vm.isImagePickerPresented) {
             ImagePickerView(selectedImage: $vm.selectedImage)
                 .onDisappear {

@@ -10,7 +10,6 @@ struct PawsomeApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var delegate
     #endif
 
-    // MARK: - App State
     @StateObject private var appState = AppState()
 
     init() {
@@ -31,7 +30,6 @@ struct PawsomeApp: App {
                     )
                 )
                 .onAppear {
-                    // Delay listener until Firebase is configured
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                         appState.listenAuthState()
                     }
@@ -40,7 +38,7 @@ struct PawsomeApp: App {
         }
     }
 
-    // MARK: - Embedded AppState
+    // MARK: - AppState
     final class AppState: ObservableObject {
         @Published var isLoggedIn = false
         @Published var currentUsername = ""
@@ -62,23 +60,65 @@ struct PawsomeApp: App {
             }
         }
     }
-}
 
-// MARK: - Placeholder MainTabView
-struct MainTabView: View {
-    @ObservedObject var appState: PawsomeApp.AppState
+    // MARK: - MainTabView
+    struct MainTabView: View {
+        @ObservedObject var appState: AppState
 
-    var body: some View {
-        TabView {
-            Text("Home View")
-                .tabItem { Label("Home", systemImage: "house.fill") }
+        var body: some View {
+            TabView {
+                HomeView(username: appState.currentUsername)
+                    .tabItem { Label("Home", systemImage: "house") }
 
-            Text("Scan View")
-                .tabItem { Label("Scan", systemImage: "camera.viewfinder") }
-
-            Text("Profile View")
-                .tabItem { Label("Profile", systemImage: "person.fill") }
+                ProfileView(username: appState.currentUsername, profileImage: appState.profileImageURL)
+                    .tabItem { Label("Profile", systemImage: "person.crop.circle") }
+            }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // MARK: - HomeView
+    struct HomeView: View {
+        var username: String
+
+        var body: some View {
+            VStack {
+                Text("Welcome, \(username)!")
+                    .font(.largeTitle)
+                    .padding()
+                Spacer()
+            }
+        }
+    }
+
+    // MARK: - ProfileView
+    struct ProfileView: View {
+        var username: String
+        var profileImage: String
+
+        var body: some View {
+            VStack {
+                if let url = URL(string: profileImage), !profileImage.isEmpty {
+                    AsyncImage(url: url) { image in
+                        image.resizable().scaledToFit()
+                    } placeholder: {
+                        ProgressView()
+                    }
+                    .frame(width: 150, height: 150)
+                    .clipShape(Circle())
+                } else {
+                    Image(systemName: "person.crop.circle.fill")
+                        .resizable()
+                        .frame(width: 150, height: 150)
+                        .foregroundColor(.gray)
+                }
+
+                Text(username)
+                    .font(.title)
+                    .padding(.top, 20)
+
+                Spacer()
+            }
+            .padding()
+        }
     }
 }

@@ -1,7 +1,7 @@
 import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore
-import FirebaseCore    // ⚡ Added for FirebaseApp
+import FirebaseCore
 import GoogleSignIn
 import CryptoKit
 #if canImport(AuthenticationServices)
@@ -24,12 +24,10 @@ struct LoginView: View {
             Text("Please sign in to continue")
                 .font(.subheadline).padding(.bottom, 50)
 
-            // Google Sign-In
             Button("Sign in with Google") {
                 Task { await universalSignIn(authType: .google) }
             }
 
-            // Apple Sign-In
             #if canImport(AuthenticationServices)
             SignInWithAppleButton(.signIn) { request in
                 request.requestedScopes = [.fullName, .email]
@@ -66,12 +64,9 @@ struct LoginView: View {
                 guard let rootVC = UIApplication.shared.connectedScenes
                         .compactMap({ ($0 as? UIWindowScene)?.keyWindow?.rootViewController })
                         .first else { return }
-
                 let signInResult = try await GIDSignIn.sharedInstance.signIn(withPresenting: rootVC)
                 let gidUser = signInResult.user
-                guard let idToken = gidUser.idToken?.tokenString else {
-                    await showErrorWithMessage("Google ID token missing"); return
-                }
+                guard let idToken = gidUser.idToken?.tokenString else { return }
                 let credential = GoogleAuthProvider.credential(
                     withIDToken: idToken,
                     accessToken: gidUser.accessToken.tokenString
@@ -84,9 +79,7 @@ struct LoginView: View {
                 guard let window = NSApp.keyWindow else { return }
                 let signInResult = try await GIDSignIn.sharedInstance.signIn(withPresenting: window)
                 let gidUser = signInResult.user
-                guard let idToken = gidUser.idToken?.tokenString else {
-                    await showErrorWithMessage("Google ID token missing"); return
-                }
+                guard let idToken = gidUser.idToken?.tokenString else { return }
                 let credential = GoogleAuthProvider.credential(
                     withIDToken: idToken,
                     accessToken: gidUser.accessToken.tokenString
@@ -181,7 +174,6 @@ struct LoginView: View {
     }
     #endif
 
-    // ⚡ Fixed: convert Character to String for joined()
     private func randomNonceString(length: Int = 32) -> String {
         let charset = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
         return (0..<length).map { _ in String(charset.randomElement()!) }.joined()

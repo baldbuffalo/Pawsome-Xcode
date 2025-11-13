@@ -1,7 +1,5 @@
-import SwiftUI
+import Foundation
 import FirebaseCore
-import GoogleSignIn
-
 #if os(iOS)
 import UIKit
 typealias AppPlatformDelegate = UIApplicationDelegate
@@ -18,10 +16,7 @@ final class AppDelegate: NSObject, AppPlatformDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
-        if FirebaseApp.app() == nil {
-            FirebaseApp.configure()
-            print("✅ Firebase configured in AppDelegate (iOS)")
-        }
+        configureFirebase()
         return true
     }
 
@@ -34,10 +29,14 @@ final class AppDelegate: NSObject, AppPlatformDelegate {
     }
     #elseif os(macOS)
     func applicationDidFinishLaunching(_ notification: Notification) {
-        if FirebaseApp.app() == nil {
-            FirebaseApp.configure()
-            print("✅ Firebase configured in AppDelegate (macOS)")
-        }
+        configureFirebase()
     }
     #endif
+
+    private func configureFirebase() {
+        if FirebaseApp.app() == nil {
+            FirebaseApp.configure()
+            print("✅ Firebase configured in AppDelegate")
+        }
+    }
 }
