@@ -13,7 +13,6 @@ typealias AppPlatformDelegate = NSApplicationDelegate
 final class AppDelegate: NSObject, AppPlatformDelegate {
     static let shared = AppDelegate()
 
-    // MARK: - Launch
     #if os(iOS)
     func application(
         _ application: UIApplication,

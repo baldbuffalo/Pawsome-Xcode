@@ -1,17 +1,16 @@
 import SwiftUI
 import FirebaseAuth
 import FirebaseCore
-import GoogleSignIn
 
 @main
 struct PawsomeApp: App {
-    // MARK: - Platform Delegates
     #if os(iOS)
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
     #elseif os(macOS)
     @NSApplicationDelegateAdaptor(AppDelegate.self) var delegate
     #endif
 
+    // MARK: - App State
     @StateObject private var appState = AppState()
 
     init() {
@@ -32,7 +31,7 @@ struct PawsomeApp: App {
                     )
                 )
                 .onAppear {
-                    // Delay ensures Firebase is fully configured first
+                    // Delay listener until Firebase is configured
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                         appState.listenAuthState()
                     }
@@ -40,58 +39,45 @@ struct PawsomeApp: App {
             }
         }
     }
-}
 
-// MARK: - App State
-final class AppState: ObservableObject {
-    @Published var isLoggedIn = false
-    @Published var currentUsername = ""
-    @Published var profileImageURL = ""
+    // MARK: - Embedded AppState
+    final class AppState: ObservableObject {
+        @Published var isLoggedIn = false
+        @Published var currentUsername = ""
+        @Published var profileImageURL = ""
 
-    func listenAuthState() {
-        print("👀 Listening for auth state...")
-        _ = Auth.auth().addStateDidChangeListener { [weak self] _, user in
-            DispatchQueue.main.async {
-                self?.isLoggedIn = (user != nil)
-                self?.currentUsername = user?.displayName ?? "User\(Int.random(in: 1000...9999))"
-                self?.profileImageURL = user?.photoURL?.absoluteString ?? ""
+        func listenAuthState() {
+            guard FirebaseApp.app() != nil else {
+                print("⚠️ Firebase not configured yet, delaying auth listener")
+                return
+            }
+
+            print("👀 Listening for auth state...")
+            _ = Auth.auth().addStateDidChangeListener { [weak self] _, user in
+                DispatchQueue.main.async {
+                    self?.isLoggedIn = (user != nil)
+                    self?.currentUsername = user?.displayName ?? "User\(Int.random(in: 1000...9999))"
+                    self?.profileImageURL = user?.photoURL?.absoluteString ?? ""
+                }
             }
         }
     }
 }
 
-// MARK: - Main TabView
+// MARK: - Placeholder MainTabView
 struct MainTabView: View {
-    @ObservedObject var appState: AppState
+    @ObservedObject var appState: PawsomeApp.AppState
 
     var body: some View {
         TabView {
-            HomeView(
-                isLoggedIn: $appState.isLoggedIn,
-                currentUsername: $appState.currentUsername,
-                profileImageURL: Binding<String?>(
-                    get: { appState.profileImageURL.isEmpty ? nil : appState.profileImageURL },
-                    set: { appState.profileImageURL = $0 ?? "" }
-                ),
-                onPostCreated: { print("🔥 Post created!") }
-            )
-            .tabItem { Label("Home", systemImage: "house.fill") }
+            Text("Home View")
+                .tabItem { Label("Home", systemImage: "house.fill") }
 
-            ScanView(
-                username: appState.currentUsername,
-                onPostCreated: { print("📸 Scan post created!") }
-            )
-            .tabItem { Label("Scan", systemImage: "camera.viewfinder") }
+            Text("Scan View")
+                .tabItem { Label("Scan", systemImage: "camera.viewfinder") }
 
-            ProfileView(
-                isLoggedIn: $appState.isLoggedIn,
-                currentUsername: $appState.currentUsername,
-                profileImageURL: Binding<String?>(
-                    get: { appState.profileImageURL.isEmpty ? nil : appState.profileImageURL },
-                    set: { appState.profileImageURL = $0 ?? "" }
-                )
-            )
-            .tabItem { Label("Profile", systemImage: "person.fill") }
+            Text("Profile View")
+                .tabItem { Label("Profile", systemImage: "person.fill") }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

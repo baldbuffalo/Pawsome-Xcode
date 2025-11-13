@@ -1,7 +1,7 @@
 import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore
-import FirebaseCore
+import FirebaseCore    // ⚡ Added for FirebaseApp
 import GoogleSignIn
 import CryptoKit
 #if canImport(AuthenticationServices)
@@ -20,13 +20,9 @@ struct LoginView: View {
     var body: some View {
         VStack(spacing: 20) {
             Text("Welcome to Pawsome!")
-                .font(.largeTitle)
-                .bold()
-                .padding()
-
+                .font(.largeTitle).bold().padding()
             Text("Please sign in to continue")
-                .font(.subheadline)
-                .padding(.bottom, 50)
+                .font(.subheadline).padding(.bottom, 50)
 
             // Google Sign-In
             Button("Sign in with Google") {
@@ -54,73 +50,65 @@ struct LoginView: View {
         } message: { Text(errorMessage) }
     }
 
-    // MARK: - Auth Types
     enum AuthType { case google }
 
-    // MARK: - Universal Sign-In
     private func universalSignIn(authType: AuthType) async {
+        guard FirebaseApp.app() != nil else {
+            await showErrorWithMessage("Firebase not configured yet")
+            return
+        }
+
         do {
             let user: User
-
             switch authType {
             case .google:
                 #if os(iOS)
-                // Get top view controller
                 guard let rootVC = UIApplication.shared.connectedScenes
                         .compactMap({ ($0 as? UIWindowScene)?.keyWindow?.rootViewController })
                         .first else { return }
 
                 let signInResult = try await GIDSignIn.sharedInstance.signIn(withPresenting: rootVC)
                 let gidUser = signInResult.user
-
-                guard let idTokenString = gidUser.idToken?.tokenString else {
-                    await showErrorWithMessage("Google ID token missing")
-                    return
+                guard let idToken = gidUser.idToken?.tokenString else {
+                    await showErrorWithMessage("Google ID token missing"); return
                 }
-                let accessTokenString = gidUser.accessToken.tokenString
-
-                let credential = GoogleAuthProvider.credential(withIDToken: idTokenString, accessToken: accessTokenString)
+                let credential = GoogleAuthProvider.credential(
+                    withIDToken: idToken,
+                    accessToken: gidUser.accessToken.tokenString
+                )
                 let result = try await Auth.auth().signIn(with: credential)
                 user = result.user
-
-                // Safe profile info
-                username = gidUser.profile?.name ?? "User\(Int.random(in: 1000...9999))"
+                username = gidUser.profile?.name ?? "User\(Int.random(in:1000...9999))"
                 profileImage = gidUser.profile?.imageURL(withDimension: 200)?.absoluteString
                 #elseif os(macOS)
                 guard let window = NSApp.keyWindow else { return }
                 let signInResult = try await GIDSignIn.sharedInstance.signIn(withPresenting: window)
                 let gidUser = signInResult.user
-
-                guard let idTokenString = gidUser.idToken?.tokenString else {
-                    await showErrorWithMessage("Google ID token missing")
-                    return
+                guard let idToken = gidUser.idToken?.tokenString else {
+                    await showErrorWithMessage("Google ID token missing"); return
                 }
-                let accessTokenString = gidUser.accessToken.tokenString
-
-                let credential = GoogleAuthProvider.credential(withIDToken: idTokenString, accessToken: accessTokenString)
+                let credential = GoogleAuthProvider.credential(
+                    withIDToken: idToken,
+                    accessToken: gidUser.accessToken.tokenString
+                )
                 let result = try await Auth.auth().signIn(with: credential)
                 user = result.user
-
-                username = gidUser.profile?.name ?? "User\(Int.random(in: 1000...9999))"
+                username = gidUser.profile?.name ?? "User\(Int.random(in:1000...9999))"
                 profileImage = gidUser.profile?.imageURL(withDimension: 200)?.absoluteString
                 #endif
             }
 
-            // Save user to Firestore
             try await saveUserToFirestore(uid: user.uid)
-
-            // Persist login locally
             UserDefaults.standard.set(username, forKey: "username")
             UserDefaults.standard.set(true, forKey: "isLoggedIn")
             isLoggedIn = true
-
         } catch {
             await showErrorWithMessage("Login failed: \(error.localizedDescription)")
         }
     }
 
-    // MARK: - Save user to Firestore
     private func saveUserToFirestore(uid: String) async throws {
+        guard FirebaseApp.app() != nil else { return }
         let db = Firestore.firestore()
         let userRef = db.collection("users").document(uid)
         let snapshot = try await userRef.getDocument()
@@ -138,37 +126,16 @@ struct LoginView: View {
             data["providerIDs"] = currentUser.providerData.map { $0.providerID }
         }
 
-        var assignedUserId: Int
-
         if snapshot.exists {
-            if let existing = snapshot.data() {
-                if let storedUsername = existing["username"] as? String, !storedUsername.isEmpty {
-                    await MainActor.run { self.username = storedUsername }
-                }
-                if let storedProfile = existing["profileImage"] as? String, !storedProfile.isEmpty {
-                    await MainActor.run { self.profileImage = storedProfile }
-                }
-                if let existingUserId = (existing["userId"] as? Int) ?? (existing["userId"] as? NSNumber)?.intValue {
-                    assignedUserId = existingUserId
-                } else {
-                    assignedUserId = try await allocateNextUserId()
-                }
-            } else {
-                assignedUserId = try await allocateNextUserId()
-            }
-            data["userId"] = assignedUserId
             try await userRef.setData(data, merge: true)
-            print("✅ Existing user updated in Firestore. userId=\(assignedUserId)")
+            print("✅ Existing user updated in Firestore")
         } else {
-            assignedUserId = try await allocateNextUserId()
-            data["userId"] = assignedUserId
             data["joinDate"] = Timestamp(date: Date())
             try await userRef.setData(data, merge: true)
-            print("✅ New user created in Firestore. userId=\(assignedUserId)")
+            print("✅ New user created in Firestore")
         }
     }
 
-    // MARK: - Error handler
     private func showErrorWithMessage(_ msg: String) async {
         await MainActor.run {
             errorMessage = msg
@@ -176,35 +143,31 @@ struct LoginView: View {
         }
     }
 
-    // MARK: - Apple Sign-In
     #if canImport(AuthenticationServices)
     private func handleAppleSignIn(result: Result<ASAuthorization, Error>) async {
+        guard FirebaseApp.app() != nil else { return }
+
         do {
             switch result {
             case .success(let auth):
-                if let credential = auth.credential as? ASAuthorizationAppleIDCredential {
-                    guard let token = credential.identityToken,
-                          let idTokenString = String(data: token, encoding: .utf8) else {
-                        await showErrorWithMessage("Apple Sign-In failed: Unable to fetch identity token.")
-                        return
-                    }
-                    guard let nonce = currentNonce else {
-                        await showErrorWithMessage("Apple Sign-In failed: Missing login state (nonce).")
-                        return
-                    }
+                if let credential = auth.credential as? ASAuthorizationAppleIDCredential,
+                   let token = credential.identityToken,
+                   let idTokenString = String(data: token, encoding: .utf8),
+                   let nonce = currentNonce {
+
                     let appleCredential = OAuthProvider.credential(
                         providerID: AuthProviderID.apple,
                         idToken: idTokenString,
                         rawNonce: nonce
                     )
-                    let result = try await Auth.auth().signIn(with: appleCredential)
-                    let user = result.user
+
+                    let res = try await Auth.auth().signIn(with: appleCredential)
+                    let user = res.user
                     self.currentNonce = nil
-
-                    username = credential.fullName?.givenName ?? "User\(Int.random(in: 1000...9999))"
+                    username = credential.fullName?.givenName ?? "User\(Int.random(in:1000...9999))"
                     profileImage = nil
-
                     try await saveUserToFirestore(uid: user.uid)
+
                     UserDefaults.standard.set(username, forKey: "username")
                     UserDefaults.standard.set(true, forKey: "isLoggedIn")
                     isLoggedIn = true
@@ -218,56 +181,14 @@ struct LoginView: View {
     }
     #endif
 
-    // MARK: - Nonce helpers for Sign in with Apple
+    // ⚡ Fixed: convert Character to String for joined()
     private func randomNonceString(length: Int = 32) -> String {
-        precondition(length > 0)
         let charset = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
-        var result = ""
-        var generator = SystemRandomNumberGenerator()
-        for _ in 0..<length {
-            result.append(charset.randomElement(using: &generator)!)
-        }
-        return result
+        return (0..<length).map { _ in String(charset.randomElement()!) }.joined()
     }
 
     private func sha256(_ input: String) -> String {
         let inputData = Data(input.utf8)
-        let hashed = SHA256.hash(data: inputData)
-        return hashed.map { String(format: "%02x", $0) }.joined()
-    }
-
-    // MARK: - User ID allocation (sequential 1, 2, 3, ...)
-    private func allocateNextUserId() async throws -> Int {
-        try await withCheckedThrowingContinuation { continuation in
-            let db = Firestore.firestore()
-            let countersRef = db.collection("counters").document("users")
-            db.runTransaction({ (transaction, errorPointer) -> Any? in
-                do {
-                    let snapshot = try transaction.getDocument(countersRef)
-                    let lastAny = snapshot.data()?["lastUserId"]
-                    let last: Int
-                    if let v = lastAny as? Int { last = v }
-                    else if let v = lastAny as? Int64 { last = Int(v) }
-                    else if let v = lastAny as? NSNumber { last = v.intValue }
-                    else { last = 0 }
-                    let next = last + 1
-                    transaction.setData(["lastUserId": next], forDocument: countersRef, merge: true)
-                    return next
-                } catch let error as NSError {
-                    errorPointer?.pointee = error
-                    return nil
-                }
-            }, completion: { (result, error) in
-                if let error = error {
-                    continuation.resume(throwing: error)
-                } else if let next = result as? Int {
-                    continuation.resume(returning: next)
-                } else if let num = result as? NSNumber {
-                    continuation.resume(returning: num.intValue)
-                } else {
-                    continuation.resume(throwing: NSError(domain: "Pawsome", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to allocate next user id"]))
-                }
-            })
-        }
+        return SHA256.hash(data: inputData).map { String(format: "%02x", $0) }.joined()
     }
 }
