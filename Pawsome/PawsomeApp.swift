@@ -15,11 +15,7 @@ struct PawsomeApp: App {
     @StateObject private var appState = AppState()
 
     init() {
-        // Safety net: if delegate hasn’t configured yet, do it here
-        if FirebaseApp.app() == nil {
-            FirebaseApp.configure()
-            print("⚙️ Firebase configured early in PawsomeApp (failsafe)")
-        }
+        print("🔥 PawsomeApp init running")
     }
 
     var body: some Scene {
@@ -36,7 +32,7 @@ struct PawsomeApp: App {
                     )
                 )
                 .onAppear {
-                    // Delay to guarantee Firebase config finished
+                    // Delay ensures Firebase is fully configured first
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                         appState.listenAuthState()
                     }
