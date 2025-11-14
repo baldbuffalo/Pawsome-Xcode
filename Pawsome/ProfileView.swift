@@ -84,7 +84,11 @@ struct ProfileView: View {
     @StateObject private var vm: ProfileViewModel
     @FocusState private var usernameFocused: Bool
 
-    init(isLoggedIn: Binding<Bool>, currentUsername: Binding<String>, profileImageURL: Binding<String?>) {
+    init(
+        isLoggedIn: Binding<Bool>,
+        currentUsername: Binding<String>,
+        profileImageURL: Binding<String?>
+    ) {
         self._isLoggedIn = isLoggedIn
         self._currentUsername = currentUsername
         self._profileImageURL = profileImageURL
@@ -93,9 +97,13 @@ struct ProfileView: View {
 
     var body: some View {
         VStack(spacing: 16) {
+
             if vm.isLoading {
-                ProgressView("Loading Profile...").padding()
+                ProgressView("Loading Profile...")
+                    .padding()
             } else {
+
+                // Profile Image
                 if let urlString = vm.profileImageURL ?? profileImageURL,
                    let url = URL(string: urlString) {
                     AsyncImage(url: url) { image in
@@ -112,6 +120,7 @@ struct ProfileView: View {
                         .foregroundColor(.gray)
                 }
 
+                // Username TextField
                 TextField("Username", text: $vm.username)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .focused($usernameFocused)
@@ -130,20 +139,24 @@ struct ProfileView: View {
                     vm.isImagePickerPresented = true
                 }
 
-                // ✅ Logout Button
+                // 🔥 LOGOUT BUTTON (inside VStack, correct placement)
                 Button(role: .destructive) {
                     do {
                         try Auth.auth().signOut()
+
                         currentUsername = ""
                         profileImageURL = nil
+
                         UserDefaults.standard.removeObject(forKey: "username")
                         UserDefaults.standard.set(false, forKey: "isLoggedIn")
+
                         isLoggedIn = false
                     } catch {
                         print("❌ Logout failed: \(error)")
                     }
                 } label: {
-                    Text("Log Out").frame(maxWidth: .infinity)
+                    Text("Log Out")
+                        .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.red)
