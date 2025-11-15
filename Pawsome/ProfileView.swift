@@ -66,6 +66,7 @@ class ProfileViewModel: ObservableObject {
             _ = try await ref.putDataAsync(uploadData)
             let url = try await ref.downloadURL()
             profileImageURL = url.absoluteString
+
             try await Firestore.firestore().collection("users").document(uid)
                 .setData(["profileImage": url.absoluteString], merge: true)
         } catch {
@@ -92,72 +93,68 @@ struct ProfileView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-
-                if vm.isLoading {
-                    ProgressView("Loading Profile...").padding()
-                }
-
-                // Profile image
-                if let urlString = vm.profileImageURL ?? profileImageURL,
-                   let url = URL(string: urlString) {
-                    AsyncImage(url: url) { image in
-                        image.resizable().scaledToFit()
-                    } placeholder: {
-                        ProgressView()
-                    }
-                    .frame(width: 120, height: 120)
-                    .clipShape(Circle())
-                } else {
-                    Image(systemName: "person.crop.circle.fill")
-                        .resizable()
-                        .frame(width: 120, height: 120)
-                        .foregroundColor(.gray)
-                }
-
-                // Username field
-                TextField("Username", text: $vm.username)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .focused($usernameFocused)
-                    .onChange(of: usernameFocused) { _, newValue in
-                        if !newValue {
-                            vm.saveUsername()
-                            currentUsername = vm.username
-                        }
-                    }
-
-                Text(vm.isSaving ? "Saving..." : "Saved")
-                    .foregroundColor(vm.isSaving ? .gray : .green)
-                    .font(.caption)
-
-                // ✅ Buttons always visible
-                Button("Change Profile Picture") {
-                    vm.isImagePickerPresented = true
-                }
-
-                Button(role: .destructive) {
-                    do {
-                        try Auth.auth().signOut()
-                        currentUsername = ""
-                        profileImageURL = nil
-                        UserDefaults.standard.removeObject(forKey: "username")
-                        UserDefaults.standard.set(false, forKey: "isLoggedIn")
-                        isLoggedIn = false
-                    } catch {
-                        print("❌ Logout failed: \(error)")
-                    }
-                } label: {
-                    Text("Log Out")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.red)
-
-                Spacer()
+        VStack(spacing: 16) {
+            if vm.isLoading {
+                ProgressView("Loading Profile...").padding()
             }
-            .padding()
+
+            // ⚡ Use local variable to fix @StateObject subscript error
+            let imageURLString = vm.profileImageURL ?? profileImageURL
+            if let urlString = imageURLString, let url = URL(string: urlString) {
+                AsyncImage(url: url) { image in
+                    image.resizable().scaledToFit()
+                } placeholder: {
+                    ProgressView()
+                }
+                .frame(width: 120, height: 120)
+                .clipShape(Circle())
+            } else {
+                Image(systemName: "person.crop.circle.fill")
+                    .resizable()
+                    .frame(width: 120, height: 120)
+                    .foregroundColor(.gray)
+            }
+
+            // Username field
+            TextField("Username", text: $vm.username)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .focused($usernameFocused)
+                .onChange(of: usernameFocused) { _, newValue in
+                    if !newValue {
+                        vm.saveUsername()
+                        currentUsername = vm.username
+                    }
+                }
+
+            Text(vm.isSaving ? "Saving..." : "Saved")
+                .foregroundColor(vm.isSaving ? .gray : .green)
+                .font(.caption)
+
+            // ✅ Always visible buttons
+            Button("Change Profile Picture") {
+                vm.isImagePickerPresented = true
+            }
+
+            Button(role: .destructive) {
+                do {
+                    try Auth.auth().signOut()
+                    currentUsername = ""
+                    profileImageURL = nil
+                    UserDefaults.standard.removeObject(forKey: "username")
+                    UserDefaults.standard.set(false, forKey: "isLoggedIn")
+                    isLoggedIn = false
+                } catch {
+                    print("❌ Logout failed: \(error)")
+                }
+            } label: {
+                Text("Log Out").frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.red)
+
+            Spacer()
         }
+        .padding()
         .onAppear { vm.loadProfile() }
         .sheet(isPresented: $vm.isImagePickerPresented) {
             ImagePickerView(selectedImage: $vm.selectedImage)
