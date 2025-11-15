@@ -84,11 +84,7 @@ struct ProfileView: View {
     @StateObject private var vm: ProfileViewModel
     @FocusState private var usernameFocused: Bool
 
-    init(
-        isLoggedIn: Binding<Bool>,
-        currentUsername: Binding<String>,
-        profileImageURL: Binding<String?>
-    ) {
+    init(isLoggedIn: Binding<Bool>, currentUsername: Binding<String>, profileImageURL: Binding<String?>) {
         self._isLoggedIn = isLoggedIn
         self._currentUsername = currentUsername
         self._profileImageURL = profileImageURL
@@ -96,14 +92,14 @@ struct ProfileView: View {
     }
 
     var body: some View {
-        VStack(spacing: 16) {
+        ScrollView {
+            VStack(spacing: 16) {
 
-            if vm.isLoading {
-                ProgressView("Loading Profile...")
-                    .padding()
-            } else {
+                if vm.isLoading {
+                    ProgressView("Loading Profile...").padding()
+                }
 
-                // Profile Image
+                // Profile image
                 if let urlString = vm.profileImageURL ?? profileImageURL,
                    let url = URL(string: urlString) {
                     AsyncImage(url: url) { image in
@@ -120,7 +116,7 @@ struct ProfileView: View {
                         .foregroundColor(.gray)
                 }
 
-                // Username TextField
+                // Username field
                 TextField("Username", text: $vm.username)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .focused($usernameFocused)
@@ -135,21 +131,18 @@ struct ProfileView: View {
                     .foregroundColor(vm.isSaving ? .gray : .green)
                     .font(.caption)
 
+                // ✅ Buttons always visible
                 Button("Change Profile Picture") {
                     vm.isImagePickerPresented = true
                 }
 
-                // 🔥 LOGOUT BUTTON (inside VStack, correct placement)
                 Button(role: .destructive) {
                     do {
                         try Auth.auth().signOut()
-
                         currentUsername = ""
                         profileImageURL = nil
-
                         UserDefaults.standard.removeObject(forKey: "username")
                         UserDefaults.standard.set(false, forKey: "isLoggedIn")
-
                         isLoggedIn = false
                     } catch {
                         print("❌ Logout failed: \(error)")
@@ -163,8 +156,8 @@ struct ProfileView: View {
 
                 Spacer()
             }
+            .padding()
         }
-        .padding()
         .onAppear { vm.loadProfile() }
         .sheet(isPresented: $vm.isImagePickerPresented) {
             ImagePickerView(selectedImage: $vm.selectedImage)
