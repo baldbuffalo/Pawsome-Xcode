@@ -1,7 +1,9 @@
 import Foundation
 import FirebaseCore
+
 #if os(iOS)
 import UIKit
+import GoogleSignIn
 typealias AppPlatformDelegate = UIApplicationDelegate
 #elseif os(macOS)
 import AppKit
@@ -11,6 +13,7 @@ typealias AppPlatformDelegate = NSApplicationDelegate
 final class AppDelegate: NSObject, AppPlatformDelegate {
     static let shared = AppDelegate()
 
+    // MARK: - iOS
     #if os(iOS)
     func application(
         _ application: UIApplication,
@@ -25,14 +28,17 @@ final class AppDelegate: NSObject, AppPlatformDelegate {
         open url: URL,
         options: [UIApplication.OpenURLOptionsKey: Any] = [:]
     ) -> Bool {
+        // Handle Google Sign-In URL
         return GIDSignIn.sharedInstance.handle(url)
     }
     #elseif os(macOS)
+    // MARK: - macOS
     func applicationDidFinishLaunching(_ notification: Notification) {
         configureFirebase()
     }
     #endif
 
+    // MARK: - Firebase Configuration
     private func configureFirebase() {
         if FirebaseApp.app() == nil {
             FirebaseApp.configure()

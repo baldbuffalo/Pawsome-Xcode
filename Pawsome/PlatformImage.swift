@@ -1,5 +1,3 @@
-import SwiftUI
-
 #if os(iOS)
 import UIKit
 public typealias PlatformImage = UIImage

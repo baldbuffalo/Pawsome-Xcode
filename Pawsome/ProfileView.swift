@@ -98,13 +98,35 @@ struct ProfileView: View {
                 ProgressView("Loading Profile...").padding()
             }
 
-            // ⚡ Use local variable to fix @StateObject subscript error
-            let imageURLString = vm.profileImageURL ?? profileImageURL
-            if let urlString = imageURLString, let url = URL(string: urlString) {
-                AsyncImage(url: url) { image in
-                    image.resizable().scaledToFit()
-                } placeholder: {
-                    ProgressView()
+            // Profile image
+            let imageURLString = vm.selectedImage == nil ? (vm.profileImageURL ?? profileImageURL) : nil
+
+            if let selectedImage = vm.selectedImage {
+                #if os(iOS)
+                Image(uiImage: selectedImage)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 120, height: 120)
+                    .clipShape(Circle())
+                #elseif os(macOS)
+                Image(nsImage: selectedImage)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 120, height: 120)
+                    .clipShape(Circle())
+                #endif
+            } else if let urlString = imageURLString, let url = URL(string: urlString) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .empty:
+                        ProgressView()
+                    case .success(let image):
+                        image.resizable().scaledToFit()
+                    case .failure:
+                        Image(systemName: "person.crop.circle.fill").resizable().scaledToFit()
+                    @unknown default:
+                        Image(systemName: "person.crop.circle.fill").resizable().scaledToFit()
+                    }
                 }
                 .frame(width: 120, height: 120)
                 .clipShape(Circle())
@@ -119,7 +141,7 @@ struct ProfileView: View {
             TextField("Username", text: $vm.username)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .focused($usernameFocused)
-                .onChange(of: usernameFocused) { _, newValue in
+                .onChange(of: usernameFocused) { newValue in
                     if !newValue {
                         vm.saveUsername()
                         currentUsername = vm.username
@@ -130,11 +152,12 @@ struct ProfileView: View {
                 .foregroundColor(vm.isSaving ? .gray : .green)
                 .font(.caption)
 
-            // ✅ Always visible buttons
+            // Change profile picture button
             Button("Change Profile Picture") {
                 vm.isImagePickerPresented = true
             }
 
+            // Logout button
             Button(role: .destructive) {
                 do {
                     try Auth.auth().signOut()
@@ -144,7 +167,7 @@ struct ProfileView: View {
                     UserDefaults.standard.set(false, forKey: "isLoggedIn")
                     isLoggedIn = false
                 } catch {
-                    print("❌ Logout failed: \(error)")
+                    print("❌ Logout failed: \(error.localizedDescription)")
                 }
             } label: {
                 Text("Log Out").frame(maxWidth: .infinity)
