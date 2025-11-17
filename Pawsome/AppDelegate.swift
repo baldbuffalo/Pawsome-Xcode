@@ -12,7 +12,6 @@ typealias AppPlatformDelegate = NSApplicationDelegate
 final class AppDelegate: NSObject, AppPlatformDelegate {
     static let shared = AppDelegate()
 
-    // Initialize Firebase immediately when AppDelegate is created
     override init() {
         super.init()
         configureFirebase()
@@ -24,7 +23,7 @@ final class AppDelegate: NSObject, AppPlatformDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
-        // Firebase is already configured in init()
+        // No Firebase configure here — already done in init
         return true
     }
 
@@ -33,21 +32,21 @@ final class AppDelegate: NSObject, AppPlatformDelegate {
         open url: URL,
         options: [UIApplication.OpenURLOptionsKey: Any] = [:]
     ) -> Bool {
-        // Handle Google Sign-In URL safely
         return GIDSignIn.sharedInstance.handle(url)
     }
     #elseif os(macOS)
     // MARK: - macOS
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Firebase is already configured in init()
+        // Already configured in init()
     }
     #endif
 
     // MARK: - Firebase Configuration
     private func configureFirebase() {
-        if FirebaseApp.app() == nil {
-            FirebaseApp.configure()
-            print("✅ Firebase configured in AppDelegate init")
+        guard FirebaseApp.app() == nil else {
+            return
         }
+        FirebaseApp.configure()
+        print("✅ Firebase configured in AppDelegate init")
     }
 }
