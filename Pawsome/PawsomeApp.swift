@@ -1,6 +1,4 @@
 import SwiftUI
-import FirebaseAuth
-import FirebaseCore
 
 @main
 struct PawsomeApp: App {
@@ -31,7 +29,7 @@ struct PawsomeApp: App {
                 )
                 .onAppear {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                        appState.listenAuthState()
+                        appState.checkLoginState()
                     }
                 }
             }
@@ -44,20 +42,30 @@ struct PawsomeApp: App {
         @Published var currentUsername = ""
         @Published var profileImageURL = ""
 
-        func listenAuthState() {
-            guard FirebaseApp.app() != nil else {
-                print("⚠️ Firebase not configured yet, delaying auth listener")
-                return
-            }
+        func checkLoginState() {
+            // Local simulation for login
+            isLoggedIn = UserDefaults.standard.bool(forKey: "isLoggedIn")
+            currentUsername = UserDefaults.standard.string(forKey: "username") ?? "User\(Int.random(in: 1000...9999))"
+            profileImageURL = UserDefaults.standard.string(forKey: "profileImageURL") ?? ""
+            print("👀 Login state checked locally")
+        }
 
-            print("👀 Listening for auth state...")
-            _ = Auth.auth().addStateDidChangeListener { [weak self] _, user in
-                DispatchQueue.main.async {
-                    self?.isLoggedIn = (user != nil)
-                    self?.currentUsername = user?.displayName ?? "User\(Int.random(in: 1000...9999))"
-                    self?.profileImageURL = user?.photoURL?.absoluteString ?? ""
-                }
-            }
+        func logIn(username: String, profileImageURL: String? = nil) {
+            self.currentUsername = username
+            self.profileImageURL = profileImageURL ?? ""
+            self.isLoggedIn = true
+            UserDefaults.standard.set(true, forKey: "isLoggedIn")
+            UserDefaults.standard.set(username, forKey: "username")
+            UserDefaults.standard.set(profileImageURL ?? "", forKey: "profileImageURL")
+        }
+
+        func logOut() {
+            self.currentUsername = ""
+            self.profileImageURL = ""
+            self.isLoggedIn = false
+            UserDefaults.standard.removeObject(forKey: "username")
+            UserDefaults.standard.removeObject(forKey: "profileImageURL")
+            UserDefaults.standard.set(false, forKey: "isLoggedIn")
         }
     }
 
@@ -115,6 +123,42 @@ struct PawsomeApp: App {
                 Text(username)
                     .font(.title)
                     .padding(.top, 20)
+
+                Spacer()
+            }
+            .padding()
+        }
+    }
+
+    // MARK: - LoginView (simple local version)
+    struct LoginView: View {
+        @Binding var isLoggedIn: Bool
+        @Binding var username: String
+        @Binding var profileImage: String?
+
+        @State private var inputUsername = ""
+
+        var body: some View {
+            VStack(spacing: 20) {
+                Text("Login")
+                    .font(.largeTitle)
+                    .padding()
+
+                TextField("Enter username", text: $inputUsername)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .padding()
+
+                Button("Log In") {
+                    username = inputUsername.isEmpty ? "User\(Int.random(in: 1000...9999))" : inputUsername
+                    profileImage = nil
+                    isLoggedIn = true
+                    UserDefaults.standard.set(true, forKey: "isLoggedIn")
+                    UserDefaults.standard.set(username, forKey: "username")
+                }
+                .padding()
+                .foregroundColor(.white)
+                .background(Color.blue)
+                .cornerRadius(8)
 
                 Spacer()
             }

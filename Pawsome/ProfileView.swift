@@ -1,7 +1,4 @@
 import SwiftUI
-import FirebaseAuth
-import FirebaseFirestore
-import FirebaseStorage
 
 @MainActor
 class ProfileViewModel: ObservableObject {
@@ -18,61 +15,42 @@ class ProfileViewModel: ObservableObject {
     }
 
     func loadProfile() {
-        guard let uid = Auth.auth().currentUser?.uid else { return }
+        // For now, simulate loading from local storage
         isLoading = true
-        let docRef = Firestore.firestore().collection("users").document(uid)
-
-        docRef.getDocument { [weak self] snapshot, _ in
-            guard let self = self else { return }
-            Task { @MainActor in
-                self.isLoading = false
-                if let data = snapshot?.data() {
-                    self.username = data["username"] as? String ?? self.username
-                    self.profileImageURL = data["profileImage"] as? String
-                }
-            }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            self.isLoading = false
+            self.username = UserDefaults.standard.string(forKey: "username") ?? self.username
+            self.profileImageURL = UserDefaults.standard.string(forKey: "profileImageURL")
         }
     }
 
     func saveUsername() {
-        guard let uid = Auth.auth().currentUser?.uid else { return }
         isSaving = true
-        Firestore.firestore().collection("users").document(uid)
-            .setData(["username": username], merge: true) { [weak self] _ in
-                guard let self = self else { return }
-                Task { @MainActor in
-                    self.isSaving = false
-                }
-            }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            UserDefaults.standard.set(self.username, forKey: "username")
+            self.isSaving = false
+        }
     }
 
     func uploadProfileImage(image: PlatformImage) async {
-        guard let uid = Auth.auth().currentUser?.uid else { return }
-        let ref = Storage.storage().reference().child("profilePictures/\(uid).png")
-        var data: Data?
-
+        isImageLoading = true
+        // Simulate uploading by converting to Data and saving URL locally
         #if os(iOS)
-        data = image.pngData()
+        if let data = image.pngData() {
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent("profile.png")
+            try? data.write(to: url)
+            profileImageURL = url.absoluteString
+            UserDefaults.standard.set(profileImageURL, forKey: "profileImageURL")
+        }
         #elseif os(macOS)
-        if let tiff = image.tiffRepresentation {
-            data = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:])
+        if let tiff = image.tiffRepresentation,
+           let data = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) {
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent("profile.png")
+            try? data.write(to: url)
+            profileImageURL = url.absoluteString
+            UserDefaults.standard.set(profileImageURL, forKey: "profileImageURL")
         }
         #endif
-
-        guard let uploadData = data else { return }
-        isImageLoading = true
-
-        do {
-            _ = try await ref.putDataAsync(uploadData)
-            let url = try await ref.downloadURL()
-            profileImageURL = url.absoluteString
-
-            try await Firestore.firestore().collection("users").document(uid)
-                .setData(["profileImage": url.absoluteString], merge: true)
-        } catch {
-            print("❌ Image upload failed: \(error.localizedDescription)")
-        }
-
         isImageLoading = false
     }
 }
@@ -157,18 +135,14 @@ struct ProfileView: View {
                 vm.isImagePickerPresented = true
             }
 
-            // Logout button
+            // Logout button (clears local state)
             Button(role: .destructive) {
-                do {
-                    try Auth.auth().signOut()
-                    currentUsername = ""
-                    profileImageURL = nil
-                    UserDefaults.standard.removeObject(forKey: "username")
-                    UserDefaults.standard.set(false, forKey: "isLoggedIn")
-                    isLoggedIn = false
-                } catch {
-                    print("❌ Logout failed: \(error.localizedDescription)")
-                }
+                currentUsername = ""
+                profileImageURL = nil
+                UserDefaults.standard.removeObject(forKey: "username")
+                UserDefaults.standard.removeObject(forKey: "profileImageURL")
+                UserDefaults.standard.set(false, forKey: "isLoggedIn")
+                isLoggedIn = false
             } label: {
                 Text("Log Out").frame(maxWidth: .infinity)
             }

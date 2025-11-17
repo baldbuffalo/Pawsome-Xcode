@@ -1,11 +1,11 @@
-import FirebaseFirestore
+import Foundation
 
-struct Comment {
+struct Comment: Identifiable {
     var id: String
     var text: String
     var userName: String
 
-    // Custom initializer for creating a Comment from a Firestore document
+    // Initialize from a dictionary (optional, for local testing)
     init?(from dictionary: [String: Any]) {
         guard let id = dictionary["id"] as? String,
               let text = dictionary["text"] as? String,
@@ -18,9 +18,9 @@ struct Comment {
         self.userName = userName
     }
 
-    // Optional: Convert the Comment object back into a dictionary for Firestore
+    // Convert to dictionary (optional, for local use)
     func toDictionary() -> [String: Any] {
-        return [
+        [
             "id": id,
             "text": text,
             "userName": userName

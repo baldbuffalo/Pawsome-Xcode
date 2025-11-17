@@ -19,7 +19,7 @@ final class AppDelegate: NSObject, AppPlatformDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
-        configureFirebase()
+        configureFirebase() // Firebase initialized here
         return true
     }
 
@@ -34,7 +34,7 @@ final class AppDelegate: NSObject, AppPlatformDelegate {
     #elseif os(macOS)
     // MARK: - macOS
     func applicationDidFinishLaunching(_ notification: Notification) {
-        configureFirebase()
+        configureFirebase() // Firebase initialized here
     }
     #endif
 
@@ -43,6 +43,8 @@ final class AppDelegate: NSObject, AppPlatformDelegate {
         if FirebaseApp.app() == nil {
             FirebaseApp.configure()
             print("✅ Firebase configured in AppDelegate")
+        } else {
+            print("⚠️ Firebase already configured")
         }
     }
 }

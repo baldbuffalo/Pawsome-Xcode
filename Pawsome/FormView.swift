@@ -11,8 +11,6 @@ struct FormView: View {
     @State private var description = ""
     @State private var imageURL = ""
 
-    @StateObject private var viewModel = CatPostViewModel()
-
     var body: some View {
         ScrollView {
             VStack(spacing: 15) {
@@ -35,11 +33,7 @@ struct FormView: View {
                 inputField("Image URL (optional)", $imageURL)
 
                 Button("Post 🐾") {
-                    viewModel.addPost(
-                        name: name,
-                        description: description,
-                        imageURL: imageURL.isEmpty ? "" : imageURL
-                    )
+                    // For testing: just reset and call closure
                     name = ""
                     description = ""
                     imageURL = ""

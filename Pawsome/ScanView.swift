@@ -7,10 +7,11 @@ struct ScanView: View {
     @State private var useCamera: Bool = false
 
     var username: String
-    var onPostCreated: (() -> Void)? // ✅ now matches FormView
+    var onPostCreated: (() -> Void)? // closure for callback
 
     var body: some View {
         VStack(spacing: 20) {
+            // Button to choose image
             Button("Choose Image") {
                 showSourcePicker = true
             }
@@ -32,13 +33,14 @@ struct ScanView: View {
                 Button("Cancel", role: .cancel) {}
             }
 
+            // Show form when an image is selected
             if showForm, let img = selectedImage {
                 FormView(
                     showForm: $showForm,
                     navigateToHome: .constant(false),
                     image: img,
                     username: username,
-                    onPostCreated: onPostCreated // ✅ same closure type now
+                    onPostCreated: onPostCreated
                 )
                 .frame(maxHeight: 600)
             }
@@ -46,6 +48,7 @@ struct ScanView: View {
         .padding()
     }
 
+    // MARK: - File picker for macOS
     private func pickFile() {
         #if os(macOS)
         let panel = NSOpenPanel()
@@ -58,7 +61,7 @@ struct ScanView: View {
             showForm = true
         }
         #elseif os(iOS)
-        showForm = true // simulated
+        showForm = true // For iOS simulation; implement UIImagePickerController if needed
         #endif
     }
 }
