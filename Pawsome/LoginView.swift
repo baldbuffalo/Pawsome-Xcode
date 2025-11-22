@@ -1,4 +1,6 @@
 import SwiftUI
+import FirebaseAuth
+import FirebaseFirestore
 import GoogleSignIn
 import CryptoKit
 #if canImport(AuthenticationServices)
@@ -51,36 +53,36 @@ struct LoginView: View {
         } message: { Text(errorMessage) }
     }
 
-    // MARK: - Google Sign-In (local only)
+    // MARK: - Google Sign-In
     private func signInWithGoogle() async {
         #if os(iOS)
         guard let rootVC = UIApplication.shared.connectedScenes
                 .compactMap({ ($0 as? UIWindowScene)?.keyWindow?.rootViewController })
                 .first else { return }
+
+        GIDSignIn.sharedInstance.clientID = FirebaseApp.app()?.options.clientID
+
         do {
             let signInResult = try await GIDSignIn.sharedInstance.signIn(withPresenting: rootVC)
             let gidUser = signInResult.user
+
             username = gidUser.profile?.name ?? "User\(Int.random(in: 1000...9999))"
             profileImage = gidUser.profile?.imageURL(withDimension: 200)?.absoluteString
             saveLocally()
-        } catch {
-            await showErrorWithMessage("Google Sign-In failed: \(error.localizedDescription)")
-        }
-        #elseif os(macOS)
-        guard let window = NSApp.keyWindow else { return }
-        do {
-            let signInResult = try await GIDSignIn.sharedInstance.signIn(withPresenting: window)
-            let gidUser = signInResult.user
-            username = gidUser.profile?.name ?? "User\(Int.random(in: 1000...9999))"
-            profileImage = gidUser.profile?.imageURL(withDimension: 200)?.absoluteString
-            saveLocally()
+
+            // Firebase Auth
+            let credential = GoogleAuthProvider.credential(withIDToken: gidUser.idToken?.tokenString ?? "",
+                                                           accessToken: gidUser.accessToken.tokenString)
+            let authResult = try await Auth.auth().signIn(with: credential)
+            saveUserToFirestore(uid: authResult.user.uid)
+
         } catch {
             await showErrorWithMessage("Google Sign-In failed: \(error.localizedDescription)")
         }
         #endif
     }
 
-    // MARK: - Apple Sign-In (local only)
+    // MARK: - Apple Sign-In
     #if canImport(AuthenticationServices)
     private func handleAppleSignIn(result: Result<ASAuthorization, Error>) async {
         do {
@@ -90,6 +92,15 @@ struct LoginView: View {
                     username = credential.fullName?.givenName ?? "User\(Int.random(in: 1000...9999))"
                     profileImage = nil
                     saveLocally()
+
+                    guard let nonce = currentNonce else { return }
+                    let appleIDToken = credential.identityToken
+                    let idTokenString = String(data: appleIDToken ?? Data(), encoding: .utf8) ?? ""
+                    let firebaseCredential = OAuthProvider.credential(withProviderID: "apple.com",
+                                                                      idToken: idTokenString,
+                                                                      rawNonce: nonce)
+                    let authResult = try await Auth.auth().signIn(with: firebaseCredential)
+                    saveUserToFirestore(uid: authResult.user.uid)
                 }
             case .failure(let error):
                 await showErrorWithMessage("Apple Sign-In failed: \(error.localizedDescription)")
@@ -106,6 +117,20 @@ struct LoginView: View {
         UserDefaults.standard.set(true, forKey: "isLoggedIn")
         UserDefaults.standard.set(username, forKey: "username")
         UserDefaults.standard.set(profileImage ?? "", forKey: "profileImageURL")
+    }
+
+    private func saveUserToFirestore(uid: String) {
+        let db = Firestore.firestore()
+        db.collection("users").document(uid).setData([
+            "username": username,
+            "profileImageURL": profileImage ?? ""
+        ], merge: true) { error in
+            if let error = error {
+                print("Firestore error: \(error.localizedDescription)")
+            } else {
+                print("User saved to Firestore ✅")
+            }
+        }
     }
 
     private func showErrorWithMessage(_ msg: String) async {

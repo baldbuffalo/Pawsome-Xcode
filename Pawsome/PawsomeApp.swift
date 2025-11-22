@@ -1,111 +1,93 @@
 import SwiftUI
 
-// --------------------------------------------------
-// MARK: - GLOBAL APP STATE
-// --------------------------------------------------
-@MainActor
-class AppState: ObservableObject {
-    @Published var isLoggedIn: Bool
-    @Published var username: String
-    @Published var profileImageURL: String?
-
-    init() {
-        self.isLoggedIn = UserDefaults.standard.bool(forKey: "isLoggedIn")
-        self.username = UserDefaults.standard.string(forKey: "username") ?? ""
-        let storedImage = UserDefaults.standard.string(forKey: "profileImageURL")
-        self.profileImageURL = storedImage?.isEmpty == true ? nil : storedImage
-    }
-
-    func logout() {
-        isLoggedIn = false
-        username = ""
-        profileImageURL = nil
-
-        UserDefaults.standard.set(false, forKey: "isLoggedIn")
-        UserDefaults.standard.removeObject(forKey: "username")
-        UserDefaults.standard.removeObject(forKey: "profileImageURL")
-    }
-}
-
-// --------------------------------------------------
-// MARK: - APP ENTRY
-// --------------------------------------------------
 @main
 struct PawsomeApp: App {
+    #if os(iOS)
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
+    #elseif os(macOS)
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var delegate
+    #endif
+
     @StateObject private var appState = AppState()
 
     var body: some Scene {
         WindowGroup {
-            if appState.isLoggedIn == false {
-                LoginView(
-                    isLoggedIn: Binding(
-                        get: { appState.isLoggedIn },
-                        set: { appState.isLoggedIn = $0 }
-                    ),
-                    username: Binding(
-                        get: { appState.username },
-                        set: { appState.username = $0 }
-                    ),
-                    profileImage: Binding(
-                        get: { appState.profileImageURL },
-                        set: { appState.profileImageURL = $0 }
-                    )
-                )
-            } else {
+            if appState.isLoggedIn {
                 MainTabView(appState: appState)
+            } else {
+                LoginView(
+                    isLoggedIn: $appState.isLoggedIn,
+                    username: $appState.currentUsername,
+                    profileImage: $appState.profileImageURL
+                )
+                .onAppear {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                        appState.checkLoginState()
+                    }
+                }
             }
         }
     }
-}
 
-// --------------------------------------------------
-// MARK: - MAIN TAB VIEW
-// --------------------------------------------------
-struct MainTabView: View {
-    @ObservedObject var appState: AppState
+    // MARK: - AppState
+    final class AppState: ObservableObject {
+        @Published var isLoggedIn = false
+        @Published var currentUsername = ""
+        @Published var profileImageURL: String? = nil
 
-    var body: some View {
-        TabView {
+        func checkLoginState() {
+            isLoggedIn = UserDefaults.standard.bool(forKey: "isLoggedIn")
+            currentUsername = UserDefaults.standard.string(forKey: "username") ?? "User\(Int.random(in: 1000...9999))"
+            profileImageURL = UserDefaults.standard.string(forKey: "profileImageURL")
+        }
+    }
 
+    // MARK: - MainTabView
+    struct MainTabView: View {
+        @ObservedObject var appState: AppState
+
+        var body: some View {
+            TabView {
+                AnyView(HomeTab())
+                    .tabItem { Label("Home", systemImage: "house") }
+
+                AnyView(ScanTab())
+                    .tabItem { Label("Scan", systemImage: "qrcode.viewfinder") }
+
+                AnyView(ProfileTab())
+                    .tabItem { Label("Profile", systemImage: "person.crop.circle") }
+            }
+        }
+
+        // MARK: - Tab wrappers
+
+        @ViewBuilder
+        private func HomeTab() -> some View {
             HomeView(
-                isLoggedIn: Binding(
-                    get: { appState.isLoggedIn },
-                    set: { appState.isLoggedIn = $0 }
-                ),
-                currentUsername: Binding(
-                    get: { appState.username },
-                    set: { appState.username = $0 }
-                ),
-                profileImageURL: Binding(
-                    get: { appState.profileImageURL },
-                    set: { appState.profileImageURL = $0 }
-                ),
+                isLoggedIn: $appState.isLoggedIn,
+                currentUsername: $appState.currentUsername,
+                profileImageURL: $appState.profileImageURL,
+                onPostCreated: {} // closure if needed
+            )
+        }
+
+        @ViewBuilder
+        private func ScanTab() -> some View {
+            ScanView(
+                username: appState.currentUsername,
                 onPostCreated: {
-                    // empty handler for now
-                    print("Post created!")
+                    print("ScanView post created callback")
                 }
             )
-            .tabItem {
-                Label("Home", systemImage: "house")
-            }
+        }
 
+        @ViewBuilder
+        private func ProfileTab() -> some View {
             ProfileView(
-                isLoggedIn: Binding(
-                    get: { appState.isLoggedIn },
-                    set: { appState.isLoggedIn = $0 }
-                ),
-                currentUsername: Binding(
-                    get: { appState.username },
-                    set: { appState.username = $0 }
-                ),
-                profileImageURL: Binding(
-                    get: { appState.profileImageURL },
-                    set: { appState.profileImageURL = $0 }
-                )
+                isLoggedIn: $appState.isLoggedIn,
+                currentUsername: $appState.currentUsername,
+                profileImageURL: $appState.profileImageURL
             )
-            .tabItem {
-                Label("Profile", systemImage: "person")
-            }
         }
     }
 }
