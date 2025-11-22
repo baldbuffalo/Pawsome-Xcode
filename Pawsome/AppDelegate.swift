@@ -1,5 +1,6 @@
 import Foundation
 import FirebaseCore
+
 #if os(iOS)
 import UIKit
 import GoogleSignIn
@@ -10,43 +11,41 @@ typealias AppPlatformDelegate = NSApplicationDelegate
 #endif
 
 final class AppDelegate: NSObject, AppPlatformDelegate {
-    static let shared = AppDelegate()
 
     override init() {
         super.init()
         configureFirebase()
     }
 
+    // MARK: - Firebase Setup
+    private func configureFirebase() {
+        guard FirebaseApp.app() == nil else { return }
+        FirebaseApp.configure()
+        print("🔥 Firebase configured (AppDelegate init)")
+    }
+
     // MARK: - iOS
     #if os(iOS)
     func application(
         _ application: UIApplication,
-        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil
     ) -> Bool {
-        // No Firebase configure here — already done in init
-        return true
+        true
     }
 
     func application(
         _ app: UIApplication,
         open url: URL,
-        options: [UIApplication.OpenURLOptionsKey: Any] = [:]
+        options: [UIApplication.OpenURLOptionsKey : Any] = [:]
     ) -> Bool {
-        return GIDSignIn.sharedInstance.handle(url)
-    }
-    #elseif os(macOS)
-    // MARK: - macOS
-    func applicationDidFinishLaunching(_ notification: Notification) {
-        // Already configured in init()
+        GIDSignIn.sharedInstance.handle(url)
     }
     #endif
 
-    // MARK: - Firebase Configuration
-    private func configureFirebase() {
-        guard FirebaseApp.app() == nil else {
-            return
-        }
-        FirebaseApp.configure()
-        print("✅ Firebase configured in AppDelegate init")
+    // MARK: - macOS
+    #if os(macOS)
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        // Already configured in init
     }
+    #endif
 }
