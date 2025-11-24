@@ -94,11 +94,13 @@ struct LoginView: View {
                     saveLocally()
 
                     guard let nonce = currentNonce else { return }
-                    let appleIDToken = credential.identityToken
-                    let idTokenString = String(data: appleIDToken ?? Data(), encoding: .utf8) ?? ""
-                    let firebaseCredential = OAuthProvider.credential(withProviderID: "apple.com",
-                                                                      idToken: idTokenString,
-                                                                      rawNonce: nonce)
+                    // Extract the ID token string from the Apple credential
+                    guard let appleIDTokenData = credential.identityToken, let idTokenString = String(data: appleIDTokenData, encoding: .utf8) else {
+                        await showErrorWithMessage("Unable to fetch Apple identity token.")
+                        return
+                    }
+                    // Use the updated FirebaseAuth API that expects AuthProviderID instead of raw String
+                    let firebaseCredential = OAuthProvider.appleCredential(withIDToken: idTokenString, rawNonce: nonce, fullName: <#PersonNameComponents?#>)
                     let authResult = try await Auth.auth().signIn(with: firebaseCredential)
                     saveUserToFirestore(uid: authResult.user.uid)
                 }

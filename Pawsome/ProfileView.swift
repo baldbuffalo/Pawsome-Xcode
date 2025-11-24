@@ -119,8 +119,8 @@ struct ProfileView: View {
             TextField("Username", text: $vm.username)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .focused($usernameFocused)
-                .onChange(of: usernameFocused) { newValue in
-                    if !newValue {
+                .onChange(of: usernameFocused) { oldValue, newValue in
+                    if oldValue == true && newValue == false {
                         vm.saveUsername()
                         currentUsername = vm.username
                     }

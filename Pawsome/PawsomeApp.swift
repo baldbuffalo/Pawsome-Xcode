@@ -48,13 +48,13 @@ struct PawsomeApp: App {
 
         var body: some View {
             TabView {
-                AnyView(HomeTab())
+                HomeTab()
                     .tabItem { Label("Home", systemImage: "house") }
 
-                AnyView(ScanTab())
+                ScanTab()
                     .tabItem { Label("Scan", systemImage: "qrcode.viewfinder") }
 
-                AnyView(ProfileTab())
+                ProfileTab()
                     .tabItem { Label("Profile", systemImage: "person.crop.circle") }
             }
         }

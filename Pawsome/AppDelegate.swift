@@ -11,17 +11,16 @@ typealias AppPlatformDelegate = NSApplicationDelegate
 #endif
 
 final class AppDelegate: NSObject, AppPlatformDelegate {
-
     override init() {
         super.init()
-        configureFirebase()
-    }
-
-    // MARK: - Firebase Setup
-    private func configureFirebase() {
-        guard FirebaseApp.app() == nil else { return }
-        FirebaseApp.configure()
-        print("🔥 Firebase configured (AppDelegate init)")
+        if FirebaseApp.app() == nil {
+            FirebaseApp.configure()
+            #if os(iOS)
+            print("🔥 Firebase configured (AppDelegate init - iOS)")
+            #elseif os(macOS)
+            print("🔥 Firebase configured (AppDelegate init - macOS)")
+            #endif
+        }
     }
 
     // MARK: - iOS
@@ -30,7 +29,12 @@ final class AppDelegate: NSObject, AppPlatformDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil
     ) -> Bool {
-        true
+        // Configure Firebase once at app launch
+        if FirebaseApp.app() == nil {
+            FirebaseApp.configure()
+            print("🔥 Firebase configured (iOS didFinishLaunching)")
+        }
+        return true
     }
 
     func application(
@@ -38,6 +42,7 @@ final class AppDelegate: NSObject, AppPlatformDelegate {
         open url: URL,
         options: [UIApplication.OpenURLOptionsKey : Any] = [:]
     ) -> Bool {
+        // Handle Google Sign-In callback URLs
         return GIDSignIn.sharedInstance.handle(url)
     }
     #endif
@@ -45,7 +50,11 @@ final class AppDelegate: NSObject, AppPlatformDelegate {
     // MARK: - macOS
     #if os(macOS)
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Already configured in init
+        // Configure Firebase once at app launch
+        if FirebaseApp.app() == nil {
+            FirebaseApp.configure()
+            print("🔥 Firebase configured (macOS applicationDidFinishLaunching)")
+        }
     }
     #endif
 }
