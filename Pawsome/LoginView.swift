@@ -1,7 +1,9 @@
 import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore
+import FirebaseCore
 import GoogleSignIn
+import GoogleSignInSwift
 import CryptoKit
 #if canImport(AuthenticationServices)
 import AuthenticationServices
@@ -19,26 +21,39 @@ struct LoginView: View {
     var body: some View {
         VStack(spacing: 20) {
             Text("Welcome to Pawsome!")
-                .font(.largeTitle).bold().padding()
+                .font(.largeTitle)
+                .bold()
+                .padding()
+
             Text("Please sign in to continue")
-                .font(.subheadline).padding(.bottom, 50)
+                .font(.subheadline)
+                .padding(.bottom, 50)
 
             // MARK: - Google Sign-In
-            Button("Sign in with Google") {
+            Button {
                 Task { await signInWithGoogle() }
+            } label: {
+                HStack {
+                    Image(systemName: "globe")
+                    Text("Sign in with Google")
+                        .bold()
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(Color.red)
+                .foregroundColor(.white)
+                .cornerRadius(8)
             }
-            .padding()
-            .foregroundColor(.white)
-            .background(Color.red)
-            .cornerRadius(8)
 
             // MARK: - Apple Sign-In
             #if canImport(AuthenticationServices)
             SignInWithAppleButton(.signIn) { request in
                 request.requestedScopes = [.fullName, .email]
+
                 let nonce = randomNonceString()
-                self.currentNonce = nonce
+                currentNonce = nonce
                 request.nonce = sha256(nonce)
+
             } onCompletion: { result in
                 Task { await handleAppleSignIn(result: result) }
             }
@@ -48,31 +63,44 @@ struct LoginView: View {
 
             Spacer()
         }
+        .padding()
         .alert("Sign-In Error", isPresented: $showError) {
             Button("OK", role: .cancel) {}
         } message: { Text(errorMessage) }
     }
 
-    // MARK: - Google Sign-In
+    // MARK: - GOOGLE SIGN IN
     private func signInWithGoogle() async {
         #if os(iOS)
         guard let rootVC = UIApplication.shared.connectedScenes
-                .compactMap({ ($0 as? UIWindowScene)?.keyWindow?.rootViewController })
-                .first else { return }
+            .compactMap({ ($0 as? UIWindowScene)?.keyWindow?.rootViewController })
+            .first else { return }
 
-        GIDSignIn.sharedInstance.clientID = FirebaseApp.app()?.options.clientID
+        guard let clientID = FirebaseApp.app()?.options.clientID else {
+            await showErrorWithMessage("Missing Google Client ID.")
+            return
+        }
+
+        GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: clientID)
 
         do {
-            let signInResult = try await GIDSignIn.sharedInstance.signIn(withPresenting: rootVC)
-            let gidUser = signInResult.user
+            let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: rootVC)
+            let user = result.user
 
-            username = gidUser.profile?.name ?? "User\(Int.random(in: 1000...9999))"
-            profileImage = gidUser.profile?.imageURL(withDimension: 200)?.absoluteString
+            username = user.profile?.name ?? "User\(Int.random(in: 1000...9999))"
+            profileImage = user.profile?.imageURL(withDimension: 200)?.absoluteString
             saveLocally()
 
-            // Firebase Auth
-            let credential = GoogleAuthProvider.credential(withIDToken: gidUser.idToken?.tokenString ?? "",
-                                                           accessToken: gidUser.accessToken.tokenString)
+            guard let idToken = user.idToken?.tokenString else {
+                await showErrorWithMessage("Missing Google ID token.")
+                return
+            }
+
+            let credential = GoogleAuthProvider.credential(
+                withIDToken: idToken,
+                accessToken: user.accessToken.tokenString
+            )
+
             let authResult = try await Auth.auth().signIn(with: credential)
             saveUserToFirestore(uid: authResult.user.uid)
 
@@ -82,38 +110,51 @@ struct LoginView: View {
         #endif
     }
 
-    // MARK: - Apple Sign-In
+    // MARK: - APPLE SIGN IN
     #if canImport(AuthenticationServices)
     private func handleAppleSignIn(result: Result<ASAuthorization, Error>) async {
         do {
             switch result {
             case .success(let auth):
-                if let credential = auth.credential as? ASAuthorizationAppleIDCredential {
-                    username = credential.fullName?.givenName ?? "User\(Int.random(in: 1000...9999))"
-                    profileImage = nil
-                    saveLocally()
 
-                    guard let nonce = currentNonce else { return }
-                    // Extract the ID token string from the Apple credential
-                    guard let appleIDTokenData = credential.identityToken, let idTokenString = String(data: appleIDTokenData, encoding: .utf8) else {
-                        await showErrorWithMessage("Unable to fetch Apple identity token.")
-                        return
-                    }
-                    // Use the updated FirebaseAuth API that expects AuthProviderID instead of raw String
-                    let firebaseCredential = OAuthProvider.appleCredential(withIDToken: idTokenString, rawNonce: nonce, fullName: <#PersonNameComponents?#>)
-                    let authResult = try await Auth.auth().signIn(with: firebaseCredential)
-                    saveUserToFirestore(uid: authResult.user.uid)
+                guard let credential = auth.credential as? ASAuthorizationAppleIDCredential else {
+                    await showErrorWithMessage("Invalid Apple credential.")
+                    return
                 }
+
+                username = credential.fullName?.givenName ?? "User\(Int.random(in: 1000...9999))"
+                profileImage = nil
+                saveLocally()
+
+                guard let nonce = currentNonce else { return }
+                guard let tokenData = credential.identityToken,
+                      let idTokenString = String(data: tokenData, encoding: .utf8) else {
+                    await showErrorWithMessage("Unable to fetch identity token.")
+                    return
+                }
+
+                // ✅ NEW 2025 FIREBASE AUTH API — NO DEPRECATED STRING PROVIDER
+                let firebaseCredential = OAuthProvider.credential(
+                    providerID: AuthProviderID.apple,
+                    idToken: idTokenString,
+                    rawNonce: nonce
+                )
+
+                let authResult = try await Auth.auth().signIn(with: firebaseCredential)
+                saveUserToFirestore(uid: authResult.user.uid)
+
             case .failure(let error):
                 await showErrorWithMessage("Apple Sign-In failed: \(error.localizedDescription)")
             }
+
         } catch {
             await showErrorWithMessage("Apple Sign-In failed: \(error.localizedDescription)")
         }
     }
     #endif
 
-    // MARK: - Helpers
+    // MARK: - HELPERS
+
     private func saveLocally() {
         isLoggedIn = true
         UserDefaults.standard.set(true, forKey: "isLoggedIn")
@@ -130,7 +171,7 @@ struct LoginView: View {
             if let error = error {
                 print("Firestore error: \(error.localizedDescription)")
             } else {
-                print("User saved to Firestore ✅")
+                print("User saved to Firestore ✔️")
             }
         }
     }
@@ -148,7 +189,9 @@ struct LoginView: View {
     }
 
     private func sha256(_ input: String) -> String {
-        let inputData = Data(input.utf8)
-        return SHA256.hash(data: inputData).map { String(format: "%02x", $0) }.joined()
+        let data = Data(input.utf8)
+        return SHA256.hash(data: data).compactMap {
+            String(format: "%02x", $0)
+        }.joined()
     }
 }
