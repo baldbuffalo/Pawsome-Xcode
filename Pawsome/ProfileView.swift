@@ -121,10 +121,10 @@ struct ProfileView: View {
             TextField("Username", text: $vm.username)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .focused($usernameFocused)
-                .onChange(of: vm.username) { _ in
+                .onChange(of: vm.username) { oldValue, newValue in
                     vm.hasEdited = true
                     vm.saveUsername()
-                    currentUsername = vm.username
+                    currentUsername = newValue
                 }
             
             // Save/Saving indicator
@@ -167,3 +167,4 @@ struct ProfileView: View {
         }
     }
 }
+
