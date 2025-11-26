@@ -1,5 +1,6 @@
 import Foundation
 import FirebaseCore
+import FirebaseAppCheck
 
 #if os(iOS)
 import UIKit
@@ -10,55 +11,68 @@ import AppKit
 typealias AppPlatformDelegate = NSApplicationDelegate
 #endif
 
+// MARK: - App Attest Provider Factory (iOS only)
+#if os(iOS)
+final class AppAttestProviderFactory: NSObject, AppCheckProviderFactory {
+    func createProvider(with app: FirebaseApp) -> AppCheckProvider? {
+        return AppAttestProvider(app: app)
+    }
+}
+#endif
+
 final class AppDelegate: NSObject, AppPlatformDelegate {
 
-    // MARK: - Init (runs before platform-specific app launch)
     override init() {
         super.init()
-        configureFirebaseIfNeeded(source: "init")
-    }
 
-    // MARK: - Firebase Config Helper
-    private func configureFirebaseIfNeeded(source: String) {
+        // Configure Firebase once during initialization
         if FirebaseApp.app() == nil {
             FirebaseApp.configure()
             #if os(iOS)
-            print("🔥 Firebase configured (\(source) - iOS)")
+            print("🔥 Firebase configured (init - iOS)")
+
+            // Set App Check provider
+            AppCheck.setAppCheckProviderFactory(AppAttestProviderFactory())
             #elseif os(macOS)
-            print("🔥 Firebase configured (\(source) - macOS)")
+            print("🔥 Firebase configured (init - macOS)")
             #endif
         }
     }
 
-    // MARK: - iOS Lifecycle
+    // MARK: - iOS
     #if os(iOS)
     func application(
         _ application: UIApplication,
-        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil
     ) -> Bool {
-        configureFirebaseIfNeeded(source: "didFinishLaunching")
+        // Configure Firebase again if needed (safe)
+        if FirebaseApp.app() == nil {
+            FirebaseApp.configure()
+            print("🔥 Firebase configured (iOS didFinishLaunching)")
+        }
         return true
     }
 
-    // iOS Google Sign-In URL handler (UIScene-based)
-    func scene(
-        _ scene: UIScene,
-        openURLContexts URLContexts: Set<UIOpenURLContext>
-    ) {
+    // For UIScene lifecycle (iOS 13+)
+    func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
         for context in URLContexts {
-            let url = context.url
-            if GIDSignIn.sharedInstance.handle(url) {
-                return
-            }
-            // (Optional) handle other URLs here
+            _ = GIDSignIn.sharedInstance.handle(context.url)
         }
+    }
+
+    @available(iOS, introduced: 9.0, deprecated: 13.0, message: "Use scene(_:openURLContexts:) with UIScene lifecycle on iOS 13+")
+    func application(_ application: UIApplication, open url: URL, sourceApplication: String?, annotation: Any) -> Bool {
+        return GIDSignIn.sharedInstance.handle(url)
     }
     #endif
 
-    // MARK: - macOS Lifecycle
+    // MARK: - macOS
     #if os(macOS)
     func applicationDidFinishLaunching(_ notification: Notification) {
-        configureFirebaseIfNeeded(source: "applicationDidFinishLaunching")
+        if FirebaseApp.app() == nil {
+            FirebaseApp.configure()
+            print("🔥 Firebase configured (macOS applicationDidFinishLaunching)")
+        }
     }
     #endif
 }

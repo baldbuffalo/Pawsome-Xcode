@@ -1,8 +1,8 @@
 import SwiftUI
+import FirebaseCore
 
 @main
 struct PawsomeApp: App {
-
     #if os(iOS)
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
     #elseif os(macOS)
@@ -30,7 +30,6 @@ struct PawsomeApp: App {
         }
     }
 
-    // MARK: - AppState
     final class AppState: ObservableObject {
         @Published var isLoggedIn = false
         @Published var currentUsername = ""
@@ -42,62 +41,45 @@ struct PawsomeApp: App {
             profileImageURL = UserDefaults.standard.string(forKey: "profileImageURL")
         }
     }
-}
 
-// MARK: - MainTabView (FIXED)
-struct MainTabView: View {
-    @ObservedObject var appState: PawsomeApp.AppState
+    struct MainTabView: View {
+        @ObservedObject var appState: AppState
 
-    var body: some View {
-        TabView {
-            HomeTab(appState: appState)
-                .tabItem { Label("Home", systemImage: "house") }
+        var body: some View {
+            TabView {
+                HomeTab()
+                    .tabItem { Label("Home", systemImage: "house") }
 
-            ScanTab(appState: appState)
-                .tabItem { Label("Scan", systemImage: "qrcode.viewfinder") }
+                ScanTab()
+                    .tabItem { Label("Scan", systemImage: "qrcode.viewfinder") }
 
-            ProfileTab(appState: appState)
-                .tabItem { Label("Profile", systemImage: "person.crop.circle") }
-        }
-    }
-}
-
-// MARK: - Real View Types Instead of Functions
-
-struct HomeTab: View {
-    @ObservedObject var appState: PawsomeApp.AppState
-
-    var body: some View {
-        HomeView(
-            isLoggedIn: $appState.isLoggedIn,
-            currentUsername: $appState.currentUsername,
-            profileImageURL: $appState.profileImageURL,
-            onPostCreated: {}
-        )
-    }
-}
-
-struct ScanTab: View {
-    @ObservedObject var appState: PawsomeApp.AppState
-
-    var body: some View {
-        ScanView(
-            username: appState.currentUsername,
-            onPostCreated: {
-                print("ScanView post created callback")
+                ProfileTab()
+                    .tabItem { Label("Profile", systemImage: "person.crop.circle") }
             }
-        )
-    }
-}
+        }
 
-struct ProfileTab: View {
-    @ObservedObject var appState: PawsomeApp.AppState
+        @ViewBuilder private func HomeTab() -> some View {
+            HomeView(
+                isLoggedIn: $appState.isLoggedIn,
+                currentUsername: $appState.currentUsername,
+                profileImageURL: $appState.profileImageURL,
+                onPostCreated: {}
+            )
+        }
 
-    var body: some View {
-        ProfileView(
-            isLoggedIn: $appState.isLoggedIn,
-            currentUsername: $appState.currentUsername,
-            profileImageURL: $appState.profileImageURL
-        )
+        @ViewBuilder private func ScanTab() -> some View {
+            ScanView(
+                username: appState.currentUsername,
+                onPostCreated: { print("ScanView post created callback") }
+            )
+        }
+
+        @ViewBuilder private func ProfileTab() -> some View {
+            ProfileView(
+                isLoggedIn: $appState.isLoggedIn,
+                currentUsername: $appState.currentUsername,
+                profileImageURL: $appState.profileImageURL
+            )
+        }
     }
 }
