@@ -37,13 +37,15 @@ final class AppDelegate: NSObject, AppPlatformDelegate {
         return true
     }
 
-    func application(
-        _ app: UIApplication,
-        open url: URL,
-        options: [UIApplication.OpenURLOptionsKey : Any] = [:]
-    ) -> Bool {
-        // Handle Google Sign-In callback URLs
-        return GIDSignIn.sharedInstance.handle(url)
+    // Handle URL callbacks using UIScene lifecycle (iOS 13+)
+    func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
+        for context in URLContexts {
+            let url = context.url
+            if GIDSignIn.sharedInstance.handle(url) {
+                return
+            }
+            // Handle other URL types here if needed
+        }
     }
     #endif
 
