@@ -1,37 +1,30 @@
-import UIKit
+import SwiftUI
 import FirebaseCore
+
+#if os(iOS)
+import UIKit
 import FirebaseAppCheck
-import GoogleSignIn
 
 final class AppDelegate: NSObject, UIApplicationDelegate {
-
-    override init() {
-        super.init()
-        // 🔥 Configure Firebase FIRST
-        if FirebaseApp.app() == nil {
-            FirebaseApp.configure()
-            print("🔥 Firebase configured (init)")
-            // Set AppCheck provider
-            AppCheck.setAppCheckProviderFactory(AppAttestProviderFactory())
-        }
-    }
-
-    @objc func application(_ application: UIApplication,
-                           didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
-        // Already configured in init(), safe to return true
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+    ) -> Bool {
+        FirebaseApp.configure()
+        AppCheck.setAppCheckProviderFactory(AppCheckDebugProviderFactory())
+        print("🔥 Firebase configured (iOS)")
         return true
     }
+}
+#endif
 
-    @objc func application(_ app: UIApplication, open url: URL,
-                           options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
-        return GIDSignIn.sharedInstance.handle(url)
+#if os(macOS)
+import AppKit
+
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        FirebaseApp.configure()
+        print("🔥 Firebase configured (macOS)")
     }
 }
-
-// MARK: - AppAttest Factory
-final class AppAttestProviderFactory: NSObject, AppCheckProviderFactory {
-    func createProvider(with app: FirebaseApp) -> AppCheckProvider? {
-        return AppAttestProvider(app: app)
-    }
-}
-
+#endif

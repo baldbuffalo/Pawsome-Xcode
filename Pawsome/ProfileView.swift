@@ -9,13 +9,13 @@ class ProfileViewModel: ObservableObject {
     @Published var isSaving = false
     @Published var isImagePickerPresented = false
     @Published var isLoading = false
-
+    @Published var hasEdited = false // track if user started typing
+    
     init(username: String) {
         self.username = username
     }
-
+    
     func loadProfile() {
-        // For now, simulate loading from local storage
         isLoading = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             self.isLoading = false
@@ -23,18 +23,19 @@ class ProfileViewModel: ObservableObject {
             self.profileImageURL = UserDefaults.standard.string(forKey: "profileImageURL")
         }
     }
-
+    
     func saveUsername() {
+        guard !username.isEmpty else { return }
         isSaving = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             UserDefaults.standard.set(self.username, forKey: "username")
             self.isSaving = false
         }
     }
-
+    
     func uploadProfileImage(image: PlatformImage) async {
         isImageLoading = true
-        // Simulate uploading by converting to Data and saving URL locally
+        
         #if os(iOS)
         if let data = image.pngData() {
             let url = FileManager.default.temporaryDirectory.appendingPathComponent("profile.png")
@@ -51,6 +52,7 @@ class ProfileViewModel: ObservableObject {
             UserDefaults.standard.set(profileImageURL, forKey: "profileImageURL")
         }
         #endif
+        
         isImageLoading = false
     }
 }
@@ -59,26 +61,26 @@ struct ProfileView: View {
     @Binding var isLoggedIn: Bool
     @Binding var currentUsername: String
     @Binding var profileImageURL: String?
-
+    
     @StateObject private var vm: ProfileViewModel
     @FocusState private var usernameFocused: Bool
-
+    
     init(isLoggedIn: Binding<Bool>, currentUsername: Binding<String>, profileImageURL: Binding<String?>) {
         self._isLoggedIn = isLoggedIn
         self._currentUsername = currentUsername
         self._profileImageURL = profileImageURL
         _vm = StateObject(wrappedValue: ProfileViewModel(username: currentUsername.wrappedValue))
     }
-
+    
     var body: some View {
         VStack(spacing: 16) {
             if vm.isLoading {
                 ProgressView("Loading Profile...").padding()
             }
-
+            
             // Profile image
             let imageURLString = vm.selectedImage == nil ? (vm.profileImageURL ?? profileImageURL) : nil
-
+            
             if let selectedImage = vm.selectedImage {
                 #if os(iOS)
                 Image(uiImage: selectedImage)
@@ -114,28 +116,30 @@ struct ProfileView: View {
                     .frame(width: 120, height: 120)
                     .foregroundColor(.gray)
             }
-
+            
             // Username field
             TextField("Username", text: $vm.username)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .focused($usernameFocused)
-                .onChange(of: usernameFocused) { oldValue, newValue in
-                    if oldValue == true && newValue == false {
-                        vm.saveUsername()
-                        currentUsername = vm.username
-                    }
+                .onChange(of: vm.username) { _ in
+                    vm.hasEdited = true
+                    vm.saveUsername()
+                    currentUsername = vm.username
                 }
-
-            Text(vm.isSaving ? "Saving..." : "Saved")
-                .foregroundColor(vm.isSaving ? .gray : .green)
-                .font(.caption)
-
+            
+            // Save/Saving indicator
+            if vm.hasEdited {
+                Text(vm.isSaving ? "Saving..." : "Saved")
+                    .foregroundColor(vm.isSaving ? .gray : .green)
+                    .font(.caption)
+            }
+            
             // Change profile picture button
             Button("Change Profile Picture") {
                 vm.isImagePickerPresented = true
             }
-
-            // Logout button (clears local state)
+            
+            // Logout button
             Button(role: .destructive) {
                 currentUsername = ""
                 profileImageURL = nil
@@ -148,7 +152,7 @@ struct ProfileView: View {
             }
             .buttonStyle(.borderedProminent)
             .tint(.red)
-
+            
             Spacer()
         }
         .padding()
@@ -163,4 +167,3 @@ struct ProfileView: View {
         }
     }
 }
-    
