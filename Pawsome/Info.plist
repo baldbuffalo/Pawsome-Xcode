@@ -2,6 +2,14 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CFBundleDisplayName</key>
+	<string>Pawsome</string>
+	<key>CFBundleIdentifier</key>
+	<string>Com.GameBuster.Pawsome</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.lifestyle</string>
 	<key>CFBundleURLTypes</key>
@@ -13,15 +21,23 @@
 			<string>GoogleSignIn</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.70386804757-8dp73qcfvb5coce3hh8me5cju47v75hq</string>
+				<string>com.googleusercontent.apps.238793012439-1c54gpv0kuq9feq77o58t2qoki13v05m</string>
 			</array>
 		</dict>
 	</array>
 	<key>GIDClientID</key>
-	<string>70386804757-8dp73qcfvb5coce3hh8me5cju47v75hq.apps.googleusercontent.com</string>
+	<string>238793012439-1c54gpv0kuq9feq77o58t2qoki13v05m.apps.googleusercontent.com</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
 	</array>
+	<key>FirebaseAppCheckDebugProviderDisabled</key>
+	<false/>
+	<key>FirebaseAppCheckDebugToken</key>
+	<string></string>
+	<key>NSCameraUsageDescription</key>
+	<string>Camera is used to scan QR codes in the app.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Photos access is needed to upload profile pictures.</string>
 </dict>
 </plist>
