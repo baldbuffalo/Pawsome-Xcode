@@ -29,7 +29,7 @@ struct LoginView: View {
                 .font(.subheadline)
                 .padding(.bottom, 50)
 
-            // MARK: - Google Sign-In
+            // MARK: – Google Sign-In
             Button {
                 Task { await signInWithGoogle() }
             } label: {
@@ -45,7 +45,7 @@ struct LoginView: View {
                 .cornerRadius(8)
             }
 
-            // MARK: - Apple Sign-In
+            // MARK: – Apple Sign-In
             #if canImport(AuthenticationServices)
             SignInWithAppleButton(.signIn) { request in
                 request.requestedScopes = [.fullName, .email]
@@ -69,7 +69,7 @@ struct LoginView: View {
         } message: { Text(errorMessage) }
     }
 
-    // MARK: - GOOGLE SIGN IN
+    // MARK: - GOOGLE SIGN-IN
     private func signInWithGoogle() async {
         #if os(iOS)
         guard let rootVC = UIApplication.shared.connectedScenes
@@ -110,7 +110,7 @@ struct LoginView: View {
         #endif
     }
 
-    // MARK: - APPLE SIGN IN
+    // MARK: - APPLE SIGN-IN
     #if canImport(AuthenticationServices)
     private func handleAppleSignIn(result: Result<ASAuthorization, Error>) async {
         do {
@@ -133,7 +133,6 @@ struct LoginView: View {
                     return
                 }
 
-                // ✅ NEW 2025 FIREBASE AUTH API — NO DEPRECATED STRING PROVIDER
                 let firebaseCredential = OAuthProvider.credential(
                     providerID: AuthProviderID.apple,
                     idToken: idTokenString,
@@ -167,13 +166,7 @@ struct LoginView: View {
         db.collection("users").document(uid).setData([
             "username": username,
             "profileImageURL": profileImage ?? ""
-        ], merge: true) { error in
-            if let error = error {
-                print("Firestore error: \(error.localizedDescription)")
-            } else {
-                print("User saved to Firestore ✔️")
-            }
-        }
+        ], merge: true)
     }
 
     private func showErrorWithMessage(_ msg: String) async {
