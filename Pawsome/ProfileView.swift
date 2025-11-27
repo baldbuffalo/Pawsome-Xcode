@@ -160,7 +160,7 @@ struct ProfileView: View {
             TextField("Username", text: $vm.username)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .focused($usernameFocused)
-                .onChange(of: vm.username) { _ in
+                .onChange(of: vm.username) { oldValue, newValue in
                     vm.userTyping()
                 }
 
