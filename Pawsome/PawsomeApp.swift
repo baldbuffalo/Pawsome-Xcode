@@ -1,6 +1,8 @@
 // PawsomeApp.swift
 import SwiftUI
 import FirebaseCore
+import FirebaseAuth
+import FirebaseFirestore
 
 @main
 struct PawsomeApp: App {
@@ -17,32 +19,62 @@ struct PawsomeApp: App {
             if appState.isLoggedIn {
                 MainTabView(appState: appState)
             } else {
-                LoginView(
-                    isLoggedIn: $appState.isLoggedIn,
-                    username: $appState.currentUsername,
-                    profileImage: $appState.profileImageURL
-                )
-                .onAppear {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                        appState.checkLoginState()
-                    }
-                }
+                LoginView(appState: appState)
             }
         }
     }
 
+    // MARK: - AppState Class
     final class AppState: ObservableObject {
-        @Published var isLoggedIn = false
-        @Published var currentUsername = ""
+        @Published var isLoggedIn: Bool = false
+        @Published var currentUsername: String = ""
         @Published var profileImageURL: String? = nil
 
-        func checkLoginState() {
+        private let db = Firestore.firestore()
+
+        init() {
+            loadFromDefaults()
+        }
+
+        func loadFromDefaults() {
             isLoggedIn = UserDefaults.standard.bool(forKey: "isLoggedIn")
             currentUsername = UserDefaults.standard.string(forKey: "username") ?? "User\(Int.random(in: 1000...9999))"
             profileImageURL = UserDefaults.standard.string(forKey: "profileImageURL")
         }
+
+        func setLoggedIn(_ loggedIn: Bool) {
+            isLoggedIn = loggedIn
+            UserDefaults.standard.set(loggedIn, forKey: "isLoggedIn")
+        }
+
+        func saveUsername(_ username: String) {
+            currentUsername = username
+            UserDefaults.standard.set(username, forKey: "username")
+            guard let uid = Auth.auth().currentUser?.uid else { return }
+            db.collection("users").document(uid)
+                .setData(["username": username], merge: true)
+        }
+
+        func saveProfileImageURL(_ url: String) {
+            profileImageURL = url
+            UserDefaults.standard.set(url, forKey: "profileImageURL")
+            guard let uid = Auth.auth().currentUser?.uid else { return }
+            db.collection("users").document(uid)
+                .setData(["profileImageURL": url], merge: true)
+        }
+
+        func logout() {
+            setLoggedIn(false)
+            currentUsername = ""
+            profileImageURL = nil
+            try? Auth.auth().signOut()
+            UserDefaults.standard.removeObject(forKey: "isLoggedIn")
+            UserDefaults.standard.removeObject(forKey: "username")
+            UserDefaults.standard.removeObject(forKey: "profileImageURL")
+        }
     }
 
+    // MARK: - MainTabView
     struct MainTabView: View {
         @ObservedObject var appState: AppState
 
@@ -76,11 +108,7 @@ struct PawsomeApp: App {
         }
 
         @ViewBuilder private func ProfileTab() -> some View {
-            ProfileView(
-                isLoggedIn: $appState.isLoggedIn,
-                currentUsername: $appState.currentUsername,
-                profileImageURL: $appState.profileImageURL
-            )
+            ProfileView(appState: appState)
         }
     }
 }
