@@ -74,7 +74,12 @@ struct ProfileView: View {
                         .overlay(Text("Tap").foregroundColor(.gray))
                 }
             }
-            .onTapGesture { vm.isImagePickerPresented = true }
+
+            // Make image picker only show when user taps
+            Button("Change Profile Image") {
+                vm.isImagePickerPresented = true
+            }
+            .padding(.bottom, 20)
 
             // Username
             TextField("Enter username", text: $usernameTemp)
@@ -98,3 +103,4 @@ struct ProfileView: View {
         }
     }
 }
+
