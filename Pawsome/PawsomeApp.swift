@@ -1,4 +1,3 @@
-// PawsomeApp.swift
 import SwiftUI
 import FirebaseCore
 import FirebaseAuth
@@ -24,13 +23,16 @@ struct PawsomeApp: App {
         }
     }
 
-    // MARK: - AppState Class
+    // MARK: - AppState
     final class AppState: ObservableObject {
         @Published var isLoggedIn: Bool = false
         @Published var currentUsername: String = ""
         @Published var profileImageURL: String? = nil
 
-        private let db = Firestore.firestore()
+        // Lazy Firestore instance to prevent crash on init
+        lazy var db: Firestore = {
+            return Firestore.firestore()
+        }()
 
         init() {
             loadFromDefaults()

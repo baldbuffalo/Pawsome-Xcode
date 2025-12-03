@@ -10,7 +10,7 @@ import AuthenticationServices
 #endif
 
 struct LoginView: View {
-    @ObservedObject var appState: PawsomeApp.AppState // <- Use class from PawsomeApp
+    @ObservedObject var appState: PawsomeApp.AppState
 
     @State private var showError = false
     @State private var errorMessage = ""
@@ -29,7 +29,7 @@ struct LoginView: View {
 
             // MARK: – Google Sign-In
             Button {
-                Task { signInWithGoogle() }
+                Task { await signInWithGoogle() }
             } label: {
                 HStack {
                     Image(systemName: "globe")
@@ -51,7 +51,7 @@ struct LoginView: View {
                 currentNonce = nonce
                 request.nonce = sha256(nonce)
             } onCompletion: { result in
-                Task { handleAppleSignIn(result: result) }
+                Task { await handleAppleSignIn(result: result) }
             }
             .frame(height: 50)
             .padding(.top)
@@ -65,97 +65,122 @@ struct LoginView: View {
         } message: { Text(errorMessage) }
     }
 
-    // MARK: - GOOGLE SIGN-IN
-    private func signInWithGoogle() {
+    // MARK: – GOOGLE SIGN-IN
+    private func signInWithGoogle() async {
         #if os(iOS)
         guard let rootVC = UIApplication.shared.connectedScenes
             .compactMap({ ($0 as? UIWindowScene)?.keyWindow?.rootViewController })
             .first else { return }
 
         guard let clientID = FirebaseApp.app()?.options.clientID else {
-            Task { await showErrorWithMessage("Missing Google Client ID.") }
+            await showErrorWithMessage("Missing Google Client ID.")
             return
         }
 
         GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: clientID)
 
-        Task {
-            do {
-                let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: rootVC)
-                let user = result.user
+        do {
+            let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: rootVC)
+            let user = result.user
 
-                let username = user.profile?.name ?? "User\(Int.random(in: 1000...9999))"
-                let profileImage = user.profile?.imageURL(withDimension: 200)?.absoluteString
-
-                appState.isLoggedIn = true
-                appState.saveUsername(username)
-                if let imgURL = profileImage {
-                    appState.saveProfileImageURL(imgURL)
-                }
-
-                guard let idToken = user.idToken?.tokenString else {
-                    await showErrorWithMessage("Missing Google ID token.")
-                    return
-                }
-
-                let credential = GoogleAuthProvider.credential(
-                    withIDToken: idToken,
-                    accessToken: user.accessToken.tokenString
-                )
-
-                let _ = try await Auth.auth().signIn(with: credential)
-
-            } catch {
-                await showErrorWithMessage("Google Sign-In failed: \(error.localizedDescription)")
+            guard let idToken = user.idToken?.tokenString else {
+                await showErrorWithMessage("Missing Google ID token.")
+                return
             }
+
+            let credential = GoogleAuthProvider.credential(
+                withIDToken: idToken,
+                accessToken: user.accessToken.tokenString
+            )
+
+            let authResult = try await Auth.auth().signIn(with: credential)
+
+            // Fetch or create user data in Firestore
+            await fetchUserDataAndLogin(uid: authResult.user.uid, defaultUsername: user.profile?.name, defaultImage: user.profile?.imageURL(withDimension: 200)?.absoluteString)
+
+        } catch {
+            await showErrorWithMessage("Google Sign-In failed: \(error.localizedDescription)")
         }
         #endif
     }
 
-    // MARK: - APPLE SIGN-IN
+    // MARK: – APPLE SIGN-IN
     #if canImport(AuthenticationServices)
-    private func handleAppleSignIn(result: Result<ASAuthorization, Error>) {
-        Task {
-            do {
-                switch result {
-                case .success(let auth):
-                    guard let credential = auth.credential as? ASAuthorizationAppleIDCredential else {
-                        await showErrorWithMessage("Invalid Apple credential.")
-                        return
-                    }
-
-                    let username = credential.fullName?.givenName ?? "User\(Int.random(in: 1000...9999))"
-                    appState.isLoggedIn = true
-                    appState.saveUsername(username)
-                    appState.saveProfileImageURL("")
-
-                    guard let nonce = currentNonce else { return }
-                    guard let tokenData = credential.identityToken,
-                          let idTokenString = String(data: tokenData, encoding: .utf8) else {
-                        await showErrorWithMessage("Unable to fetch identity token.")
-                        return
-                    }
-
-                    let firebaseCredential = OAuthProvider.credential(
-                        providerID: AuthProviderID.apple,
-                        idToken: idTokenString,
-                        rawNonce: nonce
-                    )
-
-                    let _ = try await Auth.auth().signIn(with: firebaseCredential)
-
-                case .failure(let error):
-                    await showErrorWithMessage("Apple Sign-In failed: \(error.localizedDescription)")
+    private func handleAppleSignIn(result: Result<ASAuthorization, Error>) async {
+        do {
+            switch result {
+            case .success(let auth):
+                guard let credential = auth.credential as? ASAuthorizationAppleIDCredential else {
+                    await showErrorWithMessage("Invalid Apple credential.")
+                    return
                 }
 
-            } catch {
+                guard let nonce = currentNonce else { return }
+                guard let tokenData = credential.identityToken,
+                      let idTokenString = String(data: tokenData, encoding: .utf8) else {
+                    await showErrorWithMessage("Unable to fetch identity token.")
+                    return
+                }
+
+                let firebaseCredential = OAuthProvider.credential(
+                    providerID: AuthProviderID.apple,
+                    idToken: idTokenString,
+                    rawNonce: nonce
+                )
+
+                let authResult = try await Auth.auth().signIn(with: firebaseCredential)
+
+                // Fetch or create user data in Firestore
+                let username = credential.fullName?.givenName
+                await fetchUserDataAndLogin(uid: authResult.user.uid, defaultUsername: username, defaultImage: nil)
+
+            case .failure(let error):
                 await showErrorWithMessage("Apple Sign-In failed: \(error.localizedDescription)")
             }
+        } catch {
+            await showErrorWithMessage("Apple Sign-In failed: \(error.localizedDescription)")
         }
     }
     #endif
 
-    // MARK: - HELPERS
+    // MARK: – FETCH USER DATA
+    private func fetchUserDataAndLogin(uid: String, defaultUsername: String?, defaultImage: String?) async {
+        let db = Firestore.firestore()
+        do {
+            let doc = try await db.collection("users").document(uid).getDocument()
+            if let data = doc.data() {
+                // Existing user: load info
+                let username = data["username"] as? String ?? defaultUsername ?? "User\(Int.random(in: 1000...9999))"
+                let profileImage = data["profileImageURL"] as? String ?? defaultImage
+
+                await MainActor.run {
+                    appState.isLoggedIn = true
+                    appState.currentUsername = username
+                    appState.profileImageURL = profileImage
+                    UserDefaults.standard.set(true, forKey: "isLoggedIn")
+                    UserDefaults.standard.set(username, forKey: "username")
+                    if let url = profileImage {
+                        UserDefaults.standard.set(url, forKey: "profileImageURL")
+                    }
+                }
+            } else {
+                // New user: save default info
+                await MainActor.run {
+                    appState.isLoggedIn = true
+                    if let username = defaultUsername {
+                        appState.saveUsername(username)
+                    }
+                    if let image = defaultImage {
+                        appState.saveProfileImageURL(image)
+                    }
+                }
+            }
+        } catch {
+            await showErrorWithMessage("Failed to fetch user data: \(error.localizedDescription)")
+        }
+    }
+
+    // MARK: – HELPERS
     private func showErrorWithMessage(_ msg: String) async {
         await MainActor.run {
             errorMessage = msg
