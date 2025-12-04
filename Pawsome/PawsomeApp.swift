@@ -29,7 +29,6 @@ struct PawsomeApp: App {
         @Published var currentUsername: String = ""
         @Published var profileImageURL: String? = nil
 
-        // Lazy Firestore instance to prevent crash on init
         lazy var db: Firestore = {
             return Firestore.firestore()
         }()
@@ -49,20 +48,26 @@ struct PawsomeApp: App {
             UserDefaults.standard.set(loggedIn, forKey: "isLoggedIn")
         }
 
-        func saveUsername(_ username: String) {
+        func saveUsername(_ username: String, completion: (() -> Void)? = nil) {
             currentUsername = username
             UserDefaults.standard.set(username, forKey: "username")
-            guard let uid = Auth.auth().currentUser?.uid else { return }
+            guard let uid = Auth.auth().currentUser?.uid else { completion?(); return }
+
             db.collection("users").document(uid)
-                .setData(["username": username], merge: true)
+                .setData(["username": username], merge: true) { _ in
+                    completion?()
+                }
         }
 
-        func saveProfileImageURL(_ url: String) {
+        func saveProfileImageURL(_ url: String, completion: (() -> Void)? = nil) {
             profileImageURL = url
             UserDefaults.standard.set(url, forKey: "profileImageURL")
-            guard let uid = Auth.auth().currentUser?.uid else { return }
+            guard let uid = Auth.auth().currentUser?.uid else { completion?(); return }
+
             db.collection("users").document(uid)
-                .setData(["profileImageURL": url], merge: true)
+                .setData(["profileImageURL": url], merge: true) { _ in
+                    completion?()
+                }
         }
 
         func logout() {
