@@ -89,16 +89,18 @@ struct WebAdBannerView: NSViewRepresentable {
 
     func makeNSView(context: Context) -> WKWebView {
         let webView = WKWebView()
-        webView.isOpaque = false
-        webView.setValue(false, forKey: "drawsBackground")
 
-        // 🔥 REPLACE WITH YOUR REAL GOOGLE WEB ADS CLIENT & SLOT
+        // Transparent background fix
+        webView.wantsLayer = true
+        webView.layer?.backgroundColor = NSColor.clear.cgColor
+        webView.setValue(false, forKey: "drawsBackground") // optional, works for older versions
+
         let html = """
         <html>
         <head>
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
         </head>
-        <body style="margin:0;padding:0;">
+        <body style="margin:0;padding:0;background:transparent;">
             <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
             <ins class="adsbygoogle"
                  style="display:block"

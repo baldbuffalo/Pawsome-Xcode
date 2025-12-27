@@ -99,8 +99,8 @@ struct PawsomeApp: App {
                     .tag(2)
             }
             .onAppear { adManager.currentScreen = .home }
-            .onChange(of: selectedTab) { newTab in
-                switch newTab {
+            .onChange(of: selectedTab) { _, newValue in
+                switch newValue {
                 case 0: adManager.currentScreen = .home
                 case 1: adManager.currentScreen = .scan
                 case 2: adManager.currentScreen = .profile
