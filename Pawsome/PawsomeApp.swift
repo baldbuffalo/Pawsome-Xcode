@@ -12,14 +12,21 @@ struct PawsomeApp: App {
     #endif
 
     @StateObject private var appState = AppState()
+    @StateObject private var adManager = AdManager.shared   // 🔥 AdManager singleton
 
     var body: some Scene {
         WindowGroup {
-            if appState.isLoggedIn {
-                MainTabView(appState: appState)
-            } else {
-                LoginView(appState: appState)
+            ZStack(alignment: .bottom) {
+                if appState.isLoggedIn {
+                    MainTabView(appState: appState)
+                } else {
+                    LoginView(appState: appState)
+                }
+
+                // 🔥 GLOBAL STICKY BOTTOM AD
+                adManager.overlay
             }
+            .environmentObject(adManager) // 🔥 REQUIRED
         }
     }
 
@@ -29,13 +36,9 @@ struct PawsomeApp: App {
         @Published var currentUsername: String = ""
         @Published var profileImageURL: String? = nil
 
-        lazy var db: Firestore = {
-            return Firestore.firestore()
-        }()
+        lazy var db: Firestore = Firestore.firestore()
 
-        init() {
-            loadFromDefaults()
-        }
+        init() { loadFromDefaults() }
 
         func loadFromDefaults() {
             isLoggedIn = UserDefaults.standard.bool(forKey: "isLoggedIn")
@@ -52,22 +55,16 @@ struct PawsomeApp: App {
             currentUsername = username
             UserDefaults.standard.set(username, forKey: "username")
             guard let uid = Auth.auth().currentUser?.uid else { completion?(); return }
-
             db.collection("users").document(uid)
-                .setData(["username": username], merge: true) { _ in
-                    completion?()
-                }
+                .setData(["username": username], merge: true) { _ in completion?() }
         }
 
         func saveProfileImageURL(_ url: String, completion: (() -> Void)? = nil) {
             profileImageURL = url
             UserDefaults.standard.set(url, forKey: "profileImageURL")
             guard let uid = Auth.auth().currentUser?.uid else { completion?(); return }
-
             db.collection("users").document(uid)
-                .setData(["profileImageURL": url], merge: true) { _ in
-                    completion?()
-                }
+                .setData(["profileImageURL": url], merge: true) { _ in completion?() }
         }
 
         func logout() {
@@ -84,17 +81,31 @@ struct PawsomeApp: App {
     // MARK: - MainTabView
     struct MainTabView: View {
         @ObservedObject var appState: AppState
+        @EnvironmentObject var adManager: AdManager   // 🔥 link to AdManager
+        @State private var selectedTab = 0             // 🔥 tracks tab selection
 
         var body: some View {
-            TabView {
+            TabView(selection: $selectedTab) {
                 HomeTab()
                     .tabItem { Label("Home", systemImage: "house") }
+                    .tag(0)
 
                 ScanTab()
                     .tabItem { Label("Scan", systemImage: "qrcode.viewfinder") }
+                    .tag(1)
 
                 ProfileTab()
                     .tabItem { Label("Profile", systemImage: "person.crop.circle") }
+                    .tag(2)
+            }
+            .onAppear { adManager.currentScreen = .home }
+            .onChange(of: selectedTab) { newTab in
+                switch newTab {
+                case 0: adManager.currentScreen = .home
+                case 1: adManager.currentScreen = .scan
+                case 2: adManager.currentScreen = .profile
+                default: adManager.currentScreen = .other
+                }
             }
         }
 
@@ -110,7 +121,7 @@ struct PawsomeApp: App {
         @ViewBuilder private func ScanTab() -> some View {
             ScanView(
                 username: appState.currentUsername,
-                onPostCreated: { print("ScanView post created callback") }
+                onPostCreated: {}
             )
         }
 

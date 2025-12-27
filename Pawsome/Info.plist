@@ -36,8 +36,12 @@
 	<key>FirebaseAppCheckDebugToken</key>
 	<string></string>
 	<key>NSCameraUsageDescription</key>
-	<string>Camera is used to scan QR codes in the app.</string>
+	<string>Camera is used to take pictures of the cat.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Photos access is needed to upload profile pictures.</string>
+
+	<!-- 🔥 AdMob App ID -->
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-1515384434837305~2451123619</string>
 </dict>
 </plist>
