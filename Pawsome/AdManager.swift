@@ -59,8 +59,8 @@ struct BannerAdView: View {
 
 struct AdMobBannerView: UIViewRepresentable {
 
-    func makeUIView(context: Context) -> GADBannerView {
-        let banner = GADBannerView(adSize: GADAdSizeBanner)
+    func makeUIView(context: Context) -> BannerView {
+        let banner = BannerView(adSize: AdSizeBanner)
 
         // 🔥 REPLACE WITH YOUR REAL ADMOB BANNER ID
         banner.adUnitID = "ca-app-pub-1515384434837305/7343539401"
@@ -71,11 +71,11 @@ struct AdMobBannerView: UIViewRepresentable {
                 .first?
                 .rootViewController
 
-        banner.load(GADRequest())
+        banner.load(Request())
         return banner
     }
 
-    func updateUIView(_ uiView: GADBannerView, context: Context) {}
+    func updateUIView(_ uiView: BannerView, context: Context) {}
 }
 
 #endif
