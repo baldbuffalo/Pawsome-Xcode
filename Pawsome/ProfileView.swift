@@ -4,12 +4,14 @@ struct ProfileView: View {
     @ObservedObject var appState: PawsomeApp.AppState
 
     @State private var username: String = ""
-    @State private var saveStatus: String = "" // "", "Saving...", "Saved"
+    @State private var saveStatus: String = ""
     @State private var isTyping = false
     @State private var imagePickerPresented = false
+    @State private var showLogoutConfirm = false
 
     var body: some View {
         VStack(spacing: 30) {
+
             // MARK: - Profile Image
             Button {
                 imagePickerPresented = true
@@ -48,16 +50,15 @@ struct ProfileView: View {
             }
 
             // MARK: - Username Field
-            VStack(alignment: .leading, spacing: 5) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text("Username")
                     .font(.caption)
                     .foregroundColor(.gray)
 
                 TextField("Username", text: $username, onEditingChanged: { editing in
                     isTyping = editing
-                    if editing {
-                        saveStatus = "Saving..."
-                    } else {
+                    saveStatus = editing ? "Saving..." : ""
+                    if !editing {
                         saveUsername()
                     }
                 })
@@ -76,44 +77,60 @@ struct ProfileView: View {
 
             Spacer()
 
-            // MARK: - Logout Button
-            Button(action: {
-                appState.logout()
-            }) {
-                Text("Logout")
-                    .foregroundColor(.red)
-                    .bold()
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .background(Color.gray.opacity(0.2))
-                    .cornerRadius(8)
+            // MARK: - Logout Button (FULL AREA CLICKABLE)
+            Button(role: .destructive) {
+                showLogoutConfirm = true
+            } label: {
+                HStack {
+                    Spacer()
+                    Text("Logout")
+                        .font(.headline)
+                    Spacer()
+                }
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.red.opacity(0.12))
+                )
             }
+            .buttonStyle(.plain)
+            .contentShape(Rectangle())
             .padding(.horizontal)
+            .confirmationDialog(
+                "Are you sure you want to log out?",
+                isPresented: $showLogoutConfirm,
+                titleVisibility: .visible
+            ) {
+                Button("Log out", role: .destructive) {
+                    #if os(iOS)
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    #endif
+                    appState.logout()
+                }
+                Button("Cancel", role: .cancel) {}
+            }
         }
         .padding()
         .fileImporter(
             isPresented: $imagePickerPresented,
             allowedContentTypes: [.image],
-            allowsMultipleSelection: false,
-            onCompletion: { result in
-                switch result {
-                case .success(let urls):
-                    if let selectedURL = urls.first {
-                        let urlString = selectedURL.absoluteString
-                        appState.saveProfileImageURL(urlString)
-                    }
-                case .failure(let error):
-                    print("Image pick failed:", error)
+            allowsMultipleSelection: false
+        ) { result in
+            switch result {
+            case .success(let urls):
+                if let selectedURL = urls.first {
+                    appState.saveProfileImageURL(selectedURL.absoluteString)
                 }
+            case .failure(let error):
+                print("Image pick failed:", error)
             }
-        )
+        }
     }
 
     // MARK: - Helpers
     private func saveUsername() {
         saveStatus = "Saving..."
         appState.saveUsername(username)
-        // Only switch to "Saved" if user is not typing
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             if !isTyping {
                 saveStatus = "Saved"
