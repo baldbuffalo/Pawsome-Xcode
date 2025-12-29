@@ -47,7 +47,7 @@ struct BannerAdView: View {
         #if os(iOS)
         AdMobBannerView()
         #elseif os(macOS)
-        WebAdBannerView()
+        WebAdBannerView(adManager: AdManager.shared)
         #endif
     }
 }
@@ -81,11 +81,12 @@ struct AdMobBannerView: UIViewRepresentable {
 #endif
 
 //
-// MARK: - macOS (WKWEBVIEW BANNER ADS)
+// MARK: - macOS (WKWEBVIEW BANNER ADS — reload on view change)
 //
 #if os(macOS)
 
 struct WebAdBannerView: NSViewRepresentable {
+    @ObservedObject var adManager: AdManager
 
     func makeNSView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
@@ -94,31 +95,51 @@ struct WebAdBannerView: NSViewRepresentable {
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.wantsLayer = true
         webView.layer?.backgroundColor = NSColor.clear.cgColor
-        webView.setValue(false, forKey: "drawsBackground") // keeps background transparent
+        webView.setValue(false, forKey: "drawsBackground")
 
+        loadAd(webView)
+        return webView
+    }
+
+    func updateNSView(_ webView: WKWebView, context: Context) {
+        // Reload the ad only when the screen changes
+        if context.coordinator.lastScreen != adManager.currentScreen {
+            loadAd(webView)
+            context.coordinator.lastScreen = adManager.currentScreen
+        }
+    }
+
+    private func loadAd(_ webView: WKWebView) {
         let html = """
         <!DOCTYPE html>
         <html>
         <head>
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <style>
-                body {
+                html, body {
                     margin: 0;
                     padding: 0;
                     background: transparent;
+                    width: 100%;
                     display: flex;
                     justify-content: center;
-                    align-items: center;
+                    align-items: flex-end;
+                }
+                .adsbygoogle {
+                    display: block;
+                    width: 100%;
+                    max-width: 728px;
+                    height: 90px;
                 }
             </style>
             <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
         </head>
         <body>
             <ins class="adsbygoogle"
-                style="display:block;width:100%;height:90px"
-                data-ad-client="ca-pub-1515384434837305"
-                data-ad-slot="7343539401"
-                data-ad-format="horizontal">
+                 data-ad-client="ca-pub-1515384434837305"
+                 data-ad-slot="7343539401"
+                 data-ad-format="auto"
+                 style="width:100%; height:90px;">
             </ins>
             <script>
                 (adsbygoogle = window.adsbygoogle || []).push({});
@@ -126,12 +147,19 @@ struct WebAdBannerView: NSViewRepresentable {
         </body>
         </html>
         """
-
         webView.loadHTMLString(html, baseURL: URL(string: "https://googleads.g.doubleclick.net"))
-        return webView
     }
 
-    func updateNSView(_ nsView: WKWebView, context: Context) {}
+    func makeCoordinator() -> Coordinator {
+        Coordinator(lastScreen: adManager.currentScreen)
+    }
+
+    class Coordinator {
+        var lastScreen: AdManager.AppScreen
+        init(lastScreen: AdManager.AppScreen) {
+            self.lastScreen = lastScreen
+        }
+    }
 }
 
 #endif
