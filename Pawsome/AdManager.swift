@@ -53,7 +53,7 @@ struct BannerAdView: View {
 }
 
 //
-// MARK: - iOS (REAL ADMOB)
+// MARK: - iOS (REAL ADMOB — UNCHANGED)
 //
 #if os(iOS)
 
@@ -81,33 +81,45 @@ struct AdMobBannerView: UIViewRepresentable {
 #endif
 
 //
-// MARK: - macOS (WEB BANNER ADS)
+// MARK: - macOS (WKWEBVIEW BANNER ADS)
 //
 #if os(macOS)
 
 struct WebAdBannerView: NSViewRepresentable {
 
     func makeNSView(context: Context) -> WKWebView {
-        let webView = WKWebView()
+        let config = WKWebViewConfiguration()
+        config.defaultWebpagePreferences.allowsContentJavaScript = true
 
-        // Transparent background fix
+        let webView = WKWebView(frame: .zero, configuration: config)
         webView.wantsLayer = true
         webView.layer?.backgroundColor = NSColor.clear.cgColor
-        webView.setValue(false, forKey: "drawsBackground") // optional, works for older versions
+        webView.setValue(false, forKey: "drawsBackground") // keeps background transparent
 
         let html = """
+        <!DOCTYPE html>
         <html>
         <head>
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        </head>
-        <body style="margin:0;padding:0;background:transparent;">
+            <style>
+                body {
+                    margin: 0;
+                    padding: 0;
+                    background: transparent;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                }
+            </style>
             <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+        </head>
+        <body>
             <ins class="adsbygoogle"
-                 style="display:block"
-                 data-ad-client="ca-pub-1515384434837305"
-                 data-ad-slot="7343539401"
-                 data-ad-format="auto"
-                 data-full-width-responsive="true"></ins>
+                style="display:block;width:100%;height:90px"
+                data-ad-client="ca-pub-1515384434837305"
+                data-ad-slot="7343539401"
+                data-ad-format="horizontal">
+            </ins>
             <script>
                 (adsbygoogle = window.adsbygoogle || []).push({});
             </script>
@@ -115,7 +127,7 @@ struct WebAdBannerView: NSViewRepresentable {
         </html>
         """
 
-        webView.loadHTMLString(html, baseURL: nil)
+        webView.loadHTMLString(html, baseURL: URL(string: "https://googleads.g.doubleclick.net"))
         return webView
     }
 
