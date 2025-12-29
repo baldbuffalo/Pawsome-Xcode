@@ -14,6 +14,10 @@ struct PawsomeApp: App {
     @StateObject private var appState = AppState()
     @StateObject private var adManager = AdManager.shared   // 🔥 AdManager singleton
 
+    init() {
+        print("🔥 PawsomeApp launched!")
+    }
+
     var body: some Scene {
         WindowGroup {
             ZStack(alignment: .bottom) {
@@ -98,13 +102,24 @@ struct PawsomeApp: App {
                     .tabItem { Label("Profile", systemImage: "person.crop.circle") }
                     .tag(2)
             }
-            .onAppear { adManager.currentScreen = .home }
-            .onChange(of: selectedTab) { _, newValue in
+            .onAppear {
+                adManager.currentScreen = .home
+                print("🟢 Current screen: home")
+            }
+            .onChange(of: selectedTab) { newValue in
                 switch newValue {
-                case 0: adManager.currentScreen = .home
-                case 1: adManager.currentScreen = .scan
-                case 2: adManager.currentScreen = .profile
-                default: adManager.currentScreen = .other
+                case 0:
+                    adManager.currentScreen = .home
+                    print("🟢 Current screen: home")
+                case 1:
+                    adManager.currentScreen = .scan
+                    print("🟢 Current screen: scan")
+                case 2:
+                    adManager.currentScreen = .profile
+                    print("🟢 Current screen: profile")
+                default:
+                    adManager.currentScreen = .other
+                    print("🟢 Current screen: other")
                 }
             }
         }
