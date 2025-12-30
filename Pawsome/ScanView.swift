@@ -7,30 +7,32 @@ struct ScanView: View {
     @State private var useCamera: Bool = false
 
     var username: String
-    var onPostCreated: (() -> Void)? // closure for callback
+    var onPostCreated: (() -> Void)? // callback closure
 
     var body: some View {
         VStack(spacing: 20) {
-            // Button to choose image
-            Button("Choose Image") {
-                showSourcePicker = true
-            }
-            .padding()
-            .foregroundColor(.white)
-            .background(Color.blue)
-            .cornerRadius(8)
-            .confirmationDialog("Select Image Source", isPresented: $showSourcePicker, titleVisibility: .visible) {
-                #if os(iOS)
-                Button("Open Camera") {
-                    useCamera = true
-                    showForm = true
+            // Show Choose Image button only if form is not active
+            if !showForm {
+                Button("Choose Image") {
+                    showSourcePicker = true
                 }
-                #endif
-                Button("Open Files") {
-                    useCamera = false
-                    pickFile()
+                .padding()
+                .foregroundColor(.white)
+                .background(Color.blue)
+                .cornerRadius(8)
+                .confirmationDialog("Select Image Source", isPresented: $showSourcePicker, titleVisibility: .visible) {
+                    #if os(iOS)
+                    Button("Open Camera") {
+                        useCamera = true
+                        showForm = true
+                    }
+                    #endif
+                    Button("Open Files") {
+                        useCamera = false
+                        pickFile()
+                    }
+                    Button("Cancel", role: .cancel) {}
                 }
-                Button("Cancel", role: .cancel) {}
             }
 
             // Show form when an image is selected
