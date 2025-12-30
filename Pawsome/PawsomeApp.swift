@@ -12,7 +12,7 @@ struct PawsomeApp: App {
     #endif
 
     @StateObject private var appState = AppState()
-    @StateObject private var adManager = AdManager.shared   // 🔥 AdManager singleton
+    @StateObject private var adManager = AdManager.shared
 
     init() {
         print("🔥 PawsomeApp launched!")
@@ -27,10 +27,10 @@ struct PawsomeApp: App {
                     LoginView(appState: appState)
                 }
 
-                // 🔥 GLOBAL STICKY BOTTOM AD
+                // GLOBAL STICKY BOTTOM AD
                 adManager.overlay
             }
-            .environmentObject(adManager) // 🔥 REQUIRED
+            .environmentObject(adManager)
         }
     }
 
@@ -85,8 +85,8 @@ struct PawsomeApp: App {
     // MARK: - MainTabView
     struct MainTabView: View {
         @ObservedObject var appState: AppState
-        @EnvironmentObject var adManager: AdManager   // 🔥 link to AdManager
-        @State private var selectedTab = 0             // 🔥 tracks tab selection
+        @EnvironmentObject var adManager: AdManager
+        @State private var selectedTab = 0
 
         var body: some View {
             TabView(selection: $selectedTab) {
@@ -94,27 +94,20 @@ struct PawsomeApp: App {
                     .tabItem { Label("Home", systemImage: "house") }
                     .tag(0)
 
-                ScanTab()
-                    .tabItem { Label("Scan", systemImage: "qrcode.viewfinder") }
-                    .tag(1)
-
                 ProfileTab()
                     .tabItem { Label("Profile", systemImage: "person.crop.circle") }
-                    .tag(2)
+                    .tag(1)
             }
             .onAppear {
                 adManager.currentScreen = .home
                 print("🟢 Current screen: home")
             }
-            .onChange(of: selectedTab) { newValue in
+            .onChange(of: selectedTab, initial: false) { oldValue, newValue in
                 switch newValue {
                 case 0:
                     adManager.currentScreen = .home
                     print("🟢 Current screen: home")
                 case 1:
-                    adManager.currentScreen = .scan
-                    print("🟢 Current screen: scan")
-                case 2:
                     adManager.currentScreen = .profile
                     print("🟢 Current screen: profile")
                 default:
@@ -129,13 +122,6 @@ struct PawsomeApp: App {
                 isLoggedIn: $appState.isLoggedIn,
                 currentUsername: $appState.currentUsername,
                 profileImageURL: $appState.profileImageURL,
-                onPostCreated: {}
-            )
-        }
-
-        @ViewBuilder private func ScanTab() -> some View {
-            ScanView(
-                username: appState.currentUsername,
                 onPostCreated: {}
             )
         }
