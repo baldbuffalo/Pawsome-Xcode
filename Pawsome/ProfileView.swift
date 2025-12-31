@@ -134,11 +134,13 @@ struct ProfileView: View {
 
     // MARK: - Username Saving
     private func saveUsername() {
-        guard !username.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        let trimmed = username.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+
         saveStatus = "Saving..."
 
-        // Call AppState method properly
-        appState.saveUsername(username) {
+        // Only update the "username" field in Firebase, keeping other fields intact
+        appState.saveUsername(trimmed) {
             #if os(iOS)
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                 if !isTyping { saveStatus = "Saved" }
