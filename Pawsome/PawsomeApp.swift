@@ -115,7 +115,14 @@ struct PawsomeApp: App {
                     profileImageURL: $appState.profileImageURL,
                     activeFlow: $activeHomeFlow
                 )
-                .tabItem { Label("Home", systemImage: "house") }
+                .tabItem {
+                    Label(
+                        // 🔥 Dynamic tab label
+                        (activeHomeFlow == .scan ? "Scan" :
+                         activeHomeFlow == .form ? "Post" : "Home"),
+                        systemImage: "house"
+                    )
+                }
                 .tag(0)
 
                 ProfileView(appState: appState)

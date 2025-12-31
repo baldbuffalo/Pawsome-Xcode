@@ -8,6 +8,9 @@ struct FormView: View {
     var username: String
     var onPostCreated: (() -> Void)?
 
+    // 🔑 Binding to update the tab flow
+    @Binding var activeHomeFlow: PawsomeApp.HomeFlow?
+
     @State private var catName = ""
     @State private var description = ""
     @State private var age = ""
@@ -55,6 +58,10 @@ struct FormView: View {
                 .padding(.top)
             }
             .padding()
+        }
+        .onAppear {
+            // Set tab to Post when FormView appears
+            activeHomeFlow = .form
         }
     }
 
