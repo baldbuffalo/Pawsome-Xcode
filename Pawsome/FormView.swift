@@ -16,7 +16,8 @@ struct FormView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 15) {
-                // Display the image
+
+                // Image preview
                 #if os(iOS)
                 Image(uiImage: image)
                     .resizable()
@@ -35,14 +36,12 @@ struct FormView: View {
                 inputNumberField("How old is the cat?", $age)
                 inputField("Description", $description)
 
-                // Last seen location field (read-only)
                 TextField("Last Seen Location", text: $lastSeenLocation)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .disabled(true)
                     .padding(.vertical, 5)
 
                 Button("Post 🐾") {
-                    // Reset form & call closure
                     catName = ""
                     description = ""
                     age = ""
@@ -56,9 +55,6 @@ struct FormView: View {
                 .padding(.top)
             }
             .padding()
-            .onAppear {
-                // TODO: fetch location for lastSeenLocation if macOS
-            }
         }
     }
 
@@ -72,22 +68,20 @@ struct FormView: View {
             .padding(.vertical, 5)
     }
 
+    // 🔢 Numbers only + max 2 digits
     private func inputNumberField(_ placeholder: String, _ binding: Binding<String>) -> some View {
-        #if os(iOS)
-        return TextField(placeholder, text: binding)
+        TextField(placeholder, text: binding)
+            #if os(iOS)
             .keyboardType(.numberPad)
-            .textFieldStyle(RoundedBorderTextFieldStyle())
-            .padding(.vertical, 5)
-        #elseif os(macOS)
-        return TextField(placeholder, text: binding)
-            .onChange(of: binding.wrappedValue) { oldValue, newValue in
-                let filtered = newValue.filter { "0123456789".contains($0) }
-                if filtered != newValue {
-                    binding.wrappedValue = filtered
+            #endif
+            .onChange(of: binding.wrappedValue) { _, newValue in
+                let filtered = newValue.filter { $0.isNumber }
+                let limited = String(filtered.prefix(2))
+                if limited != newValue {
+                    binding.wrappedValue = limited
                 }
             }
             .textFieldStyle(RoundedBorderTextFieldStyle())
             .padding(.vertical, 5)
-        #endif
     }
 }

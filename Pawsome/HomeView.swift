@@ -4,14 +4,15 @@ struct HomeView: View {
     @Binding var isLoggedIn: Bool
     @Binding var currentUsername: String
     @Binding var profileImageURL: String?
-    var onPostCreated: () -> Void
 
-    @State private var goToScanView = false
+    // 🔑 GLOBAL FLOW (from PawsomeApp)
+    @Binding var activeFlow: PawsomeApp.HomeFlow?
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
-                // Top bar
+
+                // TOP BAR
                 HStack {
                     Text("Welcome, \(currentUsername)")
                         .font(.title2)
@@ -22,9 +23,7 @@ struct HomeView: View {
                     if let urlString = profileImageURL,
                        let url = URL(string: urlString) {
                         AsyncImage(url: url) { image in
-                            image
-                                .resizable()
-                                .scaledToFill()
+                            image.resizable().scaledToFill()
                         } placeholder: {
                             Image(systemName: "person.crop.circle.fill")
                                 .resizable()
@@ -43,9 +42,9 @@ struct HomeView: View {
                 .padding(.horizontal)
                 .padding(.top)
 
-                // Create new post button
+                // CREATE POST BUTTON
                 Button {
-                    goToScanView = true
+                    activeFlow = .scan // 🚀 OPEN SCAN FLOW
                 } label: {
                     Label("Create a new post", systemImage: "plus.circle.fill")
                         .font(.headline)
@@ -55,7 +54,7 @@ struct HomeView: View {
                 .tint(.blue)
                 .padding(.horizontal)
 
-                // Feed placeholder
+                // FEED PLACEHOLDER
                 ScrollView {
                     VStack(spacing: 20) {
                         Text("🐾 Your Feed")
@@ -69,12 +68,17 @@ struct HomeView: View {
                     .padding()
                 }
             }
-            .navigationDestination(isPresented: $goToScanView) {
+            // 🧠 FLOW-DRIVEN NAVIGATION
+            .navigationDestination(
+                isPresented: Binding(
+                    get: { activeFlow == .scan },
+                    set: { if !$0 { activeFlow = nil } }
+                )
+            ) {
                 ScanView(
                     username: currentUsername,
                     onPostCreated: {
-                        onPostCreated()
-                        goToScanView = false
+                        activeFlow = nil // ✅ CLOSE EVERYTHING
                     }
                 )
             }

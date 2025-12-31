@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ProfileView: View {
     @ObservedObject var appState: PawsomeApp.AppState
-    @Environment(\.presentationMode) var presentationMode // For iOS modal dismissal
+    @Environment(\.presentationMode) var presentationMode // iOS modal dismissal
 
     @State private var username: String = ""
     @State private var saveStatus: String = "" // "", "Saving...", "Saved"
@@ -92,7 +92,7 @@ struct ProfileView: View {
         Button {
             appState.logout()                   // Update state
             #if os(iOS)
-            presentationMode.wrappedValue.dismiss() // Close sheet/modal immediately
+            presentationMode.wrappedValue.dismiss() // Close sheet/modal
             #endif
         } label: {
             Text("Logout")
@@ -134,17 +134,19 @@ struct ProfileView: View {
 
     // MARK: - Username Saving
     private func saveUsername() {
+        guard !username.trimmingCharacters(in: .whitespaces).isEmpty else { return }
         saveStatus = "Saving..."
-        appState.saveUsername(username)
-        #if os(iOS)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            if !isTyping {
-                saveStatus = "Saved"
+
+        // Call AppState method properly
+        appState.saveUsername(username) {
+            #if os(iOS)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                if !isTyping { saveStatus = "Saved" }
             }
+            #elseif os(macOS)
+            saveStatus = "Saved"
+            #endif
         }
-        #elseif os(macOS)
-        saveStatus = "Saved"
-        #endif
     }
 }
 
