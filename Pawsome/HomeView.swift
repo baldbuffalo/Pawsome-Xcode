@@ -12,7 +12,7 @@ struct HomeView: View {
         NavigationStack {
             VStack(spacing: 16) {
 
-                // TOP BAR
+                // 🔝 TOP BAR
                 HStack {
                     Text("Welcome, \(currentUsername)")
                         .font(.title2)
@@ -23,7 +23,9 @@ struct HomeView: View {
                     if let urlString = profileImageURL,
                        let url = URL(string: urlString) {
                         AsyncImage(url: url) { image in
-                            image.resizable().scaledToFill()
+                            image
+                                .resizable()
+                                .scaledToFill()
                         } placeholder: {
                             Image(systemName: "person.crop.circle.fill")
                                 .resizable()
@@ -42,7 +44,7 @@ struct HomeView: View {
                 .padding(.horizontal)
                 .padding(.top)
 
-                // CREATE POST BUTTON
+                // ➕ CREATE POST BUTTON
                 Button {
                     activeFlow = .scan // 🚀 OPEN SCAN FLOW
                 } label: {
@@ -54,7 +56,7 @@ struct HomeView: View {
                 .tint(.blue)
                 .padding(.horizontal)
 
-                // FEED PLACEHOLDER
+                // 📰 FEED PLACEHOLDER
                 ScrollView {
                     VStack(spacing: 20) {
                         Text("🐾 Your Feed")
@@ -67,6 +69,8 @@ struct HomeView: View {
                     }
                     .padding()
                 }
+
+                Spacer()
             }
             // 🧠 FLOW-DRIVEN NAVIGATION
             .navigationDestination(
@@ -78,8 +82,9 @@ struct HomeView: View {
                 ScanView(
                     username: currentUsername,
                     onPostCreated: {
-                        activeFlow = nil // ✅ CLOSE EVERYTHING
-                    }
+                        activeFlow = nil // ✅ CLOSE FLOW AFTER POST
+                    },
+                    activeHomeFlow: $activeFlow // 🔑 REQUIRED FOR TAB TITLE SWITCH
                 )
             }
         }
