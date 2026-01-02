@@ -2,18 +2,20 @@ import SwiftUI
 
 struct ProfileView: View {
     @ObservedObject var appState: PawsomeApp.AppState
-    @Environment(\.presentationMode) var presentationMode // iOS modal dismissal
+    @Environment(\.dismiss) private var dismiss   // ✅ modern + reliable
 
     @State private var username: String = ""
-    @State private var saveStatus: String = "" // "", "Saving...", "Saved"
+    @State private var saveStatus: String = ""
     @State private var isTyping = false
     @State private var imagePickerPresented = false
+
     #if os(macOS)
     @State private var isHoveringLogout = false
     #endif
 
     var body: some View {
         VStack(spacing: 30) {
+
             // MARK: - Profile Image
             Button {
                 imagePickerPresented = true
@@ -21,18 +23,15 @@ struct ProfileView: View {
                 profileImageView()
             }
 
-            // MARK: - Username Field
-            VStack(alignment: .leading, spacing: 5) {
+            // MARK: - Username
+            VStack(alignment: .leading, spacing: 6) {
                 Text("Username")
                     .font(.caption)
                     .foregroundColor(.gray)
 
                 TextField("Username", text: $username, onEditingChanged: { editing in
-                    #if os(iOS)
                     isTyping = editing
-                    if editing { saveStatus = "Saving..." }
-                    else { saveUsername() }
-                    #endif
+                    saveStatus = editing ? "Saving..." : ""
                 }, onCommit: {
                     saveUsername()
                 })
@@ -48,7 +47,7 @@ struct ProfileView: View {
 
             Spacer()
 
-            // MARK: - Logout Button
+            // MARK: - Logout
             logoutButton()
         }
         .padding()
@@ -63,7 +62,7 @@ struct ProfileView: View {
         }
     }
 
-    // MARK: - Profile Image
+    // MARK: - Profile Image View
     @ViewBuilder
     private func profileImageView() -> some View {
         if let urlString = appState.profileImageURL,
@@ -78,7 +77,7 @@ struct ProfileView: View {
                 .clipShape(Circle())
                 .shadow(radius: 5)
         } else {
-            Image(systemName: "person.circle")
+            Image(systemName: "person.circle.fill")
                 .resizable()
                 .scaledToFit()
                 .frame(width: 120, height: 120)
@@ -86,73 +85,52 @@ struct ProfileView: View {
         }
     }
 
-    // MARK: - Logout Button
-    @ViewBuilder
+    // MARK: - Logout Button (🔥 FIXED)
     private func logoutButton() -> some View {
         Button {
-            appState.logout()                   // Update state
-            #if os(iOS)
-            presentationMode.wrappedValue.dismiss() // Close sheet/modal
-            #endif
+            appState.logout()   // 🔥 THIS flips isLoggedIn = false
+            dismiss()           // closes modal/sheet safely
         } label: {
             Text("Logout")
                 .font(.headline)
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity, minHeight: 44)
-                .background(buttonBackgroundColor())
-                .cornerRadius(8)
+                .background(Color.red)
+                .cornerRadius(10)
         }
         .padding(.horizontal)
         #if os(macOS)
         .buttonStyle(BorderlessButtonStyle())
-        .onHover { hovering in
-            isHoveringLogout = hovering
-        }
+        .onHover { isHoveringLogout = $0 }
         #endif
     }
 
-    private func buttonBackgroundColor() -> Color {
-        #if os(macOS)
-        return isHoveringLogout ? Color.red.opacity(0.8) : Color.red
-        #else
-        return Color.red
-        #endif
-    }
-
-    // MARK: - Image Picker Handler
+    // MARK: - Image Picker
     private func handleImagePick(result: Result<[URL], Error>) {
-        switch result {
-        case .success(let urls):
-            if let selectedURL = urls.first {
-                let urlString = selectedURL.absoluteString
-                appState.saveProfileImageURL(urlString)
-            }
-        case .failure(let error):
-            print("Image pick failed:", error)
+        if case .success(let urls) = result,
+           let url = urls.first {
+            appState.saveProfileImageURL(url.absoluteString)
         }
     }
 
-    // MARK: - Username Saving
+    // MARK: - Username Save (Firebase-safe)
     private func saveUsername() {
-        let trimmed = username.trimmingCharacters(in: .whitespaces)
+        let trimmed = username.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
         saveStatus = "Saving..."
 
-        // Only update the "username" field in Firebase, keeping other fields intact
         appState.saveUsername(trimmed) {
-            #if os(iOS)
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                if !isTyping { saveStatus = "Saved" }
+                if !isTyping {
+                    saveStatus = "Saved"
+                }
             }
-            #elseif os(macOS)
-            saveStatus = "Saved"
-            #endif
         }
     }
 }
 
-// MARK: - Image Extension for PlatformImage
+// MARK: - PlatformImage → SwiftUI Image
 extension Image {
     #if os(iOS)
     init(platformImage: UIImage) { self.init(uiImage: platformImage) }
