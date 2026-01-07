@@ -6,6 +6,7 @@ import FirebaseFirestore
 @main
 struct PawsomeApp: App {
 
+    // 🔥 AppDelegate hookup (Firebase config lives there)
     #if os(iOS)
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
     #elseif os(macOS)
@@ -14,7 +15,6 @@ struct PawsomeApp: App {
 
     @StateObject private var appState = AppState()
     @StateObject private var adManager = AdManager.shared
-
     @State private var activeHomeFlow: HomeFlow? = nil
 
     var body: some Scene {
@@ -41,14 +41,18 @@ struct PawsomeApp: App {
         case form
     }
 
-    // MARK: - AppState (🔥 FIXED)
+    // MARK: - AppState (🔥 FIREBASE-SAFE)
     @MainActor
     final class AppState: ObservableObject {
+
         @Published var isLoggedIn = false
         @Published var currentUsername = ""
         @Published var profileImageURL: String?
 
-        let db = Firestore.firestore()
+        // 🔥 FIX: Firestore MUST be lazy
+        lazy var db: Firestore = {
+            Firestore.firestore()
+        }()
 
         init() {
             loadFromDefaults()
@@ -102,12 +106,12 @@ struct PawsomeApp: App {
                 }
         }
 
-        // 🔥 REAL LOGOUT (NO RACE CONDITIONS)
+        // 🔥 REAL LOGOUT
         func logout() {
             do {
                 try Auth.auth().signOut()
             } catch {
-                print("Sign out failed:", error)
+                print("❌ Sign out failed:", error)
             }
 
             isLoggedIn = false
