@@ -15,12 +15,7 @@ struct PawsomeApp: App {
     @StateObject private var appState = AppState()
     @StateObject private var adManager = AdManager.shared
 
-    // GLOBAL FLOW STATE
     @State private var activeHomeFlow: HomeFlow? = nil
-
-    init() {
-        print("🔥 PawsomeApp launched!")
-    }
 
     var body: some Scene {
         WindowGroup {
@@ -34,64 +29,91 @@ struct PawsomeApp: App {
                     LoginView(appState: appState)
                 }
 
-                // GLOBAL STICKY BOTTOM AD
                 adManager.overlay
             }
             .environmentObject(adManager)
         }
     }
 
-    // MARK: - Home Flow Enum
+    // MARK: - Home Flow
     enum HomeFlow {
         case scan
         case form
     }
 
-    // MARK: - AppState
+    // MARK: - AppState (🔥 FIXED)
+    @MainActor
     final class AppState: ObservableObject {
-        @Published var isLoggedIn: Bool = false
-        @Published var currentUsername: String = ""
-        @Published var profileImageURL: String? = nil
+        @Published var isLoggedIn = false
+        @Published var currentUsername = ""
+        @Published var profileImageURL: String?
 
-        lazy var db: Firestore = Firestore.firestore()
+        let db = Firestore.firestore()
 
-        init() { loadFromDefaults() }
+        init() {
+            loadFromDefaults()
+        }
 
         func loadFromDefaults() {
             isLoggedIn = UserDefaults.standard.bool(forKey: "isLoggedIn")
-            currentUsername = UserDefaults.standard.string(forKey: "username")
-                ?? "User\(Int.random(in: 1000...9999))"
+            currentUsername = UserDefaults.standard.string(forKey: "username") ?? ""
             profileImageURL = UserDefaults.standard.string(forKey: "profileImageURL")
         }
 
-        func setLoggedIn(_ loggedIn: Bool) {
-            isLoggedIn = loggedIn
-            UserDefaults.standard.set(loggedIn, forKey: "isLoggedIn")
+        func login(username: String, imageURL: String?) {
+            isLoggedIn = true
+            currentUsername = username
+            profileImageURL = imageURL
+
+            UserDefaults.standard.set(true, forKey: "isLoggedIn")
+            UserDefaults.standard.set(username, forKey: "username")
+            UserDefaults.standard.set(imageURL, forKey: "profileImageURL")
         }
 
-        // 🔑 Save username
         func saveUsername(_ username: String, completion: (() -> Void)? = nil) {
             currentUsername = username
             UserDefaults.standard.set(username, forKey: "username")
-            guard let uid = Auth.auth().currentUser?.uid else { completion?(); return }
-            db.collection("users").document(uid)
-                .setData(["username": username], merge: true) { _ in completion?() }
+
+            guard let uid = Auth.auth().currentUser?.uid else {
+                completion?()
+                return
+            }
+
+            db.collection("users")
+                .document(uid)
+                .setData(["username": username], merge: true) { _ in
+                    completion?()
+                }
         }
 
-        // 🔑 Save profile image URL
         func saveProfileImageURL(_ url: String, completion: (() -> Void)? = nil) {
             profileImageURL = url
             UserDefaults.standard.set(url, forKey: "profileImageURL")
-            guard let uid = Auth.auth().currentUser?.uid else { completion?(); return }
-            db.collection("users").document(uid)
-                .setData(["profileImageURL": url], merge: true) { _ in completion?() }
+
+            guard let uid = Auth.auth().currentUser?.uid else {
+                completion?()
+                return
+            }
+
+            db.collection("users")
+                .document(uid)
+                .setData(["profileImageURL": url], merge: true) { _ in
+                    completion?()
+                }
         }
 
+        // 🔥 REAL LOGOUT (NO RACE CONDITIONS)
         func logout() {
-            setLoggedIn(false)
+            do {
+                try Auth.auth().signOut()
+            } catch {
+                print("Sign out failed:", error)
+            }
+
+            isLoggedIn = false
             currentUsername = ""
             profileImageURL = nil
-            try? Auth.auth().signOut()
+
             UserDefaults.standard.removeObject(forKey: "isLoggedIn")
             UserDefaults.standard.removeObject(forKey: "username")
             UserDefaults.standard.removeObject(forKey: "profileImageURL")
@@ -117,25 +139,24 @@ struct PawsomeApp: App {
                 )
                 .tabItem {
                     Label(
-                        // 🔥 Dynamic tab label
-                        (activeHomeFlow == .scan ? "Scan" :
-                         activeHomeFlow == .form ? "Post" : "Home"),
+                        activeHomeFlow == .scan ? "Scan" :
+                        activeHomeFlow == .form ? "Post" : "Home",
                         systemImage: "house"
                     )
                 }
                 .tag(0)
 
                 ProfileView(appState: appState)
-                    .tabItem { Label("Profile", systemImage: "person.crop.circle") }
+                    .tabItem {
+                        Label("Profile", systemImage: "person.crop.circle")
+                    }
                     .tag(1)
             }
             .onAppear {
                 adManager.currentScreen = .home
             }
             .onChange(of: selectedTab) { _, newValue in
-                // 🧼 HARD RESET HOME FLOW WHEN TAB CHANGES
                 activeHomeFlow = nil
-
                 adManager.currentScreen = (newValue == 0) ? .home : .profile
             }
         }
