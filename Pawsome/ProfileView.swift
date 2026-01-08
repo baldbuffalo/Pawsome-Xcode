@@ -2,7 +2,6 @@ import SwiftUI
 
 struct ProfileView: View {
     @ObservedObject var appState: PawsomeApp.AppState
-    @Environment(\.dismiss) private var dismiss   // ✅ modern + reliable
 
     @State private var username: String = ""
     @State private var saveStatus: String = ""
@@ -47,7 +46,7 @@ struct ProfileView: View {
 
             Spacer()
 
-            // MARK: - Logout
+            // MARK: - Logout Button
             logoutButton()
         }
         .padding()
@@ -85,11 +84,10 @@ struct ProfileView: View {
         }
     }
 
-    // MARK: - Logout Button (🔥 FIXED)
+    // MARK: - Logout Button
     private func logoutButton() -> some View {
         Button {
-            appState.logout()   // 🔥 THIS flips isLoggedIn = false
-            dismiss()           // closes modal/sheet safely
+            appState.logout()   // 🔥 flips isLoggedIn = false and resets defaults
         } label: {
             Text("Logout")
                 .font(.headline)
@@ -113,7 +111,7 @@ struct ProfileView: View {
         }
     }
 
-    // MARK: - Username Save (Firebase-safe)
+    // MARK: - Username Save
     private func saveUsername() {
         let trimmed = username.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }

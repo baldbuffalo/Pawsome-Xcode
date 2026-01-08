@@ -12,6 +12,7 @@
 	<string>1.0</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.lifestyle</string>
+
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -21,10 +22,15 @@
 			<string>GoogleSignIn</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
+				<!-- iOS auto-created client scheme -->
 				<string>com.googleusercontent.apps.238793012439-1c54gpv0kuq9feq77o58t2qoki13v05m</string>
+
+				<!-- Desktop OAuth client scheme -->
+	<string>com.googleusercontent.apps.238793012439-kn7jvk318ud9g23egi6p4qk9vs2tikqe</string>
 			</array>
 		</dict>
 	</array>
+
 	<key>GIDClientID</key>
 	<string>238793012439-1c54gpv0kuq9feq77o58t2qoki13v05m.apps.googleusercontent.com</string>
 	<key>UIBackgroundModes</key>

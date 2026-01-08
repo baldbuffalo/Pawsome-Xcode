@@ -16,6 +16,12 @@ struct LoginView: View {
     @State private var errorMessage = ""
     @State private var currentNonce: String?
 
+    // macOS fixes: keep session and provider alive
+    #if os(macOS)
+    @State private var googleAuthSession: ASWebAuthenticationSession?
+    @State private var presentationProvider: ASWebAuthenticationPresentationContextProviderImpl?
+    #endif
+
     var body: some View {
         VStack(spacing: 20) {
             Text("Welcome to Pawsome!")
@@ -80,29 +86,121 @@ struct LoginView: View {
 
         do {
             let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: rootVC)
-            let user = result.user
+            try await handleGoogleResult(result.user)
+        } catch {
+            await showError(error.localizedDescription)
+        }
 
-            guard let idToken = user.idToken?.tokenString else {
-                await showError("Missing Google ID token.")
-                return
-            }
-
-            let credential = GoogleAuthProvider.credential(
-                withIDToken: idToken,
-                accessToken: user.accessToken.tokenString
-            )
-
-            let authResult = try await Auth.auth().signIn(with: credential)
-
-            await fetchUserAndLogin(
-                uid: authResult.user.uid,
-                defaultUsername: user.profile?.name,
-                defaultImage: user.profile?.imageURL(withDimension: 200)?.absoluteString
-            )
+        #elseif os(macOS)
+        do {
+            try await signInWithGoogleMacOS()
         } catch {
             await showError(error.localizedDescription)
         }
         #endif
+    }
+
+    // MARK: - macOS Google Sign-In
+    #if os(macOS)
+    private func signInWithGoogleMacOS() async throws {
+        let clientID = "238793012439-kn7jvk318ud9g23egi6p4qk9vs2tikqe.apps.googleusercontent.com"
+        let redirectURI = "com.googleusercontent.apps.238793012439-kn7jvk318ud9g23egi6p4qk9vs2tikqe:/oauthredirect"
+
+        let authURL = URL(string:
+            "https://accounts.google.com/o/oauth2/v2/auth?" +
+            "client_id=\(clientID)&" +
+            "redirect_uri=\(redirectURI)&" +
+            "response_type=code&" +
+            "scope=openid%20email%20profile"
+        )!
+
+        let session = ASWebAuthenticationSession(
+            url: authURL,
+            callbackURLScheme: "com.googleusercontent.apps.238793012439-kn7jvk318ud9g23egi6p4qk9vs2tikqe"
+        ) { callbackURL, error in
+            guard let callbackURL else {
+                Task { await showError("Google Sign-In canceled.") }
+                return
+            }
+
+            guard
+                let urlComponents = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false),
+                let code = urlComponents.queryItems?.first(where: { $0.name == "code" })?.value
+            else {
+                Task { await showError("Failed to get authorization code.") }
+                return
+            }
+
+            Task {
+                do {
+                    try await exchangeGoogleCodeForFirebase(code: code, clientID: clientID, redirectURI: redirectURI)
+                } catch {
+                    await showError(error.localizedDescription)
+                }
+            }
+        }
+
+        // 💥 retain session and provider
+        googleAuthSession = session
+        let provider = ASWebAuthenticationPresentationContextProviderImpl()
+        presentationProvider = provider
+        session.presentationContextProvider = provider
+        session.prefersEphemeralWebBrowserSession = true
+        session.start()
+    }
+
+    private func exchangeGoogleCodeForFirebase(code: String, clientID: String, redirectURI: String) async throws {
+        var request = URLRequest(url: URL(string: "https://oauth2.googleapis.com/token")!)
+        request.httpMethod = "POST"
+        let body = "code=\(code)&client_id=\(clientID)&client_secret=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&redirect_uri=\(redirectURI)&grant_type=authorization_code"
+        request.httpBody = body.data(using: .utf8)
+        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        guard
+            let idToken = json?["id_token"] as? String,
+            let accessToken = json?["access_token"] as? String
+        else {
+            throw NSError(domain: "GoogleSignIn", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to get tokens"])
+        }
+
+        let credential = GoogleAuthProvider.credential(withIDToken: idToken, accessToken: accessToken)
+        let authResult = try await Auth.auth().signIn(with: credential)
+
+        await fetchUserAndLogin(
+            uid: authResult.user.uid,
+            defaultUsername: nil,
+            defaultImage: nil
+        )
+    }
+
+    final class ASWebAuthenticationPresentationContextProviderImpl: NSObject, ASWebAuthenticationPresentationContextProviding {
+        func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+            return NSApplication.shared.windows.first!
+        }
+    }
+    #endif
+
+    // Shared iOS handler
+    private func handleGoogleResult(_ user: GIDGoogleUser) async throws {
+        guard let idToken = user.idToken?.tokenString else {
+            await showError("Missing Google ID token.")
+            return
+        }
+
+        let credential = GoogleAuthProvider.credential(
+            withIDToken: idToken,
+            accessToken: user.accessToken.tokenString
+        )
+
+        let authResult = try await Auth.auth().signIn(with: credential)
+
+        await fetchUserAndLogin(
+            uid: authResult.user.uid,
+            defaultUsername: user.profile?.name,
+            defaultImage: user.profile?.imageURL(withDimension: 200)?.absoluteString
+        )
     }
 
     // MARK: - APPLE SIGN-IN
@@ -168,7 +266,6 @@ struct LoginView: View {
                 }
             }
 
-            // Save defaults for new users
             if !doc.exists {
                 try await db.collection("users").document(uid).setData([
                     "username": username,
