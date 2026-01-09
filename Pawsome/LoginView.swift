@@ -103,8 +103,15 @@ struct LoginView: View {
     // MARK: - macOS Google Sign-In
     #if os(macOS)
     private func signInWithGoogleMacOS() async throws {
-        let clientID = "238793012439-kn7jvk318ud9g23egi6p4qk9vs2tikqe.apps.googleusercontent.com"
-        let redirectURI = "com.googleusercontent.apps.238793012439-kn7jvk318ud9g23egi6p4qk9vs2tikqe:/oauthredirect"
+        guard
+            let clientID = Bundle.main.object(forInfoDictionaryKey: "GoogleClientID") as? String,
+            let clientSecret = Bundle.main.object(forInfoDictionaryKey: "GoogleClientSecret") as? String
+        else {
+            await showError("Missing Google credentials")
+            return
+        }
+
+        let redirectURI = "com.googleusercontent.apps.\(clientID.split(separator: "-").first!):/oauthredirect"
 
         let authURL = URL(string:
             "https://accounts.google.com/o/oauth2/v2/auth?" +
@@ -116,7 +123,7 @@ struct LoginView: View {
 
         let session = ASWebAuthenticationSession(
             url: authURL,
-            callbackURLScheme: "com.googleusercontent.apps.238793012439-kn7jvk318ud9g23egi6p4qk9vs2tikqe"
+            callbackURLScheme: redirectURI
         ) { callbackURL, error in
             guard let callbackURL else {
                 Task { await showError("Google Sign-In canceled.") }
@@ -133,14 +140,14 @@ struct LoginView: View {
 
             Task {
                 do {
-                    try await exchangeGoogleCodeForFirebase(code: code, clientID: clientID, redirectURI: redirectURI)
+                    try await exchangeGoogleCodeForFirebase(code: code, clientID: clientID, clientSecret: clientSecret, redirectURI: redirectURI)
                 } catch {
                     await showError(error.localizedDescription)
                 }
             }
         }
 
-        // 💥 retain session and provider
+        // 💥 retain session & provider
         googleAuthSession = session
         let provider = ASWebAuthenticationPresentationContextProviderImpl()
         presentationProvider = provider
@@ -149,10 +156,10 @@ struct LoginView: View {
         session.start()
     }
 
-    private func exchangeGoogleCodeForFirebase(code: String, clientID: String, redirectURI: String) async throws {
+    private func exchangeGoogleCodeForFirebase(code: String, clientID: String, clientSecret: String, redirectURI: String) async throws {
         var request = URLRequest(url: URL(string: "https://oauth2.googleapis.com/token")!)
         request.httpMethod = "POST"
-        let body = "code=\(code)&client_id=\(clientID)&client_secret=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&redirect_uri=\(redirectURI)&grant_type=authorization_code"
+        let body = "code=\(code)&client_id=\(clientID)&client_secret=\(clientSecret)&redirect_uri=\(redirectURI)&grant_type=authorization_code"
         request.httpBody = body.data(using: .utf8)
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
 
