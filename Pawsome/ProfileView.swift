@@ -28,25 +28,32 @@ struct ProfileView: View {
                     .font(.caption)
                     .foregroundColor(.gray)
 
-                TextField("Username", text: $username, onEditingChanged: { editing in
-                    isTyping = editing
-                    saveStatus = editing ? "Saving..." : ""
-                }, onCommit: {
-                    saveUsername()
-                })
+                TextField(
+                    "Username",
+                    text: $username,
+                    onEditingChanged: { editing in
+                        isTyping = editing
+                        saveStatus = editing ? "Saving..." : ""
+                    },
+                    onCommit: {
+                        saveUsername()
+                    }
+                )
                 .textFieldStyle(RoundedBorderTextFieldStyle())
 
                 if !saveStatus.isEmpty {
                     Text(saveStatus)
                         .font(.footnote)
-                        .foregroundColor(saveStatus == "Saved" ? .green : .orange)
+                        .foregroundColor(
+                            saveStatus == "Saved" ? .green : .orange
+                        )
                 }
             }
             .padding(.horizontal)
 
             Spacer()
 
-            // MARK: - Logout Button
+            // MARK: - Logout
             logoutButton()
         }
         .padding()
@@ -75,6 +82,7 @@ struct ProfileView: View {
                 .frame(width: 120, height: 120)
                 .clipShape(Circle())
                 .shadow(radius: 5)
+
         } else {
             Image(systemName: "person.circle.fill")
                 .resizable()
@@ -84,10 +92,12 @@ struct ProfileView: View {
         }
     }
 
-    // MARK: - Logout Button
+    // MARK: - Logout Button (🔥 ACTUALLY WORKS)
     private func logoutButton() -> some View {
         Button {
-            appState.logout()   // 🔥 flips isLoggedIn = false and resets defaults
+            Task { @MainActor in
+                appState.logout()
+            }
         } label: {
             Text("Logout")
                 .font(.headline)

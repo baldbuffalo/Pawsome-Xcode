@@ -20,24 +20,30 @@ final class AdManager: ObservableObject {
 
     private init() {}
 
-    var shouldShowAd: Bool {
-        currentScreen != .form
+    // ❌ Form screen has no ads
+    var hideAds: Bool {
+        currentScreen == .form
     }
 
-    // MARK: - GLOBAL OVERLAY
+    // MARK: - GLOBAL OVERLAY (Sides Only)
     var overlay: some View {
-        VStack {
-            Spacer()
-
-            if shouldShowAd {
+        HStack {
+            if !hideAds {
                 BannerAdView()
-                    .frame(height: 90)
-                    .frame(maxWidth: .infinity)
-                    .transition(.move(edge: .bottom))
+                    .frame(width: 80)
+                    .frame(maxHeight: .infinity)
+                    .transition(.move(edge: .leading))
+                
+                Spacer()
+                
+                BannerAdView()
+                    .frame(width: 80)
+                    .frame(maxHeight: .infinity)
+                    .transition(.move(edge: .trailing))
             }
         }
-        .animation(.easeInOut(duration: 0.25), value: shouldShowAd)
-        .ignoresSafeArea(edges: .bottom)
+        .animation(.easeInOut(duration: 0.25), value: hideAds)
+        .ignoresSafeArea()
     }
 }
 
@@ -53,24 +59,19 @@ struct BannerAdView: View {
 }
 
 //
-// MARK: - iOS (REAL ADMOB — UNCHANGED)
+// MARK: - iOS (ADMOB)
 //
 #if os(iOS)
 
 struct AdMobBannerView: UIViewRepresentable {
-
     func makeUIView(context: Context) -> BannerView {
         let banner = BannerView(adSize: AdSizeBanner)
-
-        // 🔥 REPLACE WITH YOUR REAL ADMOB BANNER ID
         banner.adUnitID = "ca-app-pub-1515384434837305/7343539401"
-
         banner.rootViewController =
             UIApplication.shared.connectedScenes
                 .compactMap { ($0 as? UIWindowScene)?.keyWindow }
                 .first?
                 .rootViewController
-
         banner.load(Request())
         return banner
     }
@@ -81,7 +82,7 @@ struct AdMobBannerView: UIViewRepresentable {
 #endif
 
 //
-// MARK: - macOS (WKWEBVIEW BANNER ADS — reload on view change)
+// MARK: - macOS (WKWebView Banner)
 //
 #if os(macOS)
 
@@ -102,7 +103,6 @@ struct WebAdBannerView: NSViewRepresentable {
     }
 
     func updateNSView(_ webView: WKWebView, context: Context) {
-        // Reload the ad only when the screen changes
         if context.coordinator.lastScreen != adManager.currentScreen {
             loadAd(webView)
             context.coordinator.lastScreen = adManager.currentScreen
@@ -121,14 +121,14 @@ struct WebAdBannerView: NSViewRepresentable {
                     padding: 0;
                     background: transparent;
                     width: 100%;
+                    height: 100%;
                     display: flex;
                     justify-content: center;
-                    align-items: flex-end;
+                    align-items: center;
                 }
                 .adsbygoogle {
                     display: block;
                     width: 100%;
-                    max-width: 728px;
                     height: 90px;
                 }
             </style>
