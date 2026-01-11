@@ -2,17 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>CFBundleDisplayName</key>
-	<string>Pawsome</string>
-	<key>CFBundleIdentifier</key>
-	<string>Com.GameBuster.Pawsome</string>
-	<key>CFBundleVersion</key>
-	<string>1</string>
-	<key>CFBundleShortVersionString</key>
-	<string>1.0</string>
-	<key>LSApplicationCategoryType</key>
-	<string>public.app-category.lifestyle</string>
-
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -22,32 +11,22 @@
 			<string>GoogleSignIn</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<!-- iOS auto-created client scheme -->
 				<string>com.googleusercontent.apps.238793012439-1c54gpv0kuq9feq77o58t2qoki13v05m</string>
-
-				<!-- Desktop OAuth client scheme -->
-	<string>com.googleusercontent.apps.238793012439-kn7jvk318ud9g23egi6p4qk9vs2tikqe</string>
+				<string>com.googleusercontent.apps.238793012439-kn7jvk318ud9g23egi6p4qk9vs2tikqe</string>
 			</array>
 		</dict>
 	</array>
-
+	<key>FirebaseAppCheckDebugProviderDisabled</key>
+	<false/>
+	<key>FirebaseAppCheckDebugToken</key>
+	<string></string>
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-1515384434837305~2451123619</string>
 	<key>GIDClientID</key>
 	<string>238793012439-1c54gpv0kuq9feq77o58t2qoki13v05m.apps.googleusercontent.com</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
 	</array>
-	<key>FirebaseAppCheckDebugProviderDisabled</key>
-	<false/>
-	<key>FirebaseAppCheckDebugToken</key>
-	<string></string>
-	<key>NSCameraUsageDescription</key>
-	<string>Camera is used to take pictures of the cat.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Photos access is needed to upload profile pictures.</string>
-
-	<!-- 🔥 AdMob App ID -->
-	<key>GADApplicationIdentifier</key>
-	<string>ca-app-pub-1515384434837305~2451123619</string>
 </dict>
 </plist>

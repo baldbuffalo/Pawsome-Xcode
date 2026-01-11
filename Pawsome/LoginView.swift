@@ -16,7 +16,6 @@ struct LoginView: View {
     @State private var errorMessage = ""
     @State private var currentNonce: String?
 
-    // macOS fixes: keep session and provider alive
     #if os(macOS)
     @State private var googleAuthSession: ASWebAuthenticationSession?
     @State private var presentationProvider: ASWebAuthenticationPresentationContextProviderImpl?
@@ -46,17 +45,21 @@ struct LoginView: View {
                 .cornerRadius(10)
             }
 
-            // 🍎 APPLE SIGN-IN
+            // 🍎 APPLE SIGN-IN (LAYOUT-SAFE)
             #if canImport(AuthenticationServices)
-            SignInWithAppleButton(.signIn) { request in
-                let nonce = randomNonceString()
-                currentNonce = nonce
-                request.requestedScopes = [.fullName, .email]
-                request.nonce = sha256(nonce)
-            } onCompletion: { result in
-                Task { await handleAppleSignIn(result) }
+            HStack {
+                Spacer()
+                SignInWithAppleButton(.signIn) { request in
+                    let nonce = randomNonceString()
+                    currentNonce = nonce
+                    request.requestedScopes = [.fullName, .email]
+                    request.nonce = sha256(nonce)
+                } onCompletion: { result in
+                    Task { await handleAppleSignIn(result) }
+                }
+                .frame(width: 300, height: 50) // 🔑 HARD CAP (NO CONSTRAINT ERRORS)
+                Spacer()
             }
-            .frame(height: 50)
             #endif
 
             Spacer()
@@ -124,30 +127,30 @@ struct LoginView: View {
         let session = ASWebAuthenticationSession(
             url: authURL,
             callbackURLScheme: redirectURI
-        ) { callbackURL, error in
-            guard let callbackURL else {
-                Task { await showError("Google Sign-In canceled.") }
-                return
-            }
-
+        ) { callbackURL, _ in
             guard
-                let urlComponents = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false),
-                let code = urlComponents.queryItems?.first(where: { $0.name == "code" })?.value
+                let callbackURL,
+                let components = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false),
+                let code = components.queryItems?.first(where: { $0.name == "code" })?.value
             else {
-                Task { await showError("Failed to get authorization code.") }
+                Task { await showError("Google Sign-In canceled.") }
                 return
             }
 
             Task {
                 do {
-                    try await exchangeGoogleCodeForFirebase(code: code, clientID: clientID, clientSecret: clientSecret, redirectURI: redirectURI)
+                    try await exchangeGoogleCodeForFirebase(
+                        code: code,
+                        clientID: clientID,
+                        clientSecret: clientSecret,
+                        redirectURI: redirectURI
+                    )
                 } catch {
                     await showError(error.localizedDescription)
                 }
             }
         }
 
-        // 💥 retain session & provider
         googleAuthSession = session
         let provider = ASWebAuthenticationPresentationContextProviderImpl()
         presentationProvider = provider
@@ -156,40 +159,40 @@ struct LoginView: View {
         session.start()
     }
 
-    private func exchangeGoogleCodeForFirebase(code: String, clientID: String, clientSecret: String, redirectURI: String) async throws {
+    private func exchangeGoogleCodeForFirebase(
+        code: String,
+        clientID: String,
+        clientSecret: String,
+        redirectURI: String
+    ) async throws {
         var request = URLRequest(url: URL(string: "https://oauth2.googleapis.com/token")!)
         request.httpMethod = "POST"
-        let body = "code=\(code)&client_id=\(clientID)&client_secret=\(clientSecret)&redirect_uri=\(redirectURI)&grant_type=authorization_code"
-        request.httpBody = body.data(using: .utf8)
+        request.httpBody = "code=\(code)&client_id=\(clientID)&client_secret=\(clientSecret)&redirect_uri=\(redirectURI)&grant_type=authorization_code".data(using: .utf8)
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
 
         let (data, _) = try await URLSession.shared.data(for: request)
         let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+
         guard
             let idToken = json?["id_token"] as? String,
             let accessToken = json?["access_token"] as? String
         else {
-            throw NSError(domain: "GoogleSignIn", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to get tokens"])
+            throw NSError(domain: "GoogleSignIn", code: 0)
         }
 
         let credential = GoogleAuthProvider.credential(withIDToken: idToken, accessToken: accessToken)
-        let authResult = try await Auth.auth().signIn(with: credential)
+        let result = try await Auth.auth().signIn(with: credential)
 
-        await fetchUserAndLogin(
-            uid: authResult.user.uid,
-            defaultUsername: nil,
-            defaultImage: nil
-        )
+        await fetchUserAndLogin(uid: result.user.uid, defaultUsername: nil, defaultImage: nil)
     }
 
     final class ASWebAuthenticationPresentationContextProviderImpl: NSObject, ASWebAuthenticationPresentationContextProviding {
         func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
-            return NSApplication.shared.windows.first!
+            NSApplication.shared.windows.first!
         }
     }
     #endif
 
-    // Shared iOS handler
     private func handleGoogleResult(_ user: GIDGoogleUser) async throws {
         guard let idToken = user.idToken?.tokenString else {
             await showError("Missing Google ID token.")
@@ -201,10 +204,10 @@ struct LoginView: View {
             accessToken: user.accessToken.tokenString
         )
 
-        let authResult = try await Auth.auth().signIn(with: credential)
+        let result = try await Auth.auth().signIn(with: credential)
 
         await fetchUserAndLogin(
-            uid: authResult.user.uid,
+            uid: result.user.uid,
             defaultUsername: user.profile?.name,
             defaultImage: user.profile?.imageURL(withDimension: 200)?.absoluteString
         )
@@ -231,10 +234,10 @@ struct LoginView: View {
                 rawNonce: nonce
             )
 
-            let authResult = try await Auth.auth().signIn(with: firebaseCredential)
+            let result = try await Auth.auth().signIn(with: firebaseCredential)
 
             await fetchUserAndLogin(
-                uid: authResult.user.uid,
+                uid: result.user.uid,
                 defaultUsername: credential.fullName?.givenName,
                 defaultImage: nil
             )
@@ -244,7 +247,7 @@ struct LoginView: View {
     }
     #endif
 
-    // MARK: - FIRESTORE USER FETCH
+    // MARK: - FIRESTORE
     private func fetchUserAndLogin(
         uid: String,
         defaultUsername: String?,
@@ -265,12 +268,6 @@ struct LoginView: View {
                 appState.isLoggedIn = true
                 appState.currentUsername = username
                 appState.profileImageURL = imageURL
-
-                UserDefaults.standard.set(true, forKey: "isLoggedIn")
-                UserDefaults.standard.set(username, forKey: "username")
-                if let imageURL {
-                    UserDefaults.standard.set(imageURL, forKey: "profileImageURL")
-                }
             }
 
             if !doc.exists {
@@ -279,7 +276,6 @@ struct LoginView: View {
                     "profileImageURL": imageURL ?? ""
                 ])
             }
-
         } catch {
             await showError(error.localizedDescription)
         }
