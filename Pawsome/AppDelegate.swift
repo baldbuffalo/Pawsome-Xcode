@@ -16,24 +16,21 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
 
         // 🔥 Firebase
         FirebaseApp.configure()
-        AppCheck.setAppCheckProviderFactory(AppCheckDebugProviderFactory())
         print("🔥 Firebase configured (iOS)")
 
-        // 🔥 AdMob (NEW SDK)
+        // 🔥 AdMob
         MobileAds.shared.start()
         print("🔥 AdMob initialized")
-
-        // 🧪 DEBUG ONLY – enables Ad Inspector
-        #if DEBUG
-        MobileAds.shared.requestConfiguration.testDeviceIdentifiers = ["Simulator"]
-        print("🧪 AdMob test device enabled")
-        #endif
 
         return true
     }
 
-    // Optional: handle Google Sign-In redirect URL on iOS
-    func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
+    // 🔑 Google Sign-In callback (iOS)
+    func application(
+        _ app: UIApplication,
+        open url: URL,
+        options: [UIApplication.OpenURLOptionsKey : Any] = [:]
+    ) -> Bool {
         return GIDSignIn.sharedInstance.handle(url)
     }
 }
@@ -49,11 +46,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // 🔥 Firebase
         FirebaseApp.configure()
         print("🔥 Firebase configured (macOS)")
-
-        // 🚫 AdMob not supported on macOS
     }
 
-    // 🔑 Google Sign-In callback for macOS
+    // 🔑 Google Sign-In callback (macOS)
     func application(_ application: NSApplication, open urls: [URL]) {
         for url in urls {
             _ = GIDSignIn.sharedInstance.handle(url)
