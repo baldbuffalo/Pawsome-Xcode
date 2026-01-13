@@ -17,7 +17,7 @@
 		</dict>
 	</array>
 	<key>FirebaseAppCheckDebugProviderDisabled</key>
-	<false/>
+	<true/>
 	<key>FirebaseAppCheckDebugToken</key>
 	<string></string>
 	<key>GADApplicationIdentifier</key>
