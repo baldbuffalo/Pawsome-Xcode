@@ -18,7 +18,7 @@ struct ScanView: View {
     var body: some View {
         VStack(spacing: 20) {
 
-            // PICK IMAGE
+            // PICK IMAGE BUTTON
             if selectedImage == nil {
                 Button("Choose Image") {
                     showSourcePicker = true
@@ -50,8 +50,9 @@ struct ScanView: View {
                     image: img,
                     username: username,
                     onPostCreated: {
+                        // ✅ Reset flow back to default Home
                         selectedImage = nil
-                        activeHomeFlow = .home
+                        activeHomeFlow = nil
                         onPostCreated?()
                     },
                     activeHomeFlow: $activeHomeFlow
@@ -68,13 +69,11 @@ struct ScanView: View {
         #if os(iOS)
         .sheet(isPresented: $showCameraPicker) {
             ImagePicker(sourceType: .camera) { img in
-                guard let img else { return }
                 selectedImage = img
             }
         }
         .sheet(isPresented: $showPhotoPicker) {
             ImagePicker(sourceType: .photoLibrary) { img in
-                guard let img else { return }
                 selectedImage = img
             }
         }
