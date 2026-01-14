@@ -6,7 +6,6 @@ import FirebaseFirestore
 @main
 struct PawsomeApp: App {
 
-    // 🔥 AppDelegate hookup (Firebase config lives there)
     #if os(iOS)
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
     #elseif os(macOS)
@@ -20,11 +19,13 @@ struct PawsomeApp: App {
     var body: some Scene {
         WindowGroup {
             ZStack(alignment: .bottom) {
+
                 if appState.isLoggedIn {
                     MainTabView(
                         appState: appState,
                         activeHomeFlow: $activeHomeFlow
                     )
+                    .environmentObject(appState)
                 } else {
                     LoginView(appState: appState)
                 }
@@ -35,28 +36,24 @@ struct PawsomeApp: App {
         }
     }
 
-    // MARK: - Home Flow
+    // MARK: - HOME FLOW
     enum HomeFlow {
         case scan
         case form
     }
 
-    // MARK: - AppState (🔥 FIREBASE-SAFE)
+    // MARK: - APP STATE
     @MainActor
     final class AppState: ObservableObject {
 
         @Published var isLoggedIn = false
         @Published var currentUsername = ""
         @Published var profileImageURL: String?
+        @Published var selectedImage: PlatformImage? = nil // 🔑 Scan → Form
 
-        // 🔥 FIX: Firestore MUST be lazy
-        lazy var db: Firestore = {
-            Firestore.firestore()
-        }()
+        lazy var db: Firestore = { Firestore.firestore() }()
 
-        init() {
-            loadFromDefaults()
-        }
+        init() { loadFromDefaults() }
 
         func loadFromDefaults() {
             isLoggedIn = UserDefaults.standard.bool(forKey: "isLoggedIn")
@@ -83,8 +80,7 @@ struct PawsomeApp: App {
                 return
             }
 
-            db.collection("users")
-                .document(uid)
+            db.collection("users").document(uid)
                 .setData(["username": username], merge: true) { _ in
                     completion?()
                 }
@@ -99,24 +95,18 @@ struct PawsomeApp: App {
                 return
             }
 
-            db.collection("users")
-                .document(uid)
+            db.collection("users").document(uid)
                 .setData(["profileImageURL": url], merge: true) { _ in
                     completion?()
                 }
         }
 
-        // 🔥 REAL LOGOUT
         func logout() {
-            do {
-                try Auth.auth().signOut()
-            } catch {
-                print("❌ Sign out failed:", error)
-            }
-
+            do { try Auth.auth().signOut() } catch { print("❌ Sign out failed:", error) }
             isLoggedIn = false
             currentUsername = ""
             profileImageURL = nil
+            selectedImage = nil
 
             UserDefaults.standard.removeObject(forKey: "isLoggedIn")
             UserDefaults.standard.removeObject(forKey: "username")
@@ -124,29 +114,48 @@ struct PawsomeApp: App {
         }
     }
 
-    // MARK: - MainTabView
+    // MARK: - MAIN TAB VIEW
     struct MainTabView: View {
+
         @ObservedObject var appState: AppState
         @EnvironmentObject var adManager: AdManager
-
         @Binding var activeHomeFlow: HomeFlow?
         @State private var selectedTab = 0
 
         var body: some View {
             TabView(selection: $selectedTab) {
 
-                HomeView(
-                    isLoggedIn: $appState.isLoggedIn,
-                    currentUsername: $appState.currentUsername,
-                    profileImageURL: $appState.profileImageURL,
-                    activeFlow: $activeHomeFlow
-                )
+                ZStack {
+                    switch activeHomeFlow {
+
+                    case .scan:
+                        ScanView(
+                            activeHomeFlow: $activeHomeFlow,
+                            username: appState.currentUsername
+                        )
+                        .environmentObject(appState)
+
+                    case .form:
+                        FormView(
+                            activeHomeFlow: $activeHomeFlow,
+                            onPostCreated: {
+                                appState.selectedImage = nil
+                                activeHomeFlow = nil
+                            }
+                        )
+                        .environmentObject(appState)
+
+                    case .none:
+                        HomeView(
+                            isLoggedIn: $appState.isLoggedIn,
+                            currentUsername: $appState.currentUsername,
+                            profileImageURL: $appState.profileImageURL,
+                            activeFlow: $activeHomeFlow
+                        )
+                    }
+                }
                 .tabItem {
-                    Label(
-                        activeHomeFlow == .scan ? "Scan" :
-                        activeHomeFlow == .form ? "Post" : "Home",
-                        systemImage: "house"
-                    )
+                    Label(tabTitle(for: activeHomeFlow), systemImage: "house")
                 }
                 .tag(0)
 
@@ -156,12 +165,18 @@ struct PawsomeApp: App {
                     }
                     .tag(1)
             }
-            .onAppear {
-                adManager.currentScreen = .home
-            }
+            .onAppear { adManager.currentScreen = .home }
             .onChange(of: selectedTab) { _, newValue in
                 activeHomeFlow = nil
                 adManager.currentScreen = (newValue == 0) ? .home : .profile
+            }
+        }
+
+        private func tabTitle(for flow: HomeFlow?) -> String {
+            switch flow {
+            case .scan: return "Scan"
+            case .form: return "Post"
+            case .none: return "Home"
             }
         }
     }

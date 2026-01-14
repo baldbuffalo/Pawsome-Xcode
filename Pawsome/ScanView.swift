@@ -4,83 +4,59 @@ import PhotosUI
 #endif
 
 struct ScanView: View {
-    @State private var selectedImage: PlatformImage? = nil
+    @EnvironmentObject var appState: PawsomeApp.AppState
+    @Binding var activeHomeFlow: PawsomeApp.HomeFlow?
+
+    var username: String
+
     @State private var showSourcePicker = false
     @State private var showCameraPicker = false
     @State private var showPhotoPicker = false
     @State private var isPickingFile = false
 
-    var username: String
-    var onPostCreated: (() -> Void)?
-
-    @Binding var activeHomeFlow: PawsomeApp.HomeFlow?
-
     var body: some View {
         VStack(spacing: 20) {
-
-            // PICK IMAGE BUTTON
-            if selectedImage == nil {
-                Button("Choose Image") {
-                    showSourcePicker = true
-                }
-                .padding()
-                .foregroundColor(.white)
-                .background(Color.blue)
-                .cornerRadius(10)
-                .confirmationDialog(
-                    "Select Image Source",
-                    isPresented: $showSourcePicker,
-                    titleVisibility: .visible
-                ) {
-                    #if os(iOS)
-                    Button("Camera") { showCameraPicker = true }
-                    Button("Photos") { showPhotoPicker = true }
-                    #elseif os(macOS)
-                    Button("Photos") {
-                        Task { await pickFile() }
-                    }
-                    #endif
-                    Button("Cancel", role: .cancel) {}
-                }
+            Button("Choose Image") {
+                showSourcePicker = true
             }
-
-            // SHOW FORM WHEN IMAGE EXISTS
-            if let img = selectedImage {
-                FormView(
-                    image: img,
-                    username: username,
-                    onPostCreated: {
-                        // ✅ Reset flow back to default Home
-                        selectedImage = nil
-                        activeHomeFlow = nil
-                        onPostCreated?()
-                    },
-                    activeHomeFlow: $activeHomeFlow
-                )
-                .frame(maxHeight: 600)
+            .padding()
+            .foregroundColor(.white)
+            .background(Color.blue)
+            .cornerRadius(10)
+            .confirmationDialog("Select Image Source", isPresented: $showSourcePicker, titleVisibility: .visible) {
+                #if os(iOS)
+                Button("Camera") { showCameraPicker = true }
+                Button("Photos") { showPhotoPicker = true }
+                #elseif os(macOS)
+                Button("Photos") { Task { await pickFile() } }
+                #endif
+                Button("Cancel", role: .cancel) {}
             }
         }
         .padding()
-        .onAppear {
-            activeHomeFlow = .scan
-        }
-
-        // iOS PICKERS
+        .onAppear { activeHomeFlow = .scan }
         #if os(iOS)
         .sheet(isPresented: $showCameraPicker) {
             ImagePicker(sourceType: .camera) { img in
-                selectedImage = img
+                guard let img = img else { return }
+                DispatchQueue.main.async {
+                    appState.selectedImage = img
+                    activeHomeFlow = .form
+                }
             }
         }
         .sheet(isPresented: $showPhotoPicker) {
             ImagePicker(sourceType: .photoLibrary) { img in
-                selectedImage = img
+                guard let img = img else { return }
+                DispatchQueue.main.async {
+                    appState.selectedImage = img
+                    activeHomeFlow = .form
+                }
             }
         }
         #endif
     }
 
-    // macOS PICKER
     #if os(macOS)
     @MainActor
     private func pickFile() async {
@@ -90,11 +66,17 @@ struct ScanView: View {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.image]
         panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
 
-        if panel.runModal() == .OK,
-           let url = panel.urls.first,
-           let img = PlatformImage(contentsOf: url) {
-            selectedImage = img
+        let response = await withCheckedContinuation { cont in
+            panel.begin { r in cont.resume(returning: r) }
+        }
+
+        if response == .OK, let url = panel.urls.first, let img = PlatformImage(contentsOf: url) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                appState.selectedImage = img
+                activeHomeFlow = .form
+            }
         }
 
         isPickingFile = false
@@ -126,7 +108,11 @@ struct ImagePicker: UIViewControllerRepresentable {
             _ picker: UIImagePickerController,
             didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]
         ) {
-            parent.completion(info[.originalImage] as? UIImage)
+            if let img = info[.originalImage] as? UIImage ?? info[.editedImage] as? UIImage {
+                parent.completion(img)
+            } else {
+                parent.completion(nil)
+            }
             picker.dismiss(animated: true)
         }
 

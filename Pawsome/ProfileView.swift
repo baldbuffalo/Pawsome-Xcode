@@ -44,9 +44,7 @@ struct ProfileView: View {
                 if !saveStatus.isEmpty {
                     Text(saveStatus)
                         .font(.footnote)
-                        .foregroundColor(
-                            saveStatus == "Saved" ? .green : .orange
-                        )
+                        .foregroundColor(saveStatus == "Saved" ? .green : .orange)
                 }
             }
             .padding(.horizontal)
@@ -92,7 +90,7 @@ struct ProfileView: View {
         }
     }
 
-    // MARK: - Logout Button (🔥 ACTUALLY WORKS)
+    // MARK: - Logout Button
     private func logoutButton() -> some View {
         Button {
             Task { @MainActor in
@@ -113,7 +111,7 @@ struct ProfileView: View {
         #endif
     }
 
-    // MARK: - Image Picker
+    // MARK: - Image Picker Completion
     private func handleImagePick(result: Result<[URL], Error>) {
         if case .success(let urls) = result,
            let url = urls.first {
@@ -121,13 +119,12 @@ struct ProfileView: View {
         }
     }
 
-    // MARK: - Username Save
+    // MARK: - Save Username
     private func saveUsername() {
         let trimmed = username.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
         saveStatus = "Saving..."
-
         appState.saveUsername(trimmed) {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                 if !isTyping {

@@ -46,7 +46,7 @@ struct HomeView: View {
 
                 // ➕ CREATE POST BUTTON
                 Button {
-                    activeFlow = .scan // 🚀 OPEN SCAN FLOW
+                    activeFlow = .scan
                 } label: {
                     Label("Create a new post", systemImage: "plus.circle.fill")
                         .font(.headline)
@@ -72,7 +72,7 @@ struct HomeView: View {
 
                 Spacer()
             }
-            // 🧠 FLOW-DRIVEN NAVIGATION
+            // 🚀 FLOW-DRIVEN NAVIGATION
             .navigationDestination(
                 isPresented: Binding(
                     get: { activeFlow == .scan },
@@ -80,11 +80,8 @@ struct HomeView: View {
                 )
             ) {
                 ScanView(
-                    username: currentUsername,
-                    onPostCreated: {
-                        activeFlow = nil // ✅ CLOSE FLOW AFTER POST
-                    },
-                    activeHomeFlow: $activeFlow // 🔑 REQUIRED FOR TAB TITLE SWITCH
+                    activeHomeFlow: $activeFlow,   // ⚠️ ORDER MATTERS
+                    username: currentUsername
                 )
             }
         }
