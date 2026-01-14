@@ -5,35 +5,38 @@ import PhotosUI
 
 struct ScanView: View {
     @State private var selectedImage: PlatformImage? = nil
-    @State private var showForm: Bool = false
-    @State private var showSourcePicker: Bool = false
-    @State private var showCameraPicker: Bool = false
-    @State private var showPhotoPicker: Bool = false
-
-    @State private var isPickingFile: Bool = false // Prevent double NSOpenPanel
+    @State private var showSourcePicker = false
+    @State private var showCameraPicker = false
+    @State private var showPhotoPicker = false
+    @State private var isPickingFile = false
 
     var username: String
-    var onPostCreated: (() -> Void)? // callback closure
+    var onPostCreated: (() -> Void)?
 
-    // 🔑 Binding to parent flow state
     @Binding var activeHomeFlow: PawsomeApp.HomeFlow?
 
     var body: some View {
         VStack(spacing: 20) {
-            if !showForm {
+
+            // PICK IMAGE
+            if selectedImage == nil {
                 Button("Choose Image") {
                     showSourcePicker = true
                 }
                 .padding()
                 .foregroundColor(.white)
                 .background(Color.blue)
-                .cornerRadius(8)
-                .confirmationDialog("Select Image Source", isPresented: $showSourcePicker, titleVisibility: .visible) {
+                .cornerRadius(10)
+                .confirmationDialog(
+                    "Select Image Source",
+                    isPresented: $showSourcePicker,
+                    titleVisibility: .visible
+                ) {
                     #if os(iOS)
-                    Button("Open Camera") { showCameraPicker = true }
-                    Button("Open Photos") { showPhotoPicker = true }
+                    Button("Camera") { showCameraPicker = true }
+                    Button("Photos") { showPhotoPicker = true }
                     #elseif os(macOS)
-                    Button("Open Photos") {
+                    Button("Photos") {
                         Task { await pickFile() }
                     }
                     #endif
@@ -41,13 +44,16 @@ struct ScanView: View {
                 }
             }
 
-            if showForm, let img = selectedImage {
+            // SHOW FORM WHEN IMAGE EXISTS
+            if let img = selectedImage {
                 FormView(
-                    showForm: $showForm,
-                    navigateToHome: .constant(false),
                     image: img,
                     username: username,
-                    onPostCreated: onPostCreated,
+                    onPostCreated: {
+                        selectedImage = nil
+                        activeHomeFlow = .home
+                        onPostCreated?()
+                    },
                     activeHomeFlow: $activeHomeFlow
                 )
                 .frame(maxHeight: 600)
@@ -57,23 +63,25 @@ struct ScanView: View {
         .onAppear {
             activeHomeFlow = .scan
         }
+
+        // iOS PICKERS
         #if os(iOS)
         .sheet(isPresented: $showCameraPicker) {
             ImagePicker(sourceType: .camera) { img in
+                guard let img else { return }
                 selectedImage = img
-                showForm = true
             }
         }
         .sheet(isPresented: $showPhotoPicker) {
             ImagePicker(sourceType: .photoLibrary) { img in
+                guard let img else { return }
                 selectedImage = img
-                showForm = true
             }
         }
         #endif
     }
 
-    // MARK: - macOS file picker
+    // macOS PICKER
     #if os(macOS)
     @MainActor
     private func pickFile() async {
@@ -88,7 +96,6 @@ struct ScanView: View {
            let url = panel.urls.first,
            let img = PlatformImage(contentsOf: url) {
             selectedImage = img
-            showForm = true
         }
 
         isPickingFile = false
@@ -96,7 +103,6 @@ struct ScanView: View {
     #endif
 }
 
-// MARK: - UIImagePickerController wrapper for iOS
 #if os(iOS)
 struct ImagePicker: UIViewControllerRepresentable {
     enum SourceType { case camera, photoLibrary }
@@ -106,7 +112,7 @@ struct ImagePicker: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
         picker.delegate = context.coordinator
-        picker.sourceType = (sourceType == .camera) ? .camera : .photoLibrary
+        picker.sourceType = sourceType == .camera ? .camera : .photoLibrary
         return picker
     }
 
@@ -117,7 +123,10 @@ struct ImagePicker: UIViewControllerRepresentable {
         let parent: ImagePicker
         init(_ parent: ImagePicker) { self.parent = parent }
 
-        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+        func imagePickerController(
+            _ picker: UIImagePickerController,
+            didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]
+        ) {
             parent.completion(info[.originalImage] as? UIImage)
             picker.dismiss(animated: true)
         }
