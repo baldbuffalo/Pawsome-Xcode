@@ -18,6 +18,7 @@ struct LoginView: View {
 
     #if os(macOS)
     @State private var googleAuthSession: ASWebAuthenticationSession?
+    @State private var presentationProvider: ASWebAuthenticationPresentationContextProviderImpl?
     #endif
 
     var body: some View {
@@ -88,94 +89,8 @@ struct LoginView: View {
         } catch {
             await showError(error.localizedDescription)
         }
-        #elseif os(macOS)
-        // macOS Google Sign-In
-        do {
-            try await signInWithGoogleMacOS()
-        } catch {
-            await showError(error.localizedDescription)
-        }
         #endif
     }
-
-    #if os(macOS)
-    private func signInWithGoogleMacOS() async throws {
-        guard
-            let clientID = Bundle.main.object(forInfoDictionaryKey: "GoogleClientID") as? String,
-            let clientSecret = Bundle.main.object(forInfoDictionaryKey: "GoogleClientSecret") as? String
-        else {
-            await showError("Missing Google credentials")
-            return
-        }
-
-        let redirectURI = "com.googleusercontent.apps.\(clientID.split(separator: "-").first!):/oauthredirect"
-
-        let authURL = URL(string:
-            "https://accounts.google.com/o/oauth2/v2/auth?" +
-            "client_id=\(clientID)&" +
-            "redirect_uri=\(redirectURI)&" +
-            "response_type=code&" +
-            "scope=openid%20email%20profile"
-        )!
-
-        googleAuthSession = ASWebAuthenticationSession(
-            url: authURL,
-            callbackURLScheme: redirectURI
-        ) { callbackURL, _ in
-            guard
-                let callbackURL,
-                let components = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false),
-                let code = components.queryItems?.first(where: { $0.name == "code" })?.value
-            else {
-                Task { await showError("Google Sign-In canceled.") }
-                return
-            }
-
-            Task {
-                do {
-                    try await exchangeGoogleCodeForFirebase(
-                        code: code,
-                        clientID: clientID,
-                        clientSecret: clientSecret,
-                        redirectURI: redirectURI
-                    )
-                } catch {
-                    await showError(error.localizedDescription)
-                }
-            }
-        }
-
-        googleAuthSession?.prefersEphemeralWebBrowserSession = true
-        googleAuthSession?.start()
-    }
-
-    private func exchangeGoogleCodeForFirebase(
-        code: String,
-        clientID: String,
-        clientSecret: String,
-        redirectURI: String
-    ) async throws {
-        var request = URLRequest(url: URL(string: "https://oauth2.googleapis.com/token")!)
-        request.httpMethod = "POST"
-        request.httpBody = "code=\(code)&client_id=\(clientID)&client_secret=\(clientSecret)&redirect_uri=\(redirectURI)&grant_type=authorization_code".data(using: .utf8)
-        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-
-        let (data, _) = try await URLSession.shared.data(for: request)
-        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-
-        guard
-            let idToken = json?["id_token"] as? String,
-            let accessToken = json?["access_token"] as? String
-        else {
-            throw NSError(domain: "GoogleSignIn", code: 0)
-        }
-
-        let credential = GoogleAuthProvider.credential(withIDToken: idToken, accessToken: accessToken)
-        let result = try await Auth.auth().signIn(with: credential)
-
-        await fetchUserAndLogin(uid: result.user.uid, defaultUsername: nil, defaultImage: nil)
-    }
-    #endif
 
     private func handleGoogleResult(_ user: GIDGoogleUser) async throws {
         guard let idToken = user.idToken?.tokenString else {
@@ -231,7 +146,7 @@ struct LoginView: View {
     }
     #endif
 
-    // MARK: - FIRESTORE (✅ Async/Await Transaction)
+    // MARK: - FIRESTORE (async/await + counter)
     private func fetchUserAndLogin(
         uid: String,
         defaultUsername: String?,
@@ -244,6 +159,7 @@ struct LoginView: View {
         do {
             let userDoc = try await userRef.getDocument()
 
+            // Existing user
             if userDoc.exists {
                 let data = userDoc.data() ?? [:]
                 await MainActor.run {
@@ -254,8 +170,8 @@ struct LoginView: View {
                 return
             }
 
-            // New user → atomic counter
-            let newUserNumber = try await db.runTransaction { transaction in
+            // 🔥 New user → atomic counter (async/await)
+            let newUserNumber = try await db.runTransaction { transaction -> Int in
                 let counterDoc = try await transaction.getDocument(counterRef)
                 let last = counterDoc.data()?["lastUserNumber"] as? Int ?? 0
                 let next = last + 1
