@@ -18,7 +18,6 @@ struct LoginView: View {
 
     #if os(macOS)
     @State private var googleAuthSession: ASWebAuthenticationSession?
-    @State private var presentationProvider: ASWebAuthenticationPresentationContextProviderImpl?
     #endif
 
     var body: some View {
@@ -45,21 +44,17 @@ struct LoginView: View {
                 .cornerRadius(10)
             }
 
-            // 🍎 APPLE SIGN-IN (LAYOUT-SAFE)
+            // 🍎 APPLE SIGN-IN
             #if canImport(AuthenticationServices)
-            HStack {
-                Spacer()
-                SignInWithAppleButton(.signIn) { request in
-                    let nonce = randomNonceString()
-                    currentNonce = nonce
-                    request.requestedScopes = [.fullName, .email]
-                    request.nonce = sha256(nonce)
-                } onCompletion: { result in
-                    Task { await handleAppleSignIn(result) }
-                }
-                .frame(width: 300, height: 50) // 🔑 HARD CAP (NO CONSTRAINT ERRORS)
-                Spacer()
+            SignInWithAppleButton(.signIn) { request in
+                let nonce = randomNonceString()
+                currentNonce = nonce
+                request.requestedScopes = [.fullName, .email]
+                request.nonce = sha256(nonce)
+            } onCompletion: { result in
+                Task { await handleAppleSignIn(result) }
             }
+            .frame(width: 300, height: 50)
             #endif
 
             Spacer()
@@ -93,8 +88,8 @@ struct LoginView: View {
         } catch {
             await showError(error.localizedDescription)
         }
-
         #elseif os(macOS)
+        // macOS Google Sign-In
         do {
             try await signInWithGoogleMacOS()
         } catch {
@@ -103,7 +98,6 @@ struct LoginView: View {
         #endif
     }
 
-    // MARK: - macOS Google Sign-In
     #if os(macOS)
     private func signInWithGoogleMacOS() async throws {
         guard
@@ -124,7 +118,7 @@ struct LoginView: View {
             "scope=openid%20email%20profile"
         )!
 
-        let session = ASWebAuthenticationSession(
+        googleAuthSession = ASWebAuthenticationSession(
             url: authURL,
             callbackURLScheme: redirectURI
         ) { callbackURL, _ in
@@ -151,12 +145,8 @@ struct LoginView: View {
             }
         }
 
-        googleAuthSession = session
-        let provider = ASWebAuthenticationPresentationContextProviderImpl()
-        presentationProvider = provider
-        session.presentationContextProvider = provider
-        session.prefersEphemeralWebBrowserSession = true
-        session.start()
+        googleAuthSession?.prefersEphemeralWebBrowserSession = true
+        googleAuthSession?.start()
     }
 
     private func exchangeGoogleCodeForFirebase(
@@ -184,12 +174,6 @@ struct LoginView: View {
         let result = try await Auth.auth().signIn(with: credential)
 
         await fetchUserAndLogin(uid: result.user.uid, defaultUsername: nil, defaultImage: nil)
-    }
-
-    final class ASWebAuthenticationPresentationContextProviderImpl: NSObject, ASWebAuthenticationPresentationContextProviding {
-        func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
-            NSApplication.shared.windows.first!
-        }
     }
     #endif
 
@@ -247,35 +231,54 @@ struct LoginView: View {
     }
     #endif
 
-    // MARK: - FIRESTORE
+    // MARK: - FIRESTORE (✅ Async/Await Transaction)
     private func fetchUserAndLogin(
         uid: String,
         defaultUsername: String?,
         defaultImage: String?
     ) async {
         let db = Firestore.firestore()
+        let userRef = db.collection("users").document(uid)
+        let counterRef = db.collection("counter").document("users")
 
         do {
-            let doc = try await db.collection("users").document(uid).getDocument()
+            let userDoc = try await userRef.getDocument()
 
-            let username = doc.data()?["username"] as? String
-                ?? defaultUsername
-                ?? "User\(Int.random(in: 1000...9999))"
+            if userDoc.exists {
+                let data = userDoc.data() ?? [:]
+                await MainActor.run {
+                    appState.isLoggedIn = true
+                    appState.currentUsername = data["username"] as? String ?? "User"
+                    appState.profileImageURL = data["profilePic"] as? String
+                }
+                return
+            }
 
-            let imageURL = doc.data()?["profileImageURL"] as? String ?? defaultImage
+            // New user → atomic counter
+            let newUserNumber = try await db.runTransaction { transaction in
+                let counterDoc = try await transaction.getDocument(counterRef)
+                let last = counterDoc.data()?["lastUserNumber"] as? Int ?? 0
+                let next = last + 1
+                transaction.updateData(["lastUserNumber": next], forDocument: counterRef)
+                return next
+            }
+
+            let username = defaultUsername ?? "User\(newUserNumber)"
+            let profilePic = defaultImage ?? ""
+
+            try await userRef.setData([
+                "userNumber": newUserNumber,
+                "username": username,
+                "profilePic": profilePic,
+                "createdAt": Timestamp()
+            ])
 
             await MainActor.run {
                 appState.isLoggedIn = true
                 appState.currentUsername = username
-                appState.profileImageURL = imageURL
+                appState.profileImageURL = profilePic
             }
 
-            if !doc.exists {
-                try await db.collection("users").document(uid).setData([
-                    "username": username,
-                    "profileImageURL": imageURL ?? ""
-                ])
-            }
         } catch {
             await showError(error.localizedDescription)
         }

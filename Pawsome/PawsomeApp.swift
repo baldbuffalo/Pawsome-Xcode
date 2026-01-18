@@ -19,7 +19,6 @@ struct PawsomeApp: App {
     var body: some Scene {
         WindowGroup {
             ZStack(alignment: .bottom) {
-
                 if appState.isLoggedIn {
                     MainTabView(
                         appState: appState,
@@ -37,68 +36,25 @@ struct PawsomeApp: App {
     }
 
     // MARK: - HOME FLOW
-    enum HomeFlow {
-        case scan
-        case form
-    }
+    enum HomeFlow { case scan, form }
 
     // MARK: - APP STATE
     @MainActor
     final class AppState: ObservableObject {
-
         @Published var isLoggedIn = false
         @Published var currentUsername = ""
         @Published var profileImageURL: String?
-        @Published var selectedImage: PlatformImage? = nil // 🔑 Scan → Form
+        @Published var selectedImage: PlatformImage? = nil
 
-        lazy var db: Firestore = { Firestore.firestore() }()
-
-        init() { loadFromDefaults() }
-
-        func loadFromDefaults() {
-            isLoggedIn = UserDefaults.standard.bool(forKey: "isLoggedIn")
-            currentUsername = UserDefaults.standard.string(forKey: "username") ?? ""
-            profileImageURL = UserDefaults.standard.string(forKey: "profileImageURL")
-        }
+        lazy var db: Firestore = Firestore.firestore()
 
         func login(username: String, imageURL: String?) {
             isLoggedIn = true
             currentUsername = username
             profileImageURL = imageURL
-
             UserDefaults.standard.set(true, forKey: "isLoggedIn")
             UserDefaults.standard.set(username, forKey: "username")
             UserDefaults.standard.set(imageURL, forKey: "profileImageURL")
-        }
-
-        func saveUsername(_ username: String, completion: (() -> Void)? = nil) {
-            currentUsername = username
-            UserDefaults.standard.set(username, forKey: "username")
-
-            guard let uid = Auth.auth().currentUser?.uid else {
-                completion?()
-                return
-            }
-
-            db.collection("users").document(uid)
-                .setData(["username": username], merge: true) { _ in
-                    completion?()
-                }
-        }
-
-        func saveProfileImageURL(_ url: String, completion: (() -> Void)? = nil) {
-            profileImageURL = url
-            UserDefaults.standard.set(url, forKey: "profileImageURL")
-
-            guard let uid = Auth.auth().currentUser?.uid else {
-                completion?()
-                return
-            }
-
-            db.collection("users").document(uid)
-                .setData(["profileImageURL": url], merge: true) { _ in
-                    completion?()
-                }
         }
 
         func logout() {
@@ -107,10 +63,53 @@ struct PawsomeApp: App {
             currentUsername = ""
             profileImageURL = nil
             selectedImage = nil
-
             UserDefaults.standard.removeObject(forKey: "isLoggedIn")
             UserDefaults.standard.removeObject(forKey: "username")
             UserDefaults.standard.removeObject(forKey: "profileImageURL")
+        }
+
+        // MARK: - FIRESTORE USER CREATION WITH COUNTER
+        func fetchOrCreateUser(uid: String, defaultUsername: String?, defaultImage: String?) async {
+            let userRef = db.collection("users").document(uid)
+            let counterRef = db.collection("counter").document("users")
+
+            do {
+                let doc = try await userRef.getDocument()
+                if doc.exists {
+                    let data = doc.data() ?? [:]
+                    await MainActor.run {
+                        login(
+                            username: data["username"] as? String ?? "User",
+                            imageURL: data["profilePic"] as? String
+                        )
+                    }
+                    return
+                }
+
+                // 🔥 New user → atomic counter for userNumber
+                let newUserNumber = try await db.runTransaction { transaction, _ in
+                    let counterDoc = try transaction.getDocument(counterRef)
+                    let lastNumber = counterDoc.data()?["lastUserNumber"] as? Int ?? 0
+                    let nextNumber = lastNumber + 1
+                    transaction.updateData(["lastUserNumber": nextNumber], forDocument: counterRef)
+                    return nextNumber
+                }
+
+                let username = defaultUsername ?? "User\(newUserNumber)"
+                let profilePic = defaultImage ?? ""
+
+                try await userRef.setData([
+                    "userNumber": newUserNumber,
+                    "username": username,
+                    "profilePic": profilePic,
+                    "createdAt": Timestamp()
+                ])
+
+                await MainActor.run { login(username: username, imageURL: profilePic) }
+
+            } catch {
+                print("❌ User fetch/create error:", error.localizedDescription)
+            }
         }
     }
 
