@@ -1,7 +1,6 @@
 import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore
-import FirebaseCore
 
 struct ProfileView: View {
     @ObservedObject var appState: PawsomeApp.AppState
@@ -10,10 +9,6 @@ struct ProfileView: View {
     @State private var saveStatus: String = ""
     @State private var isTyping = false
     @State private var imagePickerPresented = false
-
-    #if os(macOS)
-    @State private var isHoveringLogout = false
-    #endif
 
     var body: some View {
         VStack(spacing: 30) {
@@ -38,11 +33,9 @@ struct ProfileView: View {
                         isTyping = editing
                         saveStatus = editing ? "Saving..." : ""
                     },
-                    onCommit: {
-                        saveUsername()
-                    }
+                    onCommit: saveUsername
                 )
-                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .textFieldStyle(.roundedBorder)
 
                 if !saveStatus.isEmpty {
                     Text(saveStatus)
@@ -55,7 +48,17 @@ struct ProfileView: View {
             Spacer()
 
             // MARK: - Logout
-            logoutButton()
+            Button {
+                appState.logout()
+            } label: {
+                Text("Logout")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .background(Color.red)
+                    .cornerRadius(10)
+            }
+            .padding(.horizontal)
         }
         .padding()
         .fileImporter(
@@ -73,16 +76,25 @@ struct ProfileView: View {
     @ViewBuilder
     private func profileImageView() -> some View {
         if let urlString = appState.profileImageURL,
-           let url = URL(string: urlString),
-           let data = try? Data(contentsOf: url),
-           let image = PlatformImage(data: data) {
+           let url = URL(string: urlString) {
 
-            Image(platformImage: image)
-                .resizable()
-                .scaledToFill()
-                .frame(width: 120, height: 120)
-                .clipShape(Circle())
-                .shadow(radius: 5)
+            AsyncImage(url: url) { phase in
+                if let image = phase.image {
+                    image
+                        .resizable()
+                        .scaledToFill()
+                } else if phase.error != nil {
+                    Image(systemName: "person.crop.circle.badge.exclamationmark")
+                        .resizable()
+                        .scaledToFit()
+                        .foregroundColor(.gray)
+                } else {
+                    ProgressView()
+                }
+            }
+            .frame(width: 120, height: 120)
+            .clipShape(Circle())
+            .shadow(radius: 5)
 
         } else {
             Image(systemName: "person.circle.fill")
@@ -93,42 +105,18 @@ struct ProfileView: View {
         }
     }
 
-    // MARK: - Logout Button
-    private func logoutButton() -> some View {
-        Button {
-            Task { @MainActor in
-                appState.logout()
-            }
-        } label: {
-            Text("Logout")
-                .font(.headline)
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity, minHeight: 44)
-                .background(Color.red)
-                .cornerRadius(10)
-        }
-        .padding(.horizontal)
-        #if os(macOS)
-        .buttonStyle(BorderlessButtonStyle())
-        .onHover { isHoveringLogout = $0 }
-        #endif
-    }
-
-    // MARK: - Image Picker Completion
+    // MARK: - Image Picker
     private func handleImagePick(result: Result<[URL], Error>) {
-        if case .success(let urls) = result,
-           let url = urls.first {
-            // Upload to Firebase
-            appState.saveProfileImageURL(url.absoluteString) {
-                // Update local state
-                DispatchQueue.main.async {
-                    self.username = self.appState.currentUsername
-                }
-            }
-        }
+        guard
+            case .success(let urls) = result,
+            let url = urls.first
+        else { return }
+
+        // You are storing URLs ONLY (GitHub, CDN, etc.)
+        appState.saveProfileImageURL(url.absoluteString)
     }
 
-    // MARK: - Save Username to Firebase
+    // MARK: - Save Username
     private func saveUsername() {
         let trimmed = username.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
@@ -142,13 +130,4 @@ struct ProfileView: View {
             }
         }
     }
-}
-
-// MARK: - PlatformImage → SwiftUI Image
-extension Image {
-    #if os(iOS)
-    init(platformImage: UIImage) { self.init(uiImage: platformImage) }
-    #elseif os(macOS)
-    init(platformImage: NSImage) { self.init(nsImage: platformImage) }
-    #endif
 }
