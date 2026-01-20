@@ -5,6 +5,7 @@ import FirebaseCore
 import GoogleSignIn
 import GoogleSignInSwift
 import CryptoKit
+
 #if canImport(AuthenticationServices)
 import AuthenticationServices
 #endif
@@ -16,18 +17,14 @@ struct LoginView: View {
     @State private var errorMessage = ""
     @State private var currentNonce: String?
 
-    #if os(macOS)
-    @State private var googleAuthSession: ASWebAuthenticationSession?
-    @State private var presentationProvider: ASWebAuthenticationPresentationContextProviderImpl?
-    #endif
-
     var body: some View {
         VStack(spacing: 20) {
+
             Text("Welcome to Pawsome!")
                 .font(.largeTitle)
                 .bold()
 
-            Text("Please sign in to continue")
+            Text("Sign in to continue")
                 .foregroundColor(.gray)
 
             // 🔴 GOOGLE SIGN-IN
@@ -55,7 +52,7 @@ struct LoginView: View {
             } onCompletion: { result in
                 Task { await handleAppleSignIn(result) }
             }
-            .frame(width: 300, height: 50)
+            .frame(height: 50)
             #endif
 
             Spacer()
@@ -81,40 +78,44 @@ struct LoginView: View {
             return
         }
 
-        GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: clientID)
+        GIDSignIn.sharedInstance.configuration =
+            GIDConfiguration(clientID: clientID)
 
         do {
-            let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: rootVC)
-            try await handleGoogleResult(result.user)
+            let result = try await GIDSignIn.sharedInstance.signIn(
+                withPresenting: rootVC
+            )
+
+            let user = result.user
+            guard let idToken = user.idToken?.tokenString else {
+                await showError("Missing Google ID token.")
+                return
+            }
+
+            let credential = GoogleAuthProvider.credential(
+                withIDToken: idToken,
+                accessToken: user.accessToken.tokenString
+            )
+
+            let authResult = try await Auth.auth().signIn(with: credential)
+
+            await fetchUserAndLogin(
+                uid: authResult.user.uid,
+                defaultUsername: user.profile?.name,
+                defaultImage: user.profile?.imageURL(withDimension: 200)?.absoluteString
+            )
+
         } catch {
             await showError(error.localizedDescription)
         }
         #endif
     }
 
-    private func handleGoogleResult(_ user: GIDGoogleUser) async throws {
-        guard let idToken = user.idToken?.tokenString else {
-            await showError("Missing Google ID token.")
-            return
-        }
-
-        let credential = GoogleAuthProvider.credential(
-            withIDToken: idToken,
-            accessToken: user.accessToken.tokenString
-        )
-
-        let result = try await Auth.auth().signIn(with: credential)
-
-        await fetchUserAndLogin(
-            uid: result.user.uid,
-            defaultUsername: user.profile?.name,
-            defaultImage: user.profile?.imageURL(withDimension: 200)?.absoluteString
-        )
-    }
-
     // MARK: - APPLE SIGN-IN
     #if canImport(AuthenticationServices)
-    private func handleAppleSignIn(_ result: Result<ASAuthorization, Error>) async {
+    private func handleAppleSignIn(
+        _ result: Result<ASAuthorization, Error>
+    ) async {
         do {
             guard
                 case .success(let auth) = result,
@@ -133,66 +134,86 @@ struct LoginView: View {
                 rawNonce: nonce
             )
 
-            let result = try await Auth.auth().signIn(with: firebaseCredential)
+            let authResult =
+                try await Auth.auth().signIn(with: firebaseCredential)
 
             await fetchUserAndLogin(
-                uid: result.user.uid,
+                uid: authResult.user.uid,
                 defaultUsername: credential.fullName?.givenName,
                 defaultImage: nil
             )
+
         } catch {
             await showError(error.localizedDescription)
         }
     }
     #endif
 
-    // MARK: - FIRESTORE (async/await + counter)
+    // MARK: - FIRESTORE USER + COUNTER (🔥 CORRECT)
     private func fetchUserAndLogin(
         uid: String,
         defaultUsername: String?,
         defaultImage: String?
     ) async {
+
         let db = Firestore.firestore()
         let userRef = db.collection("users").document(uid)
         let counterRef = db.collection("counter").document("users")
 
         do {
-            let userDoc = try await userRef.getDocument()
+            let userSnap = try await userRef.getDocument()
 
-            // Existing user
-            if userDoc.exists {
-                let data = userDoc.data() ?? [:]
+            // ✅ Existing user
+            if userSnap.exists {
+                let data = userSnap.data() ?? [:]
                 await MainActor.run {
                     appState.isLoggedIn = true
-                    appState.currentUsername = data["username"] as? String ?? "User"
-                    appState.profileImageURL = data["profilePic"] as? String
+                    appState.currentUsername =
+                        data["username"] as? String ?? "User"
+                    appState.profileImageURL =
+                        data["profilePic"] as? String
                 }
                 return
             }
 
-            // 🔥 New user → atomic counter (async/await)
-            let newUserNumber = try await db.runTransaction { transaction -> Int in
-                let counterDoc = try await transaction.getDocument(counterRef)
-                let last = counterDoc.data()?["lastUserNumber"] as? Int ?? 0
+            // 🔥 New user → atomic counter
+            _ = try await db.runTransaction { transaction, errorPointer in
+                
+                let counterSnap: DocumentSnapshot
+                do {
+                    counterSnap = try transaction.getDocument(counterRef)
+                } catch {
+                    errorPointer?.pointee = error as NSError
+                    return nil
+                }
+
+                let last =
+                    counterSnap.data()?["lastUserNumber"] as? Int ?? 0
                 let next = last + 1
-                transaction.updateData(["lastUserNumber": next], forDocument: counterRef)
-                return next
+
+                transaction.updateData(
+                    ["lastUserNumber": next],
+                    forDocument: counterRef
+                )
+
+                let username = defaultUsername ?? "User\(next)"
+                let profilePic = defaultImage ?? ""
+
+                transaction.setData([
+                    "userNumber": next,
+                    "username": username,
+                    "profilePic": profilePic,
+                    "createdAt": Timestamp()
+                ], forDocument: userRef)
+
+                return nil
             }
-
-            let username = defaultUsername ?? "User\(newUserNumber)"
-            let profilePic = defaultImage ?? ""
-
-            try await userRef.setData([
-                "userNumber": newUserNumber,
-                "username": username,
-                "profilePic": profilePic,
-                "createdAt": Timestamp()
-            ])
 
             await MainActor.run {
                 appState.isLoggedIn = true
-                appState.currentUsername = username
-                appState.profileImageURL = profilePic
+                appState.currentUsername =
+                    defaultUsername ?? "User"
+                appState.profileImageURL = defaultImage
             }
 
         } catch {
@@ -209,8 +230,9 @@ struct LoginView: View {
     }
 
     private func randomNonceString(length: Int = 32) -> String {
-        let chars = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
-        return String((0..<length).compactMap { _ in chars.randomElement() })
+        let charset =
+            Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
+        return String((0..<length).compactMap { _ in charset.randomElement() })
     }
 
     private func sha256(_ input: String) -> String {

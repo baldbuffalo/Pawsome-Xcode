@@ -48,6 +48,7 @@ struct PawsomeApp: App {
 
         lazy var db: Firestore = Firestore.firestore()
 
+        // MARK: - Login / Logout
         func login(username: String, imageURL: String?) {
             isLoggedIn = true
             currentUsername = username
@@ -74,6 +75,7 @@ struct PawsomeApp: App {
             let counterRef = db.collection("counter").document("users")
 
             do {
+                // 1️⃣ Check if user exists
                 let doc = try await userRef.getDocument()
                 if doc.exists {
                     let data = doc.data() ?? [:]
@@ -86,26 +88,36 @@ struct PawsomeApp: App {
                     return
                 }
 
-                // 🔥 New user → atomic counter for userNumber
-                let newUserNumber = try await db.runTransaction { transaction, _ in
-                    let counterDoc = try transaction.getDocument(counterRef)
-                    let lastNumber = counterDoc.data()?["lastUserNumber"] as? Int ?? 0
-                    let nextNumber = lastNumber + 1
-                    transaction.updateData(["lastUserNumber": nextNumber], forDocument: counterRef)
-                    return nextNumber
+                // 2️⃣ New user → atomic counter
+                let newUserNumber = try await db.runTransaction { transaction, errorPointer in
+                    do {
+                        let counterSnap = try transaction.getDocument(counterRef)
+                        let lastNumber = counterSnap.data()?["lastUserNumber"] as? Int ?? 0
+                        let nextNumber = lastNumber + 1
+
+                        transaction.updateData(["lastUserNumber": nextNumber], forDocument: counterRef)
+
+                        let username = defaultUsername ?? "User\(nextNumber)"
+                        let profilePic = defaultImage ?? ""
+
+                        transaction.setData([
+                            "userNumber": nextNumber,
+                            "username": username,
+                            "profilePic": profilePic,
+                            "createdAt": Timestamp()
+                        ], forDocument: userRef)
+
+                        return nextNumber
+                    } catch {
+                        errorPointer?.pointee = error as NSError
+                        return nil
+                    }
                 }
 
-                let username = defaultUsername ?? "User\(newUserNumber)"
-                let profilePic = defaultImage ?? ""
-
-                try await userRef.setData([
-                    "userNumber": newUserNumber,
-                    "username": username,
-                    "profilePic": profilePic,
-                    "createdAt": Timestamp()
-                ])
-
-                await MainActor.run { login(username: username, imageURL: profilePic) }
+                // 3️⃣ Update app state
+                let finalUsername = defaultUsername ?? "User\(newUserNumber ?? 0)"
+                let finalProfilePic = defaultImage ?? ""
+                await MainActor.run { login(username: finalUsername, imageURL: finalProfilePic) }
 
             } catch {
                 print("❌ User fetch/create error:", error.localizedDescription)

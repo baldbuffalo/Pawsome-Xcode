@@ -1,4 +1,7 @@
 import SwiftUI
+import FirebaseAuth
+import FirebaseFirestore
+import FirebaseCore
 
 struct ProfileView: View {
     @ObservedObject var appState: PawsomeApp.AppState
@@ -115,11 +118,17 @@ struct ProfileView: View {
     private func handleImagePick(result: Result<[URL], Error>) {
         if case .success(let urls) = result,
            let url = urls.first {
-            appState.saveProfileImageURL(url.absoluteString)
+            // Upload to Firebase
+            appState.saveProfileImageURL(url.absoluteString) {
+                // Update local state
+                DispatchQueue.main.async {
+                    self.username = self.appState.currentUsername
+                }
+            }
         }
     }
 
-    // MARK: - Save Username
+    // MARK: - Save Username to Firebase
     private func saveUsername() {
         let trimmed = username.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
