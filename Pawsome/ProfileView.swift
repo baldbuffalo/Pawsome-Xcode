@@ -47,7 +47,9 @@ struct ProfileView: View {
 
             // MARK: - Logout
             Button(role: .destructive) {
-                appState.logout()
+                Task { @MainActor in
+                    appState.logout()
+                }
             } label: {
                 Text("Logout")
                     .frame(maxWidth: .infinity, minHeight: 44)
@@ -58,12 +60,14 @@ struct ProfileView: View {
         .padding()
         .fileImporter(
             isPresented: $isPickingImage,
-            allowedContentTypes: [UTType.jpeg, UTType.png],
+            allowedContentTypes: [.jpeg, .png],
             allowsMultipleSelection: false,
             onCompletion: handleImagePick
         )
         .onAppear {
-            username = appState.currentUsername
+            Task { @MainActor in
+                username = appState.currentUsername
+            }
         }
     }
 
@@ -79,6 +83,8 @@ struct ProfileView: View {
                         image.resizable().scaledToFill()
                     } else if phase.error != nil {
                         Image(systemName: "person.crop.circle.badge.exclamationmark")
+                            .resizable()
+                            .scaledToFit()
                     } else {
                         ProgressView()
                     }
@@ -109,15 +115,21 @@ struct ProfileView: View {
             do {
                 let oldURL = appState.profileImageURL
 
-                let newURL = try await GitHubUploader.shared.uploadProfileImage(
+                // Upload to GitHub (singleton)
+                let newURL = try await GitHubUploader.shared.uploadImage(
                     fileURL: fileURL,
-                    userID: uid
+                    filename: "\(uid).jpeg"
                 )
 
+                // Save to Firebase
                 try await saveProfilePicURL(newURL)
 
+                // Optional: delete old image
                 if let oldURL, !oldURL.isEmpty {
-                    try? await GitHubUploader.shared.deleteImage(from: oldURL)
+                    try? await GitHubUploader.shared.deleteImage(
+                        filename: URL(string: oldURL)!.lastPathComponent,
+                        sha: ""
+                    )
                 }
 
                 await MainActor.run {
@@ -126,9 +138,7 @@ struct ProfileView: View {
                 }
 
             } catch {
-                await MainActor.run {
-                    isUploading = false
-                }
+                await MainActor.run { isUploading = false }
                 print("❌ Image update failed:", error)
             }
         }
@@ -142,13 +152,17 @@ struct ProfileView: View {
             let uid = Auth.auth().currentUser?.uid
         else { return }
 
-        let ref = Firestore.firestore().collection("users").document(uid)
-        ref.updateData(["username": trimmed]) { error in
-            if error == nil {
-                appState.currentUsername = trimmed
-                statusText = "Saved"
+        Firestore.firestore()
+            .collection("users")
+            .document(uid)
+            .updateData(["username": trimmed]) { error in
+                if error == nil {
+                    Task { @MainActor in
+                        appState.currentUsername = trimmed
+                        statusText = "Saved"
+                    }
+                }
             }
-        }
     }
 
     // MARK: - Save Profile Pic URL
