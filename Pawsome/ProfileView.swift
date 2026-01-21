@@ -1,57 +1,44 @@
 import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore
-
-#if os(iOS)
-import UIKit
-typealias PlatformImage = UIImage
-#elseif os(macOS)
-import AppKit
-typealias PlatformImage = NSImage
-#endif
+import UniformTypeIdentifiers
 
 struct ProfileView: View {
-
     @ObservedObject var appState: PawsomeApp.AppState
 
     @State private var username: String = ""
-    @State private var saveStatus = ""
-    @State private var isTyping = false
-
-    @State private var showPicker = false
-    @State private var pickedImage: PlatformImage?
+    @State private var isPickingImage = false
+    @State private var isUploading = false
+    @State private var statusText: String = ""
 
     var body: some View {
-        VStack(spacing: 30) {
+        VStack(spacing: 24) {
 
             // MARK: - Profile Image
             Button {
-                showPicker = true
+                isPickingImage = true
             } label: {
-                profileImageView()
+                profileImage
+            }
+            .disabled(isUploading)
+
+            if isUploading {
+                ProgressView("Updating profile picture…")
             }
 
             // MARK: - Username
             VStack(alignment: .leading, spacing: 6) {
                 Text("Username")
                     .font(.caption)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.secondary)
 
-                TextField(
-                    "Username",
-                    text: $username,
-                    onEditingChanged: { editing in
-                        isTyping = editing
-                        saveStatus = editing ? "Saving..." : ""
-                    },
-                    onCommit: saveUsername
-                )
-                .textFieldStyle(.roundedBorder)
+                TextField("Username", text: $username, onCommit: saveUsername)
+                    .textFieldStyle(.roundedBorder)
 
-                if !saveStatus.isEmpty {
-                    Text(saveStatus)
+                if !statusText.isEmpty {
+                    Text(statusText)
                         .font(.footnote)
-                        .foregroundColor(saveStatus == "Saved" ? .green : .orange)
+                        .foregroundColor(.green)
                 }
             }
             .padding(.horizontal)
@@ -59,135 +46,117 @@ struct ProfileView: View {
             Spacer()
 
             // MARK: - Logout
-            Button {
+            Button(role: .destructive) {
                 appState.logout()
             } label: {
                 Text("Logout")
-                    .font(.headline)
-                    .foregroundColor(.white)
                     .frame(maxWidth: .infinity, minHeight: 44)
-                    .background(Color.red)
-                    .cornerRadius(10)
             }
+            .buttonStyle(.borderedProminent)
             .padding(.horizontal)
         }
         .padding()
-        .onAppear {
-            username = appState.currentUsername
-        }
         .fileImporter(
-            isPresented: $showPicker,
-            allowedContentTypes: [.image],
+            isPresented: $isPickingImage,
+            allowedContentTypes: [UTType.jpeg, UTType.png],
             allowsMultipleSelection: false,
             onCompletion: handleImagePick
         )
-    }
-
-    // MARK: - Profile Image UI
-    @ViewBuilder
-    private func profileImageView() -> some View {
-        if let urlString = appState.profileImageURL,
-           let url = URL(string: urlString),
-           !urlString.isEmpty {
-
-            AsyncImage(url: url) { phase in
-                if let image = phase.image {
-                    image.resizable().scaledToFill()
-                } else if phase.error != nil {
-                    Image(systemName: "person.crop.circle.badge.exclamationmark")
-                        .resizable()
-                        .scaledToFit()
-                        .foregroundColor(.gray)
-                } else {
-                    ProgressView()
-                }
-            }
-            .frame(width: 120, height: 120)
-            .clipShape(Circle())
-
-        } else {
-            Image(systemName: "person.circle.fill")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 120, height: 120)
-                .foregroundColor(.gray)
+        .onAppear {
+            username = appState.currentUsername
         }
     }
 
-    // MARK: - Image Picker Handler
-    private func handleImagePick(result: Result<[URL], Error>) {
+    // MARK: - Profile Image View
+    private var profileImage: some View {
+        Group {
+            if let urlString = appState.profileImageURL,
+               let url = URL(string: urlString),
+               !urlString.isEmpty {
+
+                AsyncImage(url: url) { phase in
+                    if let image = phase.image {
+                        image.resizable().scaledToFill()
+                    } else if phase.error != nil {
+                        Image(systemName: "person.crop.circle.badge.exclamationmark")
+                    } else {
+                        ProgressView()
+                    }
+                }
+
+            } else {
+                Image(systemName: "person.circle.fill")
+                    .resizable()
+                    .foregroundColor(.gray)
+            }
+        }
+        .frame(width: 120, height: 120)
+        .clipShape(Circle())
+        .shadow(radius: 5)
+    }
+
+    // MARK: - Handle Image Pick
+    private func handleImagePick(_ result: Result<[URL], Error>) {
         guard
             case .success(let urls) = result,
             let fileURL = urls.first,
-            let image = loadImage(from: fileURL),
             let uid = Auth.auth().currentUser?.uid
         else { return }
 
+        isUploading = true
+
         Task {
             do {
-                let data = imageData(from: image)
-                let uploader = GitHubUploader()
+                let oldURL = appState.profileImageURL
 
-                let downloadURL = try await uploader.uploadImage(
-                    filename: "\(uid).jpg",
-                    imageData: data
+                let newURL = try await GitHubUploader.shared.uploadProfileImage(
+                    fileURL: fileURL,
+                    userID: uid
                 )
 
-                await MainActor.run {
-                    appState.profileImageURL = downloadURL
+                try await saveProfilePicURL(newURL)
+
+                if let oldURL, !oldURL.isEmpty {
+                    try? await GitHubUploader.shared.deleteImage(from: oldURL)
                 }
 
-                try await Firestore.firestore()
-                    .collection("users")
-                    .document(uid)
-                    .updateData([
-                        "profilePic": downloadURL
-                    ])
+                await MainActor.run {
+                    appState.profileImageURL = newURL
+                    isUploading = false
+                }
 
             } catch {
-                print("❌ Image upload failed:", error)
+                await MainActor.run {
+                    isUploading = false
+                }
+                print("❌ Image update failed:", error)
             }
         }
     }
 
-    // MARK: - Username Save
+    // MARK: - Save Username
     private func saveUsername() {
         let trimmed = username.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty,
-              let uid = Auth.auth().currentUser?.uid
+        guard
+            !trimmed.isEmpty,
+            let uid = Auth.auth().currentUser?.uid
         else { return }
 
-        saveStatus = "Saving..."
+        let ref = Firestore.firestore().collection("users").document(uid)
+        ref.updateData(["username": trimmed]) { error in
+            if error == nil {
+                appState.currentUsername = trimmed
+                statusText = "Saved"
+            }
+        }
+    }
 
-        Firestore.firestore()
+    // MARK: - Save Profile Pic URL
+    private func saveProfilePicURL(_ url: String) async throws {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        try await Firestore.firestore()
             .collection("users")
             .document(uid)
-            .updateData(["username": trimmed]) { _ in
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                    if !isTyping {
-                        saveStatus = "Saved"
-                        appState.currentUsername = trimmed
-                    }
-                }
-            }
-    }
-
-    // MARK: - Helpers
-    private func loadImage(from url: URL) -> PlatformImage? {
-        #if os(iOS)
-        return UIImage(contentsOfFile: url.path)
-        #else
-        return NSImage(contentsOf: url)
-        #endif
-    }
-
-    private func imageData(from image: PlatformImage) -> Data {
-        #if os(iOS)
-        return image.jpegData(compressionQuality: 0.8)!
-        #else
-        let tiff = image.tiffRepresentation!
-        let rep = NSBitmapImageRep(data: tiff)!
-        return rep.representation(using: .jpeg, properties: [:])!
-        #endif
+            .updateData(["profilePic": url])
     }
 }
