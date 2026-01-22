@@ -10,7 +10,12 @@ import CryptoKit
 import AuthenticationServices
 #endif
 
+#if os(macOS)
+import AppKit
+#endif
+
 struct LoginView: View {
+
     @ObservedObject var appState: PawsomeApp.AppState
 
     @State private var showError = false
@@ -18,31 +23,32 @@ struct LoginView: View {
     @State private var currentNonce: String?
 
     var body: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 24) {
 
             Text("Welcome to Pawsome!")
                 .font(.largeTitle)
                 .bold()
 
             Text("Sign in to continue")
-                .foregroundColor(.gray)
+                .foregroundColor(.secondary)
 
-            // 🔴 GOOGLE SIGN-IN
+            // 🔴 GOOGLE SIGN IN
             Button {
                 Task { await signInWithGoogle() }
             } label: {
                 HStack {
                     Image(systemName: "globe")
-                    Text("Sign in with Google").bold()
+                    Text("Sign in with Google")
+                        .bold()
                 }
                 .frame(maxWidth: .infinity)
                 .padding()
                 .background(Color.red)
                 .foregroundColor(.white)
-                .cornerRadius(10)
+                .cornerRadius(12)
             }
 
-            // 🍎 APPLE SIGN-IN
+            // 🍎 APPLE SIGN IN
             #if canImport(AuthenticationServices)
             SignInWithAppleButton(.signIn) { request in
                 let nonce = randomNonceString()
@@ -65,16 +71,11 @@ struct LoginView: View {
         }
     }
 
-    // MARK: - GOOGLE SIGN-IN
+    // MARK: - GOOGLE SIGN IN (iOS + macOS)
     private func signInWithGoogle() async {
-        #if os(iOS)
-        guard
-            let clientID = FirebaseApp.app()?.options.clientID,
-            let rootVC = UIApplication.shared.connectedScenes
-                .compactMap({ ($0 as? UIWindowScene)?.keyWindow?.rootViewController })
-                .first
-        else {
-            await showError("Google Sign-In setup failed.")
+
+        guard let clientID = FirebaseApp.app()?.options.clientID else {
+            await showError("Missing Google client ID.")
             return
         }
 
@@ -82,11 +83,33 @@ struct LoginView: View {
             GIDConfiguration(clientID: clientID)
 
         do {
-            let result = try await GIDSignIn.sharedInstance.signIn(
-                withPresenting: rootVC
-            )
+
+            let result: GIDSignInResult
+
+            #if os(iOS)
+            guard
+                let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                let rootVC = scene.windows.first?.rootViewController
+            else {
+                await showError("No root view controller.")
+                return
+            }
+
+            result = try await GIDSignIn.sharedInstance
+                .signIn(withPresenting: rootVC)
+
+            #elseif os(macOS)
+            guard let window = NSApplication.shared.windows.first else {
+                await showError("No window found.")
+                return
+            }
+
+            result = try await GIDSignIn.sharedInstance
+                .signIn(withPresenting: window)
+            #endif
 
             let user = result.user
+
             guard let idToken = user.idToken?.tokenString else {
                 await showError("Missing Google ID token.")
                 return
@@ -97,49 +120,58 @@ struct LoginView: View {
                 accessToken: user.accessToken.tokenString
             )
 
-            let authResult = try await Auth.auth().signIn(with: credential)
+            let authResult =
+                try await Auth.auth().signIn(with: credential)
 
             await fetchUserAndLogin(
                 uid: authResult.user.uid,
                 defaultUsername: user.profile?.name,
-                defaultImage: user.profile?.imageURL(withDimension: 200)?.absoluteString
+                defaultImage: user.profile?
+                    .imageURL(withDimension: 200)?
+                    .absoluteString
             )
 
         } catch {
             await showError(error.localizedDescription)
         }
-        #endif
     }
 
-    // MARK: - APPLE SIGN-IN
+    // MARK: - APPLE SIGN IN
     #if canImport(AuthenticationServices)
     private func handleAppleSignIn(
         _ result: Result<ASAuthorization, Error>
     ) async {
+
         do {
             guard
                 case .success(let auth) = result,
-                let credential = auth.credential as? ASAuthorizationAppleIDCredential,
+                let credential =
+                    auth.credential as? ASAuthorizationAppleIDCredential,
                 let nonce = currentNonce,
                 let tokenData = credential.identityToken,
-                let idToken = String(data: tokenData, encoding: .utf8)
+                let idToken =
+                    String(data: tokenData, encoding: .utf8)
             else {
                 await showError("Apple Sign-In failed.")
                 return
             }
 
-            let firebaseCredential = OAuthProvider.credential(
-                providerID: AuthProviderID.apple,
-                idToken: idToken,
-                rawNonce: nonce
-            )
+            let firebaseCredential =
+                OAuthProvider.credential(
+                    providerID: AuthProviderID.apple,
+                    idToken: idToken,
+                    rawNonce: nonce
+                )
 
             let authResult =
-                try await Auth.auth().signIn(with: firebaseCredential)
+                try await Auth.auth().signIn(
+                    with: firebaseCredential
+                )
 
             await fetchUserAndLogin(
                 uid: authResult.user.uid,
-                defaultUsername: credential.fullName?.givenName,
+                defaultUsername:
+                    credential.fullName?.givenName,
                 defaultImage: nil
             )
 
@@ -149,7 +181,7 @@ struct LoginView: View {
     }
     #endif
 
-    // MARK: - FIRESTORE USER + COUNTER (🔥 CORRECT)
+    // MARK: - FIRESTORE USER SETUP
     private func fetchUserAndLogin(
         uid: String,
         defaultUsername: String?,
@@ -158,10 +190,12 @@ struct LoginView: View {
 
         let db = Firestore.firestore()
         let userRef = db.collection("users").document(uid)
-        let counterRef = db.collection("counter").document("users")
+        let counterRef =
+            db.collection("counter").document("users")
 
         do {
-            let userSnap = try await userRef.getDocument()
+            let userSnap =
+                try await userRef.getDocument()
 
             // ✅ Existing user
             if userSnap.exists {
@@ -176,19 +210,23 @@ struct LoginView: View {
                 return
             }
 
-            // 🔥 New user → atomic counter
-            _ = try await db.runTransaction { transaction, errorPointer in
-                
+            // 🔥 New user (atomic counter)
+            _ = try await db.runTransaction {
+                transaction, errorPointer in
+
                 let counterSnap: DocumentSnapshot
                 do {
-                    counterSnap = try transaction.getDocument(counterRef)
+                    counterSnap =
+                        try transaction.getDocument(counterRef)
                 } catch {
-                    errorPointer?.pointee = error as NSError
+                    errorPointer?.pointee =
+                        error as NSError
                     return nil
                 }
 
                 let last =
-                    counterSnap.data()?["lastUserNumber"] as? Int ?? 0
+                    counterSnap.data()?["lastUserNumber"]
+                        as? Int ?? 0
                 let next = last + 1
 
                 transaction.updateData(
@@ -196,13 +234,11 @@ struct LoginView: View {
                     forDocument: counterRef
                 )
 
-                let username = defaultUsername ?? "User\(next)"
-                let profilePic = defaultImage ?? ""
-
                 transaction.setData([
                     "userNumber": next,
-                    "username": username,
-                    "profilePic": profilePic,
+                    "username":
+                        defaultUsername ?? "User\(next)",
+                    "profilePic": defaultImage ?? "",
                     "createdAt": Timestamp()
                 ], forDocument: userRef)
 
@@ -213,7 +249,8 @@ struct LoginView: View {
                 appState.isLoggedIn = true
                 appState.currentUsername =
                     defaultUsername ?? "User"
-                appState.profileImageURL = defaultImage
+                appState.profileImageURL =
+                    defaultImage
             }
 
         } catch {
@@ -229,10 +266,18 @@ struct LoginView: View {
         }
     }
 
-    private func randomNonceString(length: Int = 32) -> String {
+    private func randomNonceString(
+        length: Int = 32
+    ) -> String {
         let charset =
-            Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
-        return String((0..<length).compactMap { _ in charset.randomElement() })
+            Array(
+                "0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._"
+            )
+        return String(
+            (0..<length).compactMap {
+                _ in charset.randomElement()
+            }
+        )
     }
 
     private func sha256(_ input: String) -> String {
