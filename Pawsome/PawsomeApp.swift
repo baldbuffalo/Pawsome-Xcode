@@ -32,6 +32,9 @@ struct PawsomeApp: App {
                 adManager.overlay
             }
             .environmentObject(adManager)
+            .onAppear {
+                appState.observeAuthState()
+            }
         }
     }
 
@@ -48,14 +51,11 @@ struct PawsomeApp: App {
 
         lazy var db: Firestore = Firestore.firestore()
 
-        // MARK: - Login / Logout
+        // MARK: - LOGIN / LOGOUT
         func login(username: String, imageURL: String?) {
             isLoggedIn = true
             currentUsername = username
             profileImageURL = imageURL
-            UserDefaults.standard.set(true, forKey: "isLoggedIn")
-            UserDefaults.standard.set(username, forKey: "username")
-            UserDefaults.standard.set(imageURL, forKey: "profileImageURL")
         }
 
         func logout() {
@@ -64,18 +64,32 @@ struct PawsomeApp: App {
             currentUsername = ""
             profileImageURL = nil
             selectedImage = nil
-            UserDefaults.standard.removeObject(forKey: "isLoggedIn")
-            UserDefaults.standard.removeObject(forKey: "username")
-            UserDefaults.standard.removeObject(forKey: "profileImageURL")
         }
 
-        // MARK: - FIRESTORE USER CREATION WITH COUNTER
+        // MARK: - OBSERVE AUTH STATE
+        func observeAuthState() {
+            Auth.auth().addStateDidChangeListener { _, user in
+                guard let user else {
+                    self.isLoggedIn = false
+                    return
+                }
+
+                Task {
+                    await self.fetchOrCreateUser(
+                        uid: user.uid,
+                        defaultUsername: user.displayName,
+                        defaultImage: user.photoURL?.absoluteString
+                    )
+                }
+            }
+        }
+
+        // MARK: - FETCH OR CREATE FIRESTORE USER
         func fetchOrCreateUser(uid: String, defaultUsername: String?, defaultImage: String?) async {
             let userRef = db.collection("users").document(uid)
             let counterRef = db.collection("counter").document("users")
 
             do {
-                // 1️⃣ Check if user exists
                 let doc = try await userRef.getDocument()
                 if doc.exists {
                     let data = doc.data() ?? [:]
@@ -88,7 +102,7 @@ struct PawsomeApp: App {
                     return
                 }
 
-                // 2️⃣ New user → atomic counter
+                // New user → atomic counter
                 let newUserNumber = try await db.runTransaction { transaction, errorPointer in
                     do {
                         let counterSnap = try transaction.getDocument(counterRef)
@@ -114,7 +128,6 @@ struct PawsomeApp: App {
                     }
                 }
 
-                // 3️⃣ Update app state
                 let finalUsername = defaultUsername ?? "User\(newUserNumber ?? 0)"
                 let finalProfilePic = defaultImage ?? ""
                 await MainActor.run { login(username: finalUsername, imageURL: finalProfilePic) }
@@ -138,14 +151,12 @@ struct PawsomeApp: App {
 
                 ZStack {
                     switch activeHomeFlow {
-
                     case .scan:
                         ScanView(
                             activeHomeFlow: $activeHomeFlow,
                             username: appState.currentUsername
                         )
                         .environmentObject(appState)
-
                     case .form:
                         FormView(
                             activeHomeFlow: $activeHomeFlow,
@@ -155,7 +166,6 @@ struct PawsomeApp: App {
                             }
                         )
                         .environmentObject(appState)
-
                     case .none:
                         HomeView(
                             isLoggedIn: $appState.isLoggedIn,
@@ -165,15 +175,11 @@ struct PawsomeApp: App {
                         )
                     }
                 }
-                .tabItem {
-                    Label(tabTitle(for: activeHomeFlow), systemImage: "house")
-                }
+                .tabItem { Label(tabTitle(for: activeHomeFlow), systemImage: "house") }
                 .tag(0)
 
                 ProfileView(appState: appState)
-                    .tabItem {
-                        Label("Profile", systemImage: "person.crop.circle")
-                    }
+                    .tabItem { Label("Profile", systemImage: "person.crop.circle") }
                     .tag(1)
             }
             .onAppear { adManager.currentScreen = .home }

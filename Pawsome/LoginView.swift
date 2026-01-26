@@ -38,8 +38,7 @@ struct LoginView: View {
             } label: {
                 HStack {
                     Image(systemName: "globe")
-                    Text("Sign in with Google")
-                        .bold()
+                    Text("Sign in with Google").bold()
                 }
                 .frame(maxWidth: .infinity)
                 .padding()
@@ -83,7 +82,6 @@ struct LoginView: View {
             GIDConfiguration(clientID: clientID)
 
         do {
-
             let result: GIDSignInResult
 
             #if os(iOS)
@@ -126,7 +124,7 @@ struct LoginView: View {
             await fetchUserAndLogin(
                 uid: authResult.user.uid,
                 defaultUsername: user.profile?.name,
-                defaultImage: user.profile?
+                googleImageURL: user.profile?
                     .imageURL(withDimension: 200)?
                     .absoluteString
             )
@@ -172,7 +170,7 @@ struct LoginView: View {
                 uid: authResult.user.uid,
                 defaultUsername:
                     credential.fullName?.givenName,
-                defaultImage: nil
+                googleImageURL: nil
             )
 
         } catch {
@@ -181,11 +179,11 @@ struct LoginView: View {
     }
     #endif
 
-    // MARK: - FIRESTORE USER SETUP
+    // MARK: - FIRESTORE USER SETUP (🔥 FIXED)
     private func fetchUserAndLogin(
         uid: String,
         defaultUsername: String?,
-        defaultImage: String?
+        googleImageURL: String?
     ) async {
 
         let db = Firestore.firestore()
@@ -208,6 +206,17 @@ struct LoginView: View {
                         data["profilePic"] as? String
                 }
                 return
+            }
+
+            // 🖼 Upload Google profile pic to GitHub (NEW USER ONLY)
+            var finalProfilePic = ""
+
+            if let googleImageURL {
+                finalProfilePic =
+                    try await uploadGoogleProfileImage(
+                        imageURL: googleImageURL,
+                        uid: uid
+                    )
             }
 
             // 🔥 New user (atomic counter)
@@ -238,7 +247,7 @@ struct LoginView: View {
                     "userNumber": next,
                     "username":
                         defaultUsername ?? "User\(next)",
-                    "profilePic": defaultImage ?? "",
+                    "profilePic": finalProfilePic,
                     "createdAt": Timestamp()
                 ], forDocument: userRef)
 
@@ -250,12 +259,34 @@ struct LoginView: View {
                 appState.currentUsername =
                     defaultUsername ?? "User"
                 appState.profileImageURL =
-                    defaultImage
+                    finalProfilePic
             }
 
         } catch {
             await showError(error.localizedDescription)
         }
+    }
+
+    // MARK: - GOOGLE IMAGE → GITHUB
+    private func uploadGoogleProfileImage(
+        imageURL: String,
+        uid: String
+    ) async throws -> String {
+
+        let (data, _) = try await URLSession.shared.data(
+            from: URL(string: imageURL)!
+        )
+
+        let tempURL = FileManager.default
+            .temporaryDirectory
+            .appendingPathComponent("\(uid).jpg")
+
+        try data.write(to: tempURL)
+
+        return try await GitHubUploader.shared.uploadImage(
+            fileURL: tempURL,
+            filename: "\(uid).jpg"
+        )
     }
 
     // MARK: - HELPERS

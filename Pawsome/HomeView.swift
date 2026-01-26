@@ -1,3 +1,4 @@
+// remeder to add saving of post images to github
 import SwiftUI
 
 struct HomeView: View {

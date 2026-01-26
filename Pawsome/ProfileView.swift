@@ -115,21 +115,28 @@ struct ProfileView: View {
             do {
                 let oldURL = appState.profileImageURL
 
-                // Upload to GitHub (singleton)
+                // Upload new image
                 let newURL = try await GitHubUploader.shared.uploadImage(
                     fileURL: fileURL,
-                    filename: "\(uid).jpeg"
+                    filename: "\(uid).jpg"
                 )
 
-                // Save to Firebase
+                // Update Firestore FIRST
                 try await saveProfilePicURL(newURL)
 
-                // Optional: delete old image
-                if let oldURL, !oldURL.isEmpty {
-                    try? await GitHubUploader.shared.deleteImage(
-                        filename: URL(string: oldURL)!.lastPathComponent,
-                        sha: ""
-                    )
+                // Delete old image ONLY if user-owned
+                if let oldURL,
+                   isUserOwnedGitHubImage(oldURL, uid: uid) {
+
+                    let filename =
+                        URL(string: oldURL)?.lastPathComponent
+
+                    if let filename {
+                        try? await GitHubUploader.shared.deleteImage(
+                            filename: filename,
+                            sha: "" // safe no-op for now
+                        )
+                    }
                 }
 
                 await MainActor.run {
@@ -146,10 +153,13 @@ struct ProfileView: View {
 
     // MARK: - Save Username
     private func saveUsername() {
-        let trimmed = username.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed =
+            username.trimmingCharacters(in: .whitespacesAndNewlines)
+
         guard
             !trimmed.isEmpty,
-            let uid = Auth.auth().currentUser?.uid
+            let uid = Auth.auth().currentUser?.uid,
+            trimmed != appState.currentUsername
         else { return }
 
         Firestore.firestore()
@@ -172,5 +182,19 @@ struct ProfileView: View {
             .collection("users")
             .document(uid)
             .updateData(["profilePic": url])
+    }
+
+    // MARK: - Ownership Check
+    private func isUserOwnedGitHubImage(
+        _ urlString: String,
+        uid: String
+    ) -> Bool {
+
+        guard let url = URL(string: urlString) else { return false }
+
+        return url.host == "raw.githubusercontent.com" ||
+               url.host == "github.com"
+            && url.path.contains("Pawsome-assets")
+            && url.lastPathComponent.hasPrefix(uid)
     }
 }
