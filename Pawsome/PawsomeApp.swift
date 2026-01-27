@@ -19,9 +19,16 @@ struct PawsomeApp: App {
     var body: some Scene {
         WindowGroup {
             ZStack(alignment: .bottom) {
-                if appState.isLoggedIn {
-                    MainTabView(appState: appState, activeHomeFlow: $activeHomeFlow)
-                        .environmentObject(appState)
+
+                // 🔒 AUTH GATE (no login flicker)
+                if !appState.isAuthChecked {
+                    LoadingView()
+                } else if appState.isLoggedIn {
+                    MainTabView(
+                        appState: appState,
+                        activeHomeFlow: $activeHomeFlow
+                    )
+                    .environmentObject(appState)
                 } else {
                     LoginView(appState: appState)
                 }
@@ -36,21 +43,24 @@ struct PawsomeApp: App {
     }
 
     // MARK: - HOME FLOW
-    enum HomeFlow { case scan, form }
+    enum HomeFlow {
+        case scan
+        case form
+    }
 
     // MARK: - APP STATE
     @MainActor
     final class AppState: ObservableObject {
+
         @Published var isLoggedIn = false
+        @Published var isAuthChecked = false
         @Published var currentUsername = ""
         @Published var profileImageURL: String?
         @Published var selectedImage: PlatformImage? = nil
 
-        private var authListener: AuthStateDidChangeListenerHandle?  // 👈 store listener
-
+        private var authListener: AuthStateDidChangeListenerHandle?
         lazy var db: Firestore = Firestore.firestore()
 
-        // MARK: - LOGIN / LOGOUT
         func login(username: String, imageURL: String?) {
             isLoggedIn = true
             currentUsername = username
@@ -63,78 +73,86 @@ struct PawsomeApp: App {
                 authListener = nil
             }
 
-            do { try Auth.auth().signOut() } catch { print("❌ Sign out failed:", error) }
+            do {
+                try Auth.auth().signOut()
+            } catch {
+                print("❌ Sign out failed:", error)
+            }
+
             isLoggedIn = false
             currentUsername = ""
             profileImageURL = nil
             selectedImage = nil
         }
 
-        // MARK: - OBSERVE AUTH STATE
         func observeAuthState() {
             authListener = Auth.auth().addStateDidChangeListener { _, user in
-                guard let user else {
+                if let user {
+                    Task {
+                        await self.fetchOrCreateUser(
+                            uid: user.uid,
+                            defaultUsername: user.displayName,
+                            defaultImage: user.photoURL?.absoluteString
+                        )
+                        self.isAuthChecked = true
+                    }
+                } else {
                     self.isLoggedIn = false
-                    return
-                }
-
-                Task {
-                    await self.fetchOrCreateUser(
-                        uid: user.uid,
-                        defaultUsername: user.displayName,
-                        defaultImage: user.photoURL?.absoluteString
-                    )
+                    self.isAuthChecked = true
                 }
             }
         }
 
-        // MARK: - FETCH OR CREATE FIRESTORE USER
-        func fetchOrCreateUser(uid: String, defaultUsername: String?, defaultImage: String?) async {
+        func fetchOrCreateUser(
+            uid: String,
+            defaultUsername: String?,
+            defaultImage: String?
+        ) async {
+
             let userRef = db.collection("users").document(uid)
             let counterRef = db.collection("counter").document("users")
 
             do {
                 let doc = try await userRef.getDocument()
+
                 if doc.exists {
                     let data = doc.data() ?? [:]
-                    await MainActor.run {
-                        login(
-                            username: data["username"] as? String ?? "User",
-                            imageURL: data["profilePic"] as? String
-                        )
-                    }
+                    login(
+                        username: data["username"] as? String ?? "User",
+                        imageURL: data["profilePic"] as? String
+                    )
                     return
                 }
 
-                // New user → atomic counter
                 let newUserNumber = try await db.runTransaction { transaction, errorPointer in
                     do {
                         let counterSnap = try transaction.getDocument(counterRef)
-                        let lastNumber = counterSnap.data()?["lastUserNumber"] as? Int ?? 0
-                        let nextNumber = lastNumber + 1
+                        let last = counterSnap.data()?["lastUserNumber"] as? Int ?? 0
+                        let next = last + 1
 
-                        transaction.updateData(["lastUserNumber": nextNumber], forDocument: counterRef)
-
-                        let username = defaultUsername ?? "User\(nextNumber)"
-                        let profilePic = defaultImage ?? ""
+                        transaction.updateData(
+                            ["lastUserNumber": next],
+                            forDocument: counterRef
+                        )
 
                         transaction.setData([
-                            "userNumber": nextNumber,
-                            "username": username,
-                            "profilePic": profilePic,
+                            "userNumber": next,
+                            "username": defaultUsername ?? "User\(next)",
+                            "profilePic": defaultImage ?? "",
                             "createdAt": Timestamp()
                         ], forDocument: userRef)
 
-                        return nextNumber
+                        return next
                     } catch {
                         errorPointer?.pointee = error as NSError
                         return nil
                     }
                 }
 
-                let finalUsername = defaultUsername ?? "User\(newUserNumber ?? 0)"
-                let finalProfilePic = defaultImage ?? ""
-                await MainActor.run { login(username: finalUsername, imageURL: finalProfilePic) }
+                login(
+                    username: defaultUsername ?? "User\(newUserNumber ?? 0)",
+                    imageURL: defaultImage
+                )
 
             } catch {
                 print("❌ User fetch/create error:", error.localizedDescription)
@@ -161,6 +179,7 @@ struct PawsomeApp: App {
                             username: appState.currentUsername
                         )
                         .environmentObject(appState)
+
                     case .form:
                         FormView(
                             activeHomeFlow: $activeHomeFlow,
@@ -170,6 +189,7 @@ struct PawsomeApp: App {
                             }
                         )
                         .environmentObject(appState)
+
                     case .none:
                         HomeView(
                             isLoggedIn: $appState.isLoggedIn,
@@ -179,14 +199,20 @@ struct PawsomeApp: App {
                         )
                     }
                 }
-                .tabItem { Label(tabTitle(for: activeHomeFlow), systemImage: "house") }
+                .tabItem {
+                    Label(tabTitle(for: activeHomeFlow), systemImage: "house")
+                }
                 .tag(0)
 
                 ProfileView(appState: appState)
-                    .tabItem { Label("Profile", systemImage: "person.crop.circle") }
+                    .tabItem {
+                        Label("Profile", systemImage: "person.crop.circle")
+                    }
                     .tag(1)
             }
-            .onAppear { adManager.currentScreen = .home }
+            .onAppear {
+                adManager.currentScreen = .home
+            }
             .onChange(of: selectedTab) { _, newValue in
                 activeHomeFlow = nil
                 adManager.currentScreen = (newValue == 0) ? .home : .profile
@@ -198,6 +224,40 @@ struct PawsomeApp: App {
             case .scan: return "Scan"
             case .form: return "Post"
             case .none: return "Home"
+            }
+        }
+    }
+
+    // MARK: - LOADING VIEW (CENTERED, GLOWED UP)
+    struct LoadingView: View {
+        @State private var spin = false
+
+        var body: some View {
+            ZStack {
+                Color.black
+                    .opacity(0.05)
+                    .ignoresSafeArea()
+
+                Circle()
+                    .trim(from: 0.2, to: 1)
+                    .stroke(
+                        LinearGradient(
+                            colors: [.blue, .purple, .pink],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        style: StrokeStyle(lineWidth: 6, lineCap: .round)
+                    )
+                    .frame(width: 60, height: 60)
+                    .rotationEffect(.degrees(spin ? 360 : 0))
+                    .animation(
+                        .linear(duration: 1)
+                        .repeatForever(autoreverses: false),
+                        value: spin
+                    )
+                    .onAppear {
+                        spin = true
+                    }
             }
         }
     }
