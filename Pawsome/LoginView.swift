@@ -23,46 +23,92 @@ struct LoginView: View {
     @State private var currentNonce: String?
 
     var body: some View {
-        VStack(spacing: 24) {
+        ZStack {
 
-            Text("Welcome to Pawsome!")
-                .font(.largeTitle)
-                .bold()
+            // 🌈 BACKGROUND
+            LinearGradient(
+                colors: [
+                    Color.blue.opacity(0.25),
+                    Color.purple.opacity(0.25),
+                    Color.pink.opacity(0.2)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
 
-            Text("Sign in to continue")
-                .foregroundColor(.secondary)
+            VStack(spacing: 28) {
 
-            // 🔴 GOOGLE SIGN IN
-            Button {
-                Task { await signInWithGoogle() }
-            } label: {
-                HStack {
-                    Image(systemName: "globe")
-                    Text("Sign in with Google").bold()
+                Spacer()
+
+                // 🐾 LOGO / TITLE
+                VStack(spacing: 12) {
+                    Image(systemName: "pawprint.fill")
+                        .font(.system(size: 52))
+                        .foregroundStyle(.linearGradient(
+                            colors: [.pink, .purple],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ))
+
+                    Text("Pawsome")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+
+                    Text("Find. Help. Reunite.")
+                        .foregroundColor(.secondary)
                 }
-                .frame(maxWidth: .infinity)
+
+                // 🔐 AUTH CARD
+                VStack(spacing: 16) {
+
+                    // 🔴 GOOGLE SIGN IN
+                    Button {
+                        Task { await signInWithGoogle() }
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image("google") // optional asset
+                                .resizable()
+                                .frame(width: 20, height: 20)
+                                .opacity(0.9)
+
+                            Text("Continue with Google")
+                                .fontWeight(.semibold)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.white)
+                        .foregroundColor(.black)
+                        .cornerRadius(14)
+                        .shadow(color: .black.opacity(0.08), radius: 8, y: 4)
+                    }
+
+                    // 🍎 APPLE SIGN IN
+                    #if canImport(AuthenticationServices)
+                    SignInWithAppleButton(.signIn) { request in
+                        let nonce = randomNonceString()
+                        currentNonce = nonce
+                        request.requestedScopes = [.fullName, .email]
+                        request.nonce = sha256(nonce)
+                    } onCompletion: { result in
+                        Task { await handleAppleSignIn(result) }
+                    }
+                    .signInWithAppleButtonStyle(.black)
+                    .frame(height: 52)
+                    .cornerRadius(14)
+                    #endif
+                }
                 .padding()
-                .background(Color.red)
-                .foregroundColor(.white)
-                .cornerRadius(12)
-            }
+                .background(
+                    RoundedRectangle(cornerRadius: 22)
+                        .fill(.ultraThinMaterial)
+                        .shadow(color: .black.opacity(0.15), radius: 20)
+                )
+                .padding(.horizontal)
 
-            // 🍎 APPLE SIGN IN
-            #if canImport(AuthenticationServices)
-            SignInWithAppleButton(.signIn) { request in
-                let nonce = randomNonceString()
-                currentNonce = nonce
-                request.requestedScopes = [.fullName, .email]
-                request.nonce = sha256(nonce)
-            } onCompletion: { result in
-                Task { await handleAppleSignIn(result) }
+                Spacer()
             }
-            .frame(height: 50)
-            #endif
-
-            Spacer()
         }
-        .padding()
         .alert("Sign-In Error", isPresented: $showError) {
             Button("OK", role: .cancel) {}
         } message: {
@@ -70,9 +116,8 @@ struct LoginView: View {
         }
     }
 
-    // MARK: - GOOGLE SIGN IN (iOS + macOS)
+    // MARK: - GOOGLE SIGN IN
     private func signInWithGoogle() async {
-
         guard let clientID = FirebaseApp.app()?.options.clientID else {
             await showError("Missing Google client ID.")
             return
@@ -134,161 +179,6 @@ struct LoginView: View {
         }
     }
 
-    // MARK: - APPLE SIGN IN
-    #if canImport(AuthenticationServices)
-    private func handleAppleSignIn(
-        _ result: Result<ASAuthorization, Error>
-    ) async {
-
-        do {
-            guard
-                case .success(let auth) = result,
-                let credential =
-                    auth.credential as? ASAuthorizationAppleIDCredential,
-                let nonce = currentNonce,
-                let tokenData = credential.identityToken,
-                let idToken =
-                    String(data: tokenData, encoding: .utf8)
-            else {
-                await showError("Apple Sign-In failed.")
-                return
-            }
-
-            let firebaseCredential =
-                OAuthProvider.credential(
-                    providerID: AuthProviderID.apple,
-                    idToken: idToken,
-                    rawNonce: nonce
-                )
-
-            let authResult =
-                try await Auth.auth().signIn(
-                    with: firebaseCredential
-                )
-
-            await fetchUserAndLogin(
-                uid: authResult.user.uid,
-                defaultUsername:
-                    credential.fullName?.givenName,
-                googleImageURL: nil
-            )
-
-        } catch {
-            await showError(error.localizedDescription)
-        }
-    }
-    #endif
-
-    // MARK: - FIRESTORE USER SETUP (🔥 FIXED)
-    private func fetchUserAndLogin(
-        uid: String,
-        defaultUsername: String?,
-        googleImageURL: String?
-    ) async {
-
-        let db = Firestore.firestore()
-        let userRef = db.collection("users").document(uid)
-        let counterRef =
-            db.collection("counter").document("users")
-
-        do {
-            let userSnap =
-                try await userRef.getDocument()
-
-            // ✅ Existing user
-            if userSnap.exists {
-                let data = userSnap.data() ?? [:]
-                await MainActor.run {
-                    appState.isLoggedIn = true
-                    appState.currentUsername =
-                        data["username"] as? String ?? "User"
-                    appState.profileImageURL =
-                        data["profilePic"] as? String
-                }
-                return
-            }
-
-            // 🖼 Upload Google profile pic to GitHub (NEW USER ONLY)
-            var finalProfilePic = ""
-
-            if let googleImageURL {
-                finalProfilePic =
-                    try await uploadGoogleProfileImage(
-                        imageURL: googleImageURL,
-                        uid: uid
-                    )
-            }
-
-            // 🔥 New user (atomic counter)
-            _ = try await db.runTransaction {
-                transaction, errorPointer in
-
-                let counterSnap: DocumentSnapshot
-                do {
-                    counterSnap =
-                        try transaction.getDocument(counterRef)
-                } catch {
-                    errorPointer?.pointee =
-                        error as NSError
-                    return nil
-                }
-
-                let last =
-                    counterSnap.data()?["lastUserNumber"]
-                        as? Int ?? 0
-                let next = last + 1
-
-                transaction.updateData(
-                    ["lastUserNumber": next],
-                    forDocument: counterRef
-                )
-
-                transaction.setData([
-                    "userNumber": next,
-                    "username":
-                        defaultUsername ?? "User\(next)",
-                    "profilePic": finalProfilePic,
-                    "createdAt": Timestamp()
-                ], forDocument: userRef)
-
-                return nil
-            }
-
-            await MainActor.run {
-                appState.isLoggedIn = true
-                appState.currentUsername =
-                    defaultUsername ?? "User"
-                appState.profileImageURL =
-                    finalProfilePic
-            }
-
-        } catch {
-            await showError(error.localizedDescription)
-        }
-    }
-
-    // MARK: - GOOGLE IMAGE → GITHUB
-    private func uploadGoogleProfileImage(
-        imageURL: String,
-        uid: String
-    ) async throws -> String {
-
-        let (data, _) = try await URLSession.shared.data(
-            from: URL(string: imageURL)!
-        )
-
-        let tempURL = FileManager.default
-            .temporaryDirectory
-            .appendingPathComponent("\(uid).jpg")
-
-        try data.write(to: tempURL)
-
-        return try await GitHubUploader.shared.uploadImage(
-            fileURL: tempURL,
-            filename: "\(uid).jpg"
-        )
-    }
-
     // MARK: - HELPERS
     private func showError(_ message: String) async {
         await MainActor.run {
@@ -297,18 +187,11 @@ struct LoginView: View {
         }
     }
 
-    private func randomNonceString(
-        length: Int = 32
-    ) -> String {
-        let charset =
-            Array(
-                "0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._"
-            )
-        return String(
-            (0..<length).compactMap {
-                _ in charset.randomElement()
-            }
+    private func randomNonceString(length: Int = 32) -> String {
+        let charset = Array(
+            "0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._"
         )
+        return String((0..<length).compactMap { _ in charset.randomElement() })
     }
 
     private func sha256(_ input: String) -> String {
