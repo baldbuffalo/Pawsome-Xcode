@@ -1,10 +1,9 @@
-// remeder to add saving of post images to github
 import SwiftUI
 
 struct HomeView: View {
     @Binding var isLoggedIn: Bool
     @Binding var currentUsername: String
-    @Binding var profileImageURL: String?
+    @Binding var profileImageURL: String?   // still passed, just not used
 
     // 🔑 GLOBAL FLOW (from PawsomeApp)
     @Binding var activeFlow: PawsomeApp.HomeFlow?
@@ -13,34 +12,13 @@ struct HomeView: View {
         NavigationStack {
             VStack(spacing: 16) {
 
-                // 🔝 TOP BAR
+                // 🔝 TOP BAR (NO PROFILE PIC)
                 HStack {
                     Text("Welcome, \(currentUsername)")
                         .font(.title2)
                         .fontWeight(.semibold)
 
                     Spacer()
-
-                    if let urlString = profileImageURL,
-                       let url = URL(string: urlString) {
-                        AsyncImage(url: url) { image in
-                            image
-                                .resizable()
-                                .scaledToFill()
-                        } placeholder: {
-                            Image(systemName: "person.crop.circle.fill")
-                                .resizable()
-                                .scaledToFit()
-                                .foregroundColor(.gray)
-                        }
-                        .frame(width: 40, height: 40)
-                        .clipShape(Circle())
-                    } else {
-                        Image(systemName: "person.crop.circle.fill")
-                            .resizable()
-                            .frame(width: 40, height: 40)
-                            .foregroundColor(.gray)
-                    }
                 }
                 .padding(.horizontal)
                 .padding(.top)
@@ -81,7 +59,7 @@ struct HomeView: View {
                 )
             ) {
                 ScanView(
-                    activeHomeFlow: $activeFlow,   // ⚠️ ORDER MATTERS
+                    activeHomeFlow: $activeFlow,
                     username: currentUsername
                 )
             }

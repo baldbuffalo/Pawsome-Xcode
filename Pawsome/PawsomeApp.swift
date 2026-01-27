@@ -20,11 +20,8 @@ struct PawsomeApp: App {
         WindowGroup {
             ZStack(alignment: .bottom) {
                 if appState.isLoggedIn {
-                    MainTabView(
-                        appState: appState,
-                        activeHomeFlow: $activeHomeFlow
-                    )
-                    .environmentObject(appState)
+                    MainTabView(appState: appState, activeHomeFlow: $activeHomeFlow)
+                        .environmentObject(appState)
                 } else {
                     LoginView(appState: appState)
                 }
@@ -49,6 +46,8 @@ struct PawsomeApp: App {
         @Published var profileImageURL: String?
         @Published var selectedImage: PlatformImage? = nil
 
+        private var authListener: AuthStateDidChangeListenerHandle?  // 👈 store listener
+
         lazy var db: Firestore = Firestore.firestore()
 
         // MARK: - LOGIN / LOGOUT
@@ -59,6 +58,11 @@ struct PawsomeApp: App {
         }
 
         func logout() {
+            if let handle = authListener {
+                Auth.auth().removeStateDidChangeListener(handle)
+                authListener = nil
+            }
+
             do { try Auth.auth().signOut() } catch { print("❌ Sign out failed:", error) }
             isLoggedIn = false
             currentUsername = ""
@@ -68,7 +72,7 @@ struct PawsomeApp: App {
 
         // MARK: - OBSERVE AUTH STATE
         func observeAuthState() {
-            Auth.auth().addStateDidChangeListener { _, user in
+            authListener = Auth.auth().addStateDidChangeListener { _, user in
                 guard let user else {
                     self.isLoggedIn = false
                     return

@@ -65,9 +65,7 @@ struct ProfileView: View {
             onCompletion: handleImagePick
         )
         .onAppear {
-            Task { @MainActor in
-                username = appState.currentUsername
-            }
+            username = appState.currentUsername
         }
     }
 
@@ -121,22 +119,17 @@ struct ProfileView: View {
                     filename: "\(uid).jpg"
                 )
 
-                // Update Firestore FIRST
+                // Update Firestore
                 try await saveProfilePicURL(newURL)
 
-                // Delete old image ONLY if user-owned
+                // Delete old image if user-owned
                 if let oldURL,
-                   isUserOwnedGitHubImage(oldURL, uid: uid) {
+                   isUserOwnedGitHubImage(oldURL, uid: uid),
+                   let filename = URL(string: oldURL)?.lastPathComponent {
 
-                    let filename =
-                        URL(string: oldURL)?.lastPathComponent
-
-                    if let filename {
-                        try? await GitHubUploader.shared.deleteImage(
-                            filename: filename,
-                            sha: "" // safe no-op for now
-                        )
-                    }
+                    try? await GitHubUploader.shared.deleteImage(
+                        filename: filename
+                    )
                 }
 
                 await MainActor.run {
@@ -153,8 +146,7 @@ struct ProfileView: View {
 
     // MARK: - Save Username
     private func saveUsername() {
-        let trimmed =
-            username.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed = username.trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard
             !trimmed.isEmpty,
@@ -185,15 +177,10 @@ struct ProfileView: View {
     }
 
     // MARK: - Ownership Check
-    private func isUserOwnedGitHubImage(
-        _ urlString: String,
-        uid: String
-    ) -> Bool {
-
+    private func isUserOwnedGitHubImage(_ urlString: String, uid: String) -> Bool {
         guard let url = URL(string: urlString) else { return false }
-
-        return url.host == "raw.githubusercontent.com" ||
-               url.host == "github.com"
+        return url.host == "raw.githubusercontent.com"
+            || url.host == "github.com"
             && url.path.contains("Pawsome-assets")
             && url.lastPathComponent.hasPrefix(uid)
     }
