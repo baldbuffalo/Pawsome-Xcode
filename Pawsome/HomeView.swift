@@ -49,7 +49,7 @@ struct HomeView: View {
                     .padding(.horizontal)
                     .padding(.top)
 
-                    // ➕ CREATE POST BUTTON
+                    // ➕ CREATE POST BUTTON (NO WHITE BACKGROUND)
                     Button {
                         activeFlow = .scan
                     } label: {
@@ -73,6 +73,7 @@ struct HomeView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 18))
                         .shadow(color: .purple.opacity(0.4), radius: 10, y: 5)
                     }
+                    .buttonStyle(.plain) // ✅ THIS removes the white background
                     .padding(.horizontal)
 
                     // 📰 FEED

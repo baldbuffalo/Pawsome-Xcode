@@ -1,125 +1,188 @@
 import SwiftUI
+
 #if os(iOS)
 import PhotosUI
+import UIKit
+#elseif os(macOS)
+import AppKit
 #endif
 
 struct ScanView: View {
     @EnvironmentObject var appState: PawsomeApp.AppState
     @Binding var activeHomeFlow: PawsomeApp.HomeFlow?
-
     var username: String
 
+    // MARK: - State
     @State private var showSourcePicker = false
     @State private var showCameraPicker = false
     @State private var showPhotoPicker = false
-    @State private var isPickingFile = false
+    @State private var showFilePicker = false
 
     var body: some View {
-        VStack(spacing: 20) {
-            Button("Choose Image") {
-                showSourcePicker = true
-            }
-            .padding()
-            .foregroundColor(.white)
-            .background(Color.blue)
-            .cornerRadius(10)
-            .confirmationDialog("Select Image Source", isPresented: $showSourcePicker, titleVisibility: .visible) {
-                #if os(iOS)
-                Button("Camera") { showCameraPicker = true }
-                Button("Photos") { showPhotoPicker = true }
-                #elseif os(macOS)
-                Button("Photos") { Task { await pickFile() } }
-                #endif
-                Button("Cancel", role: .cancel) {}
+        ZStack {
+            LinearGradient(
+                colors: [.purple.opacity(0.25), .blue.opacity(0.25)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+
+            VStack(spacing: 24) {
+
+                // ⬅️ BACK BUTTON
+                HStack {
+                    Button {
+                        // Dismiss any open modals first
+                        showSourcePicker = false
+                        showCameraPicker = false
+                        showPhotoPicker = false
+                        showFilePicker = false
+
+                        // Then go back
+                        activeHomeFlow = nil
+                    } label: {
+                        Label("Back", systemImage: "chevron.left")
+                            .font(.headline)
+                    }
+
+                    Spacer()
+                }
+                .padding()
+
+                Spacer()
+
+                // 📸 IMAGE SELECTION CARD
+                VStack(spacing: 16) {
+                    Image(systemName: "camera.fill")
+                        .font(.system(size: 42))
+                        .foregroundStyle(.blue)
+
+                    Text("Choose an image")
+                        .font(.title2)
+                        .fontWeight(.semibold)
+
+                    Button {
+                        showSourcePicker = true
+                    } label: {
+                        Text("Choose Image")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(
+                                LinearGradient(
+                                    colors: [.blue, .purple],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .foregroundColor(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                    }
+                }
+                .padding()
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 24))
+                .padding(.horizontal)
+
+                Spacer()
             }
         }
-        .padding()
-        .onAppear { activeHomeFlow = .scan }
-        #if os(iOS)
+
+        // MARK: - iOS Native Action Sheet
+        .confirmationDialog("Select Source",
+                            isPresented: $showSourcePicker,
+                            titleVisibility: .visible) {
+            Button("Photo Library") { showPhotoPicker = true }
+            Button("Take Photo or Video") { showCameraPicker = true }
+            Button("Choose File") { showFilePicker = true }
+            // ⚠️ Remove explicit Cancel button — iOS shows a system Cancel button automatically
+        }
+
+        // MARK: - Camera Sheet
         .sheet(isPresented: $showCameraPicker) {
-            ImagePicker(sourceType: .camera) { img in
-                guard let img = img else { return }
-                DispatchQueue.main.async {
-                    appState.selectedImage = img
-                    activeHomeFlow = .form
-                }
+            #if os(iOS)
+            ImagePicker(sourceType: .camera) { image in
+                guard let image else { return }
+                appState.selectedImage = image
+                activeHomeFlow = .form
+            }
+            #elseif os(macOS)
+            macOSOpenPanel(useContinuityCamera: true)
+            #endif
+        }
+
+        // MARK: - Photo Library Sheet
+        .sheet(isPresented: $showPhotoPicker) {
+            #if os(iOS)
+            ImagePicker(sourceType: .photoLibrary) { image in
+                guard let image else { return }
+                appState.selectedImage = image
+                activeHomeFlow = .form
+            }
+            #elseif os(macOS)
+            macOSOpenPanel(useContinuityCamera: false)
+            #endif
+        }
+
+        // MARK: - File Importer
+        #if os(iOS)
+        .fileImporter(
+            isPresented: $showFilePicker,
+            allowedContentTypes: [.image],
+            allowsMultipleSelection: false
+        ) { result in
+            if case .success(let urls) = result,
+               let url = urls.first,
+               let image = UIImage(contentsOfFile: url.path) {
+                appState.selectedImage = image
+                activeHomeFlow = .form
             }
         }
-        .sheet(isPresented: $showPhotoPicker) {
-            ImagePicker(sourceType: .photoLibrary) { img in
-                guard let img = img else { return }
-                DispatchQueue.main.async {
-                    appState.selectedImage = img
-                    activeHomeFlow = .form
-                }
-            }
+        #elseif os(macOS)
+        .onChange(of: showFilePicker) { _, newValue in
+            if newValue { openFileMac() }
         }
         #endif
     }
 
+    // MARK: - macOS Helpers
     #if os(macOS)
-    @MainActor
-    private func pickFile() async {
-        guard !isPickingFile else { return }
-        isPickingFile = true
+    private func macOSOpenPanel(useContinuityCamera: Bool) -> some View {
+        EmptyView().onAppear {
+            let panel = NSOpenPanel()
+            panel.allowedContentTypes = [.image]
+            panel.allowsMultipleSelection = false
+            panel.message = useContinuityCamera
+                ? "Take a photo using Continuity Camera or select an image"
+                : "Choose a photo"
 
+            panel.begin { response in
+                if response == .OK,
+                   let url = panel.urls.first,
+                   let image = NSImage(contentsOf: url) {
+                    appState.selectedImage = image
+                    activeHomeFlow = .form
+                }
+                showCameraPicker = false
+                showPhotoPicker = false
+            }
+        }
+    }
+
+    private func openFileMac() {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.image]
         panel.allowsMultipleSelection = false
-        panel.canChooseDirectories = false
 
-        let response = await withCheckedContinuation { cont in
-            panel.begin { r in cont.resume(returning: r) }
-        }
-
-        if response == .OK, let url = panel.urls.first, let img = PlatformImage(contentsOf: url) {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                appState.selectedImage = img
+        panel.begin { response in
+            if response == .OK,
+               let url = panel.urls.first,
+               let image = NSImage(contentsOf: url) {
+                appState.selectedImage = image
                 activeHomeFlow = .form
             }
+            showFilePicker = false
         }
-
-        isPickingFile = false
     }
     #endif
 }
-
-#if os(iOS)
-struct ImagePicker: UIViewControllerRepresentable {
-    enum SourceType { case camera, photoLibrary }
-    var sourceType: SourceType
-    var completion: (PlatformImage?) -> Void
-
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = UIImagePickerController()
-        picker.delegate = context.coordinator
-        picker.sourceType = sourceType == .camera ? .camera : .photoLibrary
-        return picker
-    }
-
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
-    func makeCoordinator() -> Coordinator { Coordinator(self) }
-
-    class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
-        let parent: ImagePicker
-        init(_ parent: ImagePicker) { self.parent = parent }
-
-        func imagePickerController(
-            _ picker: UIImagePickerController,
-            didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]
-        ) {
-            if let img = info[.originalImage] as? UIImage ?? info[.editedImage] as? UIImage {
-                parent.completion(img)
-            } else {
-                parent.completion(nil)
-            }
-            picker.dismiss(animated: true)
-        }
-
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            parent.completion(nil)
-            picker.dismiss(animated: true)
-        }
-    }
-}
-#endif
