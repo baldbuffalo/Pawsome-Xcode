@@ -3,55 +3,107 @@ import SwiftUI
 struct HomeView: View {
     @Binding var isLoggedIn: Bool
     @Binding var currentUsername: String
-    @Binding var profileImageURL: String?   // still passed, just not used
+    @Binding var profileImageURL: String?
 
-    // 🔑 GLOBAL FLOW (from PawsomeApp)
+    // 🔑 GLOBAL FLOW
     @Binding var activeFlow: PawsomeApp.HomeFlow?
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 16) {
+            ZStack {
+                // 🌈 BACKGROUND GRADIENT
+                LinearGradient(
+                    colors: [
+                        Color.purple.opacity(0.25),
+                        Color.blue.opacity(0.25),
+                        Color.cyan.opacity(0.2)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
 
-                // 🔝 TOP BAR (NO PROFILE PIC)
-                HStack {
-                    Text("Welcome, \(currentUsername)")
-                        .font(.title2)
-                        .fontWeight(.semibold)
+                VStack(spacing: 20) {
+
+                    // 🔝 HEADER
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Welcome back 👋")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        Text(currentUsername)
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [.purple, .blue],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding()
+                    .background(.ultraThinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                    .padding(.horizontal)
+                    .padding(.top)
+
+                    // ➕ CREATE POST BUTTON
+                    Button {
+                        activeFlow = .scan
+                    } label: {
+                        HStack {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.title2)
+
+                            Text("Create a new post")
+                                .font(.headline)
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(
+                            LinearGradient(
+                                colors: [.pink, .purple, .blue],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                        .shadow(color: .purple.opacity(0.4), radius: 10, y: 5)
+                    }
+                    .padding(.horizontal)
+
+                    // 📰 FEED
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("🐾 Your Feed")
+                            .font(.headline)
+
+                        VStack(spacing: 8) {
+                            Image(systemName: "tray")
+                                .font(.largeTitle)
+                                .foregroundColor(.gray)
+
+                            Text("No posts yet")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+
+                            Text("Be the first to drop something 👀")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                    }
+                    .padding(.horizontal)
 
                     Spacer()
                 }
-                .padding(.horizontal)
-                .padding(.top)
-
-                // ➕ CREATE POST BUTTON
-                Button {
-                    activeFlow = .scan
-                } label: {
-                    Label("Create a new post", systemImage: "plus.circle.fill")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.blue)
-                .padding(.horizontal)
-
-                // 📰 FEED PLACEHOLDER
-                ScrollView {
-                    VStack(spacing: 20) {
-                        Text("🐾 Your Feed")
-                            .font(.headline)
-                            .padding(.top, 10)
-
-                        Text("No posts yet 👀")
-                            .foregroundColor(.gray)
-                            .font(.subheadline)
-                    }
-                    .padding()
-                }
-
-                Spacer()
             }
-            // 🚀 FLOW-DRIVEN NAVIGATION
+            // 🚀 FLOW NAV
             .navigationDestination(
                 isPresented: Binding(
                     get: { activeFlow == .scan },
