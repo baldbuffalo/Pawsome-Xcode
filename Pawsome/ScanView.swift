@@ -5,6 +5,7 @@ import PhotosUI
 import UIKit
 #elseif os(macOS)
 import AppKit
+import AVFoundation
 #endif
 
 struct ScanView: View {
@@ -17,6 +18,11 @@ struct ScanView: View {
     @State private var showCameraPicker = false
     @State private var showPhotoPicker = false
     @State private var showFilePicker = false
+
+    #if os(macOS)
+    @State private var isConnectingContinuityCamera = false
+    @State private var continuityCameraDeviceName: String = "iPhone"
+    #endif
 
     var body: some View {
         ZStack {
@@ -32,19 +38,15 @@ struct ScanView: View {
                 // ⬅️ BACK BUTTON
                 HStack {
                     Button {
-                        // Dismiss any open modals first
                         showSourcePicker = false
                         showCameraPicker = false
                         showPhotoPicker = false
                         showFilePicker = false
-
-                        // Then go back
                         activeHomeFlow = nil
                     } label: {
                         Label("Back", systemImage: "chevron.left")
                             .font(.headline)
                     }
-
                     Spacer()
                 }
                 .padding()
@@ -86,16 +88,29 @@ struct ScanView: View {
 
                 Spacer()
             }
-        }
 
-        // MARK: - iOS Native Action Sheet
-        .confirmationDialog("Select Source",
-                            isPresented: $showSourcePicker,
-                            titleVisibility: .visible) {
+            // MARK: - Continuity Camera Overlay (macOS)
+            #if os(macOS)
+            if isConnectingContinuityCamera {
+                VStack(spacing: 12) {
+                    ProgressView()
+                    Text("Connecting to \(continuityCameraDeviceName)...")
+                        .font(.headline)
+                }
+                .padding()
+                .frame(width: 300, height: 100)
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .shadow(radius: 8)
+            }
+            #endif
+        }
+        // MARK: - iOS Action Sheet
+        .confirmationDialog("Select Source", isPresented: $showSourcePicker) {
             Button("Photo Library") { showPhotoPicker = true }
             Button("Take Photo or Video") { showCameraPicker = true }
             Button("Choose File") { showFilePicker = true }
-            // ⚠️ Remove explicit Cancel button — iOS shows a system Cancel button automatically
+            Button("Cancel", role: .cancel) {}
         }
 
         // MARK: - Camera Sheet
@@ -149,23 +164,48 @@ struct ScanView: View {
     #if os(macOS)
     private func macOSOpenPanel(useContinuityCamera: Bool) -> some View {
         EmptyView().onAppear {
-            let panel = NSOpenPanel()
-            panel.allowedContentTypes = [.image]
-            panel.allowsMultipleSelection = false
-            panel.message = useContinuityCamera
-                ? "Take a photo using Continuity Camera or select an image"
-                : "Choose a photo"
-
-            panel.begin { response in
-                if response == .OK,
-                   let url = panel.urls.first,
-                   let image = NSImage(contentsOf: url) {
-                    appState.selectedImage = image
-                    activeHomeFlow = .form
-                }
-                showCameraPicker = false
-                showPhotoPicker = false
+            guard useContinuityCamera else {
+                openFileMac()
+                return
             }
+
+            // Step 1: Start connecting
+            isConnectingContinuityCamera = true
+
+            // Step 2: Detect iPhone dynamically
+            if let deviceName = AVCaptureDevice.DiscoverySession(
+                deviceTypes: [.builtInDualCamera, .builtInWideAngleCamera, .builtInUltraWideCamera],
+                mediaType: .video,
+                position: .unspecified
+            ).devices.first?.localizedName {
+                continuityCameraDeviceName = deviceName
+            } else {
+                continuityCameraDeviceName = "iPhone"
+            }
+
+            // Simulate connecting delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                isConnectingContinuityCamera = false
+                launchContinuityCameraPreview()
+            }
+        }
+    }
+
+    private func launchContinuityCameraPreview() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.image]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.title = "Continuity Camera Preview"
+        panel.message = "Connected to \(continuityCameraDeviceName)"
+
+        panel.begin { response in
+            if response == .OK, let url = panel.urls.first,
+               let image = NSImage(contentsOf: url) {
+                appState.selectedImage = image
+                activeHomeFlow = .form
+            }
+            showCameraPicker = false
         }
     }
 
