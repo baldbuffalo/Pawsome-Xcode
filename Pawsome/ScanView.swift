@@ -17,13 +17,18 @@ struct ScanView: View {
     @State private var showSourcePicker = false
     @State private var showCameraPicker = false
     @State private var showPhotoPicker = false
-    @State private var showFilePicker = false
 
     #if os(macOS)
     @State private var isConnectingContinuityCamera = false
+    @State private var waitingForPicture = false
     @State private var continuityCameraDeviceName: String = "iPhone"
     @State private var overlayScale: CGFloat = 0.9
     @State private var overlayOpacity: Double = 0
+
+    // Instant Capture
+    @State private var isShowingLivePreview = false
+    @State private var capturedImage: NSImage?
+    private let cameraController = MacContinuityCameraController()
     #endif
 
     var body: some View {
@@ -43,8 +48,11 @@ struct ScanView: View {
                         showSourcePicker = false
                         showCameraPicker = false
                         showPhotoPicker = false
-                        showFilePicker = false
                         activeHomeFlow = nil
+
+                        #if os(macOS)
+                        cameraController.stopSession()
+                        #endif
                     } label: {
                         Label("Back", systemImage: "chevron.left")
                             .font(.headline)
@@ -55,7 +63,7 @@ struct ScanView: View {
 
                 Spacer()
 
-                // 📸 Card
+                // 📸 Image selection card
                 VStack(spacing: 16) {
                     Image(systemName: "camera.fill")
                         .font(.system(size: 42))
@@ -91,19 +99,26 @@ struct ScanView: View {
                 Spacer()
             }
 
-            // MARK: - Continuity Camera Overlay (macOS)
+            // MARK: - macOS Overlays
             #if os(macOS)
-            if isConnectingContinuityCamera {
+            if isConnectingContinuityCamera || waitingForPicture {
                 VStack(spacing: 14) {
                     ProgressView()
                         .scaleEffect(1.1)
 
-                    Text("Connecting to \(continuityCameraDeviceName)…")
-                        .font(.headline)
-
-                    Text("Unlock your iPhone and keep it nearby")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                    if isConnectingContinuityCamera {
+                        Text("Preparing iPhone Camera…")
+                            .font(.headline)
+                        Text("Unlock your iPhone and keep it nearby")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("Waiting for picture…")
+                            .font(.headline)
+                        Text("Take a photo on your iPhone")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 .padding(24)
                 .frame(width: 320)
@@ -118,7 +133,40 @@ struct ScanView: View {
                         overlayOpacity = 1
                     }
                 }
-                .transition(.scale.combined(with: .opacity))
+            }
+
+            if isShowingLivePreview {
+                VStack {
+                    MacCameraPreviewView(session: cameraController.session)
+                        .frame(width: 400, height: 300)
+                        .cornerRadius(16)
+                        .shadow(radius: 8)
+
+                    HStack {
+                        Button("Capture") {
+                            cameraController.capturePhoto { image in
+                                if let image = image {
+                                    capturedImage = image
+                                    appState.selectedImage = image
+                                    activeHomeFlow = .form
+                                }
+                            }
+                        }
+                        .padding()
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+
+                        Button("Cancel") {
+                            cameraController.stopSession()
+                            isShowingLivePreview = false
+                        }
+                        .padding()
+                        .background(Color.red)
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+                    }
+                }
             }
             #endif
         }
@@ -126,53 +174,45 @@ struct ScanView: View {
         // MARK: - Source Picker
         .confirmationDialog("Select Source", isPresented: $showSourcePicker) {
             Button("Photo Library") { showPhotoPicker = true }
-            Button("Take Photo or Video") { showCameraPicker = true }
-            Button("Choose File") { showFilePicker = true }
+
+            Button {
+                showCameraPicker = true
+            } label: {
+                #if os(macOS)
+                Text("Capture from iPhone")
+                #else
+                Text("Take Photo")
+                #endif
+            }
+
             Button("Cancel", role: .cancel) {}
         }
 
-        // MARK: - Camera
+        // MARK: - iOS Camera & Photo Library
+        #if os(iOS)
         .sheet(isPresented: $showCameraPicker) {
-            #if os(iOS)
             ImagePicker(sourceType: .camera) { image in
                 guard let image else { return }
                 appState.selectedImage = image
                 activeHomeFlow = .form
             }
-            #elseif os(macOS)
-            macOSOpenPanel(useContinuityCamera: true)
-            #endif
         }
-
-        // MARK: - Photo Library
         .sheet(isPresented: $showPhotoPicker) {
-            #if os(iOS)
             ImagePicker(sourceType: .photoLibrary) { image in
                 guard let image else { return }
                 appState.selectedImage = image
                 activeHomeFlow = .form
             }
-            #elseif os(macOS)
-            macOSOpenPanel(useContinuityCamera: false)
-            #endif
+        }
+        #endif
+
+        // MARK: - macOS Triggers
+        #if os(macOS)
+        .onChange(of: showCameraPicker) { _, newValue in
+            if newValue { startContinuityCameraFlow() }
         }
 
-        // MARK: - File Importer
-        #if os(iOS)
-        .fileImporter(
-            isPresented: $showFilePicker,
-            allowedContentTypes: [.image],
-            allowsMultipleSelection: false
-        ) { result in
-            if case .success(let urls) = result,
-               let url = urls.first,
-               let image = UIImage(contentsOfFile: url.path) {
-                appState.selectedImage = image
-                activeHomeFlow = .form
-            }
-        }
-        #elseif os(macOS)
-        .onChange(of: showFilePicker) { _, newValue in
+        .onChange(of: showPhotoPicker) { _, newValue in
             if newValue { openFileMac() }
         }
         #endif
@@ -180,61 +220,20 @@ struct ScanView: View {
 
     // MARK: - macOS Helpers
     #if os(macOS)
-    private func macOSOpenPanel(useContinuityCamera: Bool) -> some View {
-        EmptyView().onAppear {
-            guard useContinuityCamera else {
-                openFileMac()
-                return
+    private func startContinuityCameraFlow() {
+        isConnectingContinuityCamera = true
+        waitingForPicture = false
+        overlayScale = 0.9
+        overlayOpacity = 0
+
+        cameraController.startSession()
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                isConnectingContinuityCamera = false
+                waitingForPicture = true
+                isShowingLivePreview = true
             }
-
-            isConnectingContinuityCamera = true
-
-            let devices = AVCaptureDevice.DiscoverySession(
-                deviceTypes: [.external, .builtInWideAngleCamera],
-                mediaType: .video,
-                position: .unspecified
-            ).devices
-
-            if let iphone = devices.first(where: {
-                $0.localizedName.lowercased().contains("iphone")
-            }) {
-                continuityCameraDeviceName = iphone.localizedName
-            } else if let first = devices.first {
-                continuityCameraDeviceName = first.localizedName
-            } else {
-                continuityCameraDeviceName = "iPhone"
-            }
-
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                withAnimation(.easeOut(duration: 0.2)) {
-                    overlayOpacity = 0
-                    overlayScale = 0.95
-                }
-
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                    isConnectingContinuityCamera = false
-                    launchContinuityCameraPreview()
-                }
-            }
-        }
-    }
-
-    private func launchContinuityCameraPreview() {
-        let panel = NSOpenPanel()
-        panel.allowedContentTypes = [.image]
-        panel.allowsMultipleSelection = false
-        panel.canChooseDirectories = false
-        panel.title = "Continuity Camera"
-        panel.message = "Connected to \(continuityCameraDeviceName)"
-
-        panel.begin { response in
-            if response == .OK,
-               let url = panel.urls.first,
-               let image = NSImage(contentsOf: url) {
-                appState.selectedImage = image
-                activeHomeFlow = .form
-            }
-            showCameraPicker = false
         }
     }
 
@@ -250,7 +249,8 @@ struct ScanView: View {
                 appState.selectedImage = image
                 activeHomeFlow = .form
             }
-            showFilePicker = false
+
+            showPhotoPicker = false
         }
     }
     #endif
