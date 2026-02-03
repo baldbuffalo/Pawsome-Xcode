@@ -5,7 +5,7 @@ struct HomeView: View {
     @Binding var currentUsername: String
     @Binding var profileImageURL: String?
 
-    // 🔑 GLOBAL FLOW
+    // 🔑 GLOBAL FLOW CONTROLLER
     @Binding var activeFlow: PawsomeApp.HomeFlow?
 
     var body: some View {
@@ -49,7 +49,7 @@ struct HomeView: View {
                     .padding(.horizontal)
                     .padding(.top)
 
-                    // ➕ CREATE POST BUTTON (NO WHITE BACKGROUND)
+                    // ➕ CREATE POST BUTTON
                     Button {
                         activeFlow = .scan
                     } label: {
@@ -73,10 +73,10 @@ struct HomeView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 18))
                         .shadow(color: .purple.opacity(0.4), radius: 10, y: 5)
                     }
-                    .buttonStyle(.plain) // ✅ THIS removes the white background
+                    .buttonStyle(.plain)
                     .padding(.horizontal)
 
-                    // 📰 FEED
+                    // 📰 FEED PLACEHOLDER
                     VStack(alignment: .leading, spacing: 12) {
                         Text("🐾 Your Feed")
                             .font(.headline)
@@ -104,11 +104,16 @@ struct HomeView: View {
                     Spacer()
                 }
             }
-            // 🚀 FLOW NAV
+
+            // 🚀 NAVIGATION FLOW (FIXED & STABLE)
             .navigationDestination(
                 isPresented: Binding(
                     get: { activeFlow == .scan },
-                    set: { if !$0 { activeFlow = nil } }
+                    set: { isPresented in
+                        if !isPresented {
+                            activeFlow = nil
+                        }
+                    }
                 )
             ) {
                 ScanView(
