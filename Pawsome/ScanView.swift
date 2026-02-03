@@ -42,16 +42,24 @@ struct ScanView: View {
 
             VStack(spacing: 24) {
 
-                // ⬅️ Back
+                // ⬅️ Back button
                 HStack {
                     Button {
+                        // Dismiss ScanView and go to HomeView
+                        activeHomeFlow = nil
+
+                        // Reset local states
                         showSourcePicker = false
                         showCameraPicker = false
                         showPhotoPicker = false
-                        activeHomeFlow = nil
 
                         #if os(macOS)
                         cameraController.stopSession()
+                        isShowingLivePreview = false
+                        isConnectingContinuityCamera = false
+                        waitingForPicture = false
+                        overlayOpacity = 0
+                        overlayScale = 0.9
                         #endif
                     } label: {
                         Label("Back", systemImage: "chevron.left")
@@ -160,6 +168,7 @@ struct ScanView: View {
                         Button("Cancel") {
                             cameraController.stopSession()
                             isShowingLivePreview = false
+                            waitingForPicture = false
                         }
                         .padding()
                         .background(Color.red)
@@ -252,6 +261,75 @@ struct ScanView: View {
 
             showPhotoPicker = false
         }
+    }
+
+    // MARK: - Mac Instant Capture Controller
+    class MacContinuityCameraController: NSObject, AVCapturePhotoCaptureDelegate {
+        let session = AVCaptureSession()
+        private var photoOutput = AVCapturePhotoOutput()
+        private var captureCallback: ((NSImage?) -> Void)?
+
+        func startSession() {
+            guard session.inputs.isEmpty else { return }
+
+            session.beginConfiguration()
+            photoOutput = AVCapturePhotoOutput()
+
+            if let device = AVCaptureDevice.DiscoverySession(
+                deviceTypes: [.external, .builtInWideAngleCamera],
+                mediaType: .video,
+                position: .unspecified
+            ).devices.first(where: { $0.localizedName.lowercased().contains("iphone") }) {
+
+                do {
+                    let input = try AVCaptureDeviceInput(device: device)
+                    if session.canAddInput(input) { session.addInput(input) }
+                    if session.canAddOutput(photoOutput) { session.addOutput(photoOutput) }
+                    session.commitConfiguration()
+                    session.startRunning()
+                } catch {
+                    print("Failed to start session: \(error)")
+                }
+            }
+        }
+
+        func stopSession() {
+            session.stopRunning()
+            session.inputs.forEach { session.removeInput($0) }
+            session.outputs.forEach { session.removeOutput($0) }
+        }
+
+        func capturePhoto(completion: @escaping (NSImage?) -> Void) {
+            captureCallback = completion
+            let settings = AVCapturePhotoSettings()
+            photoOutput.capturePhoto(with: settings, delegate: self)
+        }
+
+        func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
+            guard let data = photo.fileDataRepresentation(), let nsImage = NSImage(data: data) else {
+                captureCallback?(nil)
+                return
+            }
+            captureCallback?(nsImage)
+        }
+    }
+
+    // MARK: - Mac Camera Preview View
+    struct MacCameraPreviewView: NSViewRepresentable {
+        let session: AVCaptureSession
+
+        func makeNSView(context: Context) -> NSView {
+            let view = NSView(frame: .zero)
+            let previewLayer = AVCaptureVideoPreviewLayer(session: session)
+            previewLayer.videoGravity = .resizeAspectFill
+            previewLayer.frame = view.bounds
+            previewLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
+            view.layer = previewLayer
+            view.wantsLayer = true
+            return view
+        }
+
+        func updateNSView(_ nsView: NSView, context: Context) {}
     }
     #endif
 }
