@@ -45,9 +45,6 @@ struct ScanView: View {
                 // ⬅️ Back button
                 HStack {
                     Button {
-                        // Dismiss ScanView and go to HomeView
-                        activeHomeFlow = nil
-
                         // Reset local states
                         showSourcePicker = false
                         showCameraPicker = false
@@ -61,6 +58,9 @@ struct ScanView: View {
                         overlayOpacity = 0
                         overlayScale = 0.9
                         #endif
+
+                        // Dismiss ScanView and go to HomeView
+                        activeHomeFlow = nil
                     } label: {
                         Label("Back", systemImage: "chevron.left")
                             .font(.headline)

@@ -173,13 +173,6 @@ struct PawsomeApp: App {
 
                 ZStack {
                     switch activeHomeFlow {
-                    case .scan:
-                        ScanView(
-                            activeHomeFlow: $activeHomeFlow,
-                            username: appState.currentUsername
-                        )
-                        .environmentObject(appState)
-
                     case .form:
                         FormView(
                             activeHomeFlow: $activeHomeFlow,
@@ -190,13 +183,22 @@ struct PawsomeApp: App {
                         )
                         .environmentObject(appState)
 
-                    case .none:
+                    case .scan, .none:
                         HomeView(
                             isLoggedIn: $appState.isLoggedIn,
                             currentUsername: $appState.currentUsername,
                             profileImageURL: $appState.profileImageURL,
                             activeFlow: $activeHomeFlow
                         )
+                    }
+                }
+                .overlay {
+                    if activeHomeFlow == .scan {
+                        ScanView(
+                            activeHomeFlow: $activeHomeFlow,
+                            username: appState.currentUsername
+                        )
+                        .environmentObject(appState)
                     }
                 }
                 .tabItem {
