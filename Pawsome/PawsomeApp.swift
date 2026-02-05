@@ -213,11 +213,23 @@ struct PawsomeApp: App {
                     .tag(1)
             }
             .onAppear {
-                adManager.currentScreen = .home
+                adManager.updateCurrentScreen(
+                    selectedTab: selectedTab,
+                    activeHomeFlow: activeHomeFlow
+                )
             }
             .onChange(of: selectedTab) { _, newValue in
                 activeHomeFlow = nil
-                adManager.currentScreen = (newValue == 0) ? .home : .profile
+                adManager.updateCurrentScreen(
+                    selectedTab: newValue,
+                    activeHomeFlow: activeHomeFlow
+                )
+            }
+            .onChange(of: activeHomeFlow) { _, newValue in
+                adManager.updateCurrentScreen(
+                    selectedTab: selectedTab,
+                    activeHomeFlow: newValue
+                )
             }
         }
 
@@ -228,6 +240,7 @@ struct PawsomeApp: App {
             case .none: return "Home"
             }
         }
+
     }
 
     // MARK: - LOADING VIEW (CENTERED, GLOWED UP)

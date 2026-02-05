@@ -25,6 +25,17 @@ final class AdManager: ObservableObject {
         currentScreen == .form
     }
 
+    func updateCurrentScreen(
+        selectedTab: Int,
+        activeHomeFlow: PawsomeApp.HomeFlow?
+    ) {
+        if activeHomeFlow == .form {
+            currentScreen = .form
+        } else {
+            currentScreen = .other
+        }
+    }
+
     // MARK: - GLOBAL OVERLAY (Sides Only)
     var overlay: some View {
         HStack {
@@ -64,9 +75,17 @@ struct BannerAdView: View {
 #if os(iOS)
 
 struct AdMobBannerView: UIViewRepresentable {
+    private var adUnitID: String {
+        #if DEBUG
+        return "ca-app-pub-3940256099942544/2934735716"
+        #else
+        return "ca-app-pub-1515384434837305/7343539401"
+        #endif
+    }
+
     func makeUIView(context: Context) -> BannerView {
         let banner = BannerView(adSize: AdSizeBanner)
-        banner.adUnitID = "ca-app-pub-1515384434837305/7343539401"
+        banner.adUnitID = adUnitID
         banner.rootViewController =
             UIApplication.shared.connectedScenes
                 .compactMap { ($0 as? UIWindowScene)?.keyWindow }
@@ -110,6 +129,16 @@ struct WebAdBannerView: NSViewRepresentable {
     }
 
     private func loadAd(_ webView: WKWebView) {
+        let adClient: String
+        let adSlot: String
+        #if DEBUG
+        adClient = "ca-pub-3940256099942544"
+        adSlot = "6300978111"
+        #else
+        adClient = "ca-pub-1515384434837305"
+        adSlot = "7343539401"
+        #endif
+
         let html = """
         <!DOCTYPE html>
         <html>
@@ -136,8 +165,8 @@ struct WebAdBannerView: NSViewRepresentable {
         </head>
         <body>
             <ins class="adsbygoogle"
-                 data-ad-client="ca-pub-1515384434837305"
-                 data-ad-slot="7343539401"
+                 data-ad-client="\(adClient)"
+                 data-ad-slot="\(adSlot)"
                  data-ad-format="auto"
                  style="width:100%; height:90px;">
             </ins>

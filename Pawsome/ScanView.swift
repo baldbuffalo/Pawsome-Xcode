@@ -34,7 +34,7 @@ struct ScanView: View {
     var body: some View {
         ZStack {
             LinearGradient(
-                colors: [.purple.opacity(0.25), .blue.opacity(0.25)],
+                colors: [.purple, .blue],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -179,6 +179,8 @@ struct ScanView: View {
             }
             #endif
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .contentShape(Rectangle())
 
         // MARK: - Source Picker
         .confirmationDialog("Select Source", isPresented: $showSourcePicker) {
