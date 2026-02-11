@@ -20,19 +20,34 @@ final class AdManager: ObservableObject {
 
     private init() {}
 
-    // ❌ Form screen has no ads
+    // MARK: - Ad Visibility Config
+    // Add/remove entries here to control which screens have ZERO ads.
+    // Example: to hide ads on Scan + Form, keep [.scan, .form].
+    private let screensWithNoAds: Set<AppScreen> = [
+        .scan,
+        .form
+    ]
+
     var hideAds: Bool {
-        currentScreen == .form
+        screensWithNoAds.contains(currentScreen)
     }
 
     func updateCurrentScreen(
         selectedTab: Int,
         activeHomeFlow: PawsomeApp.HomeFlow?
     ) {
-        if activeHomeFlow == .form {
+        if selectedTab == 1 {
+            currentScreen = .profile
+            return
+        }
+
+        switch activeHomeFlow {
+        case .scan:
+            currentScreen = .scan
+        case .form:
             currentScreen = .form
-        } else {
-            currentScreen = .other
+        case .none:
+            currentScreen = .home
         }
     }
 
@@ -84,32 +99,52 @@ struct BannerAdView: View {
 //
 #if os(iOS)
 
-struct AdMobBannerView: UIViewRepresentable {
-    private var adUnitID: String {
-        #if DEBUG
-        return "ca-app-pub-3940256099942544/2435281174"
-        #else
-        return "ca-app-pub-1515384434837305/7343539401"
-        #endif
-    }
+private enum IOSAdConfig {
+    static let testBannerUnitID = "ca-app-pub-3940256099942544/2435281174"
+    static let productionBannerUnitID = "ca-app-pub-1515384434837305/7343539401"
+}
 
+struct AdMobBannerView: UIViewRepresentable {
     func makeUIView(context: Context) -> BannerView {
         #if DEBUG
         MobileAds.shared.requestConfiguration.testDeviceIdentifiers = ["SIMULATOR"]
         #endif
 
         let banner = BannerView(adSize: AdSizeBanner)
-        banner.adUnitID = adUnitID
+        #if DEBUG
+        banner.adUnitID = IOSAdConfig.testBannerUnitID
+        #else
+        banner.adUnitID = IOSAdConfig.productionBannerUnitID
+        #endif
         banner.rootViewController =
             UIApplication.shared.connectedScenes
                 .compactMap { ($0 as? UIWindowScene)?.keyWindow }
                 .first?
                 .rootViewController
+        banner.delegate = context.coordinator
         banner.load(Request())
         return banner
     }
 
     func updateUIView(_ uiView: BannerView, context: Context) {}
+
+    func makeCoordinator() -> BannerCoordinator {
+        BannerCoordinator()
+    }
+}
+
+final class BannerCoordinator: NSObject, BannerViewDelegate {
+    func bannerViewDidReceiveAd(_ bannerView: BannerView) {
+        #if DEBUG
+        print("✅ AdMob test banner loaded")
+        #endif
+    }
+
+    func bannerView(_ bannerView: BannerView, didFailToReceiveAdWithError error: Error) {
+        #if DEBUG
+        print("❌ AdMob banner failed: \(error.localizedDescription)")
+        #endif
+    }
 }
 
 #endif
