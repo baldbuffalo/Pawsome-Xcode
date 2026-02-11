@@ -36,19 +36,27 @@ final class AdManager: ObservableObject {
         }
     }
 
+    private var sideAdWidth: CGFloat {
+        #if os(macOS)
+        return 180
+        #else
+        return 80
+        #endif
+    }
+
     // MARK: - GLOBAL OVERLAY (Sides Only)
     var overlay: some View {
-        HStack {
+        return HStack {
             if !hideAds {
                 BannerAdView()
-                    .frame(width: 80)
+                    .frame(width: sideAdWidth)
                     .frame(maxHeight: .infinity)
                     .transition(.move(edge: .leading))
                 
                 Spacer()
                 
                 BannerAdView()
-                    .frame(width: 80)
+                    .frame(width: sideAdWidth)
                     .frame(maxHeight: .infinity)
                     .transition(.move(edge: .trailing))
             }
@@ -56,6 +64,7 @@ final class AdManager: ObservableObject {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .animation(.easeInOut(duration: 0.25), value: hideAds)
         .ignoresSafeArea()
+        .zIndex(1000)
     }
 }
 
@@ -78,13 +87,17 @@ struct BannerAdView: View {
 struct AdMobBannerView: UIViewRepresentable {
     private var adUnitID: String {
         #if DEBUG
-        return "ca-app-pub-3940256099942544/2934735716"
+        return "ca-app-pub-3940256099942544/2435281174"
         #else
         return "ca-app-pub-1515384434837305/7343539401"
         #endif
     }
 
     func makeUIView(context: Context) -> BannerView {
+        #if DEBUG
+        MobileAds.shared.requestConfiguration.testDeviceIdentifiers = ["SIMULATOR"]
+        #endif
+
         let banner = BannerView(adSize: AdSizeBanner)
         banner.adUnitID = adUnitID
         banner.rootViewController =
@@ -130,15 +143,46 @@ struct WebAdBannerView: NSViewRepresentable {
     }
 
     private func loadAd(_ webView: WKWebView) {
-        let adClient: String
-        let adSlot: String
         #if DEBUG
-        adClient = "ca-pub-3940256099942544"
-        adSlot = "6300978111"
+        let html = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                html, body {
+                    margin: 0;
+                    padding: 0;
+                    background: #111827;
+                    width: 100%;
+                    height: 100%;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    color: white;
+                    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+                }
+                .test-ad {
+                    width: calc(100% - 16px);
+                    height: 90px;
+                    border-radius: 10px;
+                    border: 2px dashed #60a5fa;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    font-weight: 700;
+                    background: linear-gradient(90deg, #2563eb, #9333ea);
+                }
+            </style>
+        </head>
+        <body>
+            <div class="test-ad">TEST AD (DEBUG)</div>
+        </body>
+        </html>
+        """
         #else
-        adClient = "ca-pub-1515384434837305"
-        adSlot = "7343539401"
-        #endif
+        let adClient = "ca-pub-1515384434837305"
+        let adSlot = "7343539401"
 
         let html = """
         <!DOCTYPE html>
@@ -177,6 +221,8 @@ struct WebAdBannerView: NSViewRepresentable {
         </body>
         </html>
         """
+        #endif
+
         webView.loadHTMLString(html, baseURL: URL(string: "https://googleads.g.doubleclick.net"))
     }
 
