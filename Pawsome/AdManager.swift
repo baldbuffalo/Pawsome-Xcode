@@ -53,6 +53,7 @@ final class AdManager: ObservableObject {
                     .transition(.move(edge: .trailing))
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .animation(.easeInOut(duration: 0.25), value: hideAds)
         .ignoresSafeArea()
     }
