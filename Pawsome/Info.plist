@@ -25,7 +25,7 @@
 	<key>GIDClientID</key>
 	<string>238793012439-1c54gpv0kuq9feq77o58t2qoki13v05m.apps.googleusercontent.com</string>
 	<key>GitHubToken</key>
-	<string>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</string>
+	<string>$(GITHUB_TOKEN)</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

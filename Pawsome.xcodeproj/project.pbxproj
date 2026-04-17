@@ -188,6 +188,8 @@
 /* Begin XCBuildConfiguration section */
 		62355CED2C84CC5600560D69 /* Debug configuration for PBXNativeTarget "Pawsome" */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReferenceAnchor = 62355CC72C84CC5400560D69 /* Pawsome */;
+			baseConfigurationReferenceRelativePath = Secrets.xcconfig;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -249,6 +251,8 @@
 		};
 		62355CEE2C84CC5600560D69 /* Release configuration for PBXNativeTarget "Pawsome" */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReferenceAnchor = 62355CC72C84CC5400560D69 /* Pawsome */;
+			baseConfigurationReferenceRelativePath = Secrets.xcconfig;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -310,6 +314,8 @@
 		};
 		62355CEF2C84CC5600560D69 /* Debug configuration for PBXProject "Pawsome" */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReferenceAnchor = 62355CC72C84CC5400560D69 /* Pawsome */;
+			baseConfigurationReferenceRelativePath = Secrets.xcconfig;
 			buildSettings = {
 				ALLOW_TARGET_PLATFORM_SPECIALIZATION = YES;
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -377,6 +383,8 @@
 		};
 		62355CF02C84CC5600560D69 /* Release configuration for PBXProject "Pawsome" */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReferenceAnchor = 62355CC72C84CC5400560D69 /* Pawsome */;
+			baseConfigurationReferenceRelativePath = Secrets.xcconfig;
 			buildSettings = {
 				ALLOW_TARGET_PLATFORM_SPECIALIZATION = YES;
 				ALWAYS_SEARCH_USER_PATHS = NO;
