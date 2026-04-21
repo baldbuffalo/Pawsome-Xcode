@@ -11,47 +11,35 @@ struct ProfileView: View {
     @State private var isUploading   = false
     @State private var uploadError: String?
 
-    // iOS — PhotosPicker
     @State private var selectedItem: PhotosPickerItem?
-
-    // macOS — fileImporter
     @State private var isPickingFile = false
 
     var body: some View {
         ScrollView {
             VStack(spacing: 28) {
 
-                // ── Avatar ──────────────────────────────────────────────
                 avatarSection
 
-                // ── Username ─────────────────────────────────────────────
                 VStack(alignment: .leading, spacing: 6) {
                     Label("Username", systemImage: "person")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                        .font(.caption).foregroundColor(.secondary)
 
                     TextField("Username", text: $username)
                         .textFieldStyle(.roundedBorder)
                         .onSubmit { saveUsername() }
 
                     if !statusText.isEmpty {
-                        Text(statusText)
-                            .font(.footnote)
-                            .foregroundColor(.green)
+                        Text(statusText).font(.footnote).foregroundColor(.green)
                     }
                 }
                 .padding(.horizontal)
 
                 if let err = uploadError {
-                    Text(err)
-                        .font(.footnote)
-                        .foregroundColor(.red)
-                        .padding(.horizontal)
+                    Text(err).font(.footnote).foregroundColor(.red).padding(.horizontal)
                 }
 
                 Spacer(minLength: 30)
 
-                // ── Logout ───────────────────────────────────────────────
                 Button(role: .destructive) {
                     Task { @MainActor in appState.logout() }
                 } label: {
@@ -65,14 +53,10 @@ struct ProfileView: View {
             .padding(.vertical, 24)
         }
         .onAppear { username = appState.currentUsername }
-
-        // iOS: react to PhotosPicker selection
         .onChange(of: selectedItem) { _, item in
             guard let item else { return }
             Task { await handlePhotoPickerItem(item) }
         }
-
-        // macOS: file importer
         #if os(macOS)
         .fileImporter(
             isPresented: $isPickingFile,
@@ -96,12 +80,12 @@ struct ProfileView: View {
                     .shadow(radius: 6)
 
                 changePhotoButton
-                    .background(Circle().fill(Color(uiColorCompat: .systemBackground)).padding(-2))
+                    .padding(6)
+                    .background(Circle().fill(.background).shadow(radius: 2))  // ✅ no UIColor
+                    .offset(x: 4, y: 4)
             }
-
             if isUploading {
-                ProgressView("Updating photo…")
-                    .font(.footnote)
+                ProgressView("Updating photo…").font(.footnote)
             }
         }
     }
@@ -121,8 +105,7 @@ struct ProfileView: View {
                     }
                 }
             } else {
-                Image(systemName: "person.circle.fill")
-                    .resizable().foregroundColor(.gray)
+                Image(systemName: "person.circle.fill").resizable().foregroundColor(.gray)
             }
         }
     }
@@ -131,58 +114,53 @@ struct ProfileView: View {
     private var changePhotoButton: some View {
         #if os(iOS)
         PhotosPicker(selection: $selectedItem, matching: .images) {
-            Image(systemName: "camera.circle.fill")
-                .font(.title2)
-                .foregroundStyle(.purple)
+            Image(systemName: "camera.circle.fill").font(.title2).foregroundStyle(.purple)
         }
         .disabled(isUploading)
         #else
         Button { isPickingFile = true } label: {
-            Image(systemName: "camera.circle.fill")
-                .font(.title2)
-                .foregroundStyle(.purple)
+            Image(systemName: "camera.circle.fill").font(.title2).foregroundStyle(.purple)
         }
         .buttonStyle(.plain)
         .disabled(isUploading)
         #endif
     }
 
-    // MARK: - iOS Photo Handling
+    // MARK: - iOS photo
     private func handlePhotoPickerItem(_ item: PhotosPickerItem) async {
-        guard let data = try? await item.loadTransferable(type: Data.self),
-              let uid  = Auth.auth().currentUser?.uid else { return }
-
+        guard
+            let data = try? await item.loadTransferable(type: Data.self),
+            let uid  = Auth.auth().currentUser?.uid
+        else { return }
         #if os(iOS)
         guard let image = UIImage(data: data) else { return }
         await uploadProfilePicture(image, uid: uid)
         #endif
     }
 
-    // MARK: - macOS File Handling
+    // MARK: - macOS file
     #if os(macOS)
     private func handleFileURL(_ url: URL) async {
-        guard let image = NSImage(contentsOf: url),
-              let uid   = Auth.auth().currentUser?.uid else { return }
+        guard
+            let image = NSImage(contentsOf: url),
+            let uid   = Auth.auth().currentUser?.uid
+        else { return }
         await uploadProfilePicture(image, uid: uid)
     }
     #endif
 
-    // MARK: - Shared Upload
+    // MARK: - Upload → pawsome-assets/profilePictures/
     private func uploadProfilePicture(_ image: PlatformImage, uid: String) async {
         isUploading = true
         uploadError = nil
-
         do {
             let resized = image.resizedForUpload(maxDimension: 400)
             let newURL  = try await GitHubUploader.shared.uploadImage(
-                resized,
-                filename: "\(uid).jpg",
-                folder:   "profilePictures"
+                resized, filename: "\(uid).jpg", folder: "profilePictures"
             )
             try await Firestore.firestore()
                 .collection("users").document(uid)
                 .updateData(["profilePic": newURL])
-
             await MainActor.run {
                 appState.profileImageURL = newURL
                 isUploading = false
@@ -195,35 +173,22 @@ struct ProfileView: View {
         }
     }
 
-    // MARK: - Save Username
+    // MARK: - Save username
     private func saveUsername() {
         let trimmed = username.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard
-            !trimmed.isEmpty,
-            let uid = Auth.auth().currentUser?.uid,
-            trimmed != appState.currentUsername
+        guard !trimmed.isEmpty,
+              let uid = Auth.auth().currentUser?.uid,
+              trimmed != appState.currentUsername
         else { return }
 
-        Firestore.firestore()
-            .collection("users").document(uid)
+        Firestore.firestore().collection("users").document(uid)
             .updateData(["username": trimmed]) { error in
-                if error == nil {
-                    Task { @MainActor in
-                        appState.currentUsername = trimmed
-                        statusText = "✓ Saved"
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { statusText = "" }
-                    }
+                guard error == nil else { return }
+                Task { @MainActor in
+                    appState.currentUsername = trimmed
+                    statusText = "✓ Saved"
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) { statusText = "" }
                 }
             }
-    }
-}
-
-// MARK: - Cross-platform color helper
-extension Color {
-    init(uiColorCompat: Any) {
-        #if os(iOS)
-        if let c = uiColorCompat as? UIColor { self = Color(c); return }
-        #endif
-        self = .white
     }
 }
