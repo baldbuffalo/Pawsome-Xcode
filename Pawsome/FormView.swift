@@ -1,21 +1,18 @@
 import SwiftUI
 import FirebaseAuth
+import FirebaseFirestore
 
 struct FormView: View {
 
     @EnvironmentObject var appState: PawsomeApp.AppState
     @Binding var activeHomeFlow: PawsomeApp.HomeFlow?
-
     var onPostCreated: (() -> Void)?
 
-    @State private var catName    = ""
-    @State private var description = ""
-    @State private var age        = ""
-
-    @State private var isPosting  = false
+    @State private var catName      = ""
+    @State private var description  = ""
+    @State private var age          = ""
+    @State private var isPosting    = false
     @State private var errorMessage: String?
-
-    private let postsVM = PostsViewModel()
 
     var body: some View {
         ScrollView {
@@ -27,45 +24,33 @@ struct FormView: View {
                         appState.selectedImage = nil
                         activeHomeFlow = nil
                     } label: {
-                        Label("Back", systemImage: "chevron.left")
-                            .font(.headline)
+                        Label("Back", systemImage: "chevron.left").font(.headline)
                     }
                     .buttonStyle(.plain)
                     Spacer()
-                    Text("New Post")
-                        .font(.headline)
+                    Text("New Post").font(.headline)
                     Spacer()
                 }
                 .padding(.horizontal)
 
-                // ── Preview Image ────────────────────────────────────────
+                // ── Preview image ────────────────────────────────────────
                 if let image = appState.selectedImage {
-                    #if os(iOS)
-                    Image(uiImage: image)
+                    previewImage(image)
                         .resizable()
                         .scaledToFill()
                         .frame(maxWidth: .infinity)
                         .frame(height: 240)
                         .clipShape(RoundedRectangle(cornerRadius: 18))
                         .padding(.horizontal)
-                    #else
-                    Image(nsImage: image)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 240)
-                        .clipShape(RoundedRectangle(cornerRadius: 18))
-                        .padding(.horizontal)
-                    #endif
                 }
 
                 // ── Fields ───────────────────────────────────────────────
                 VStack(spacing: 14) {
-                    FormField(icon: "pawprint.fill", placeholder: "Cat Name",    text: $catName)
-                    FormField(icon: "number",         placeholder: "Age (years)", text: $age)
-                        #if os(iOS)
+                    FormField(icon: "pawprint.fill",  placeholder: "Cat Name",    text: $catName)
+                    FormField(icon: "number",          placeholder: "Age (years)", text: $age)
+                    #if os(iOS)
                         .keyboardType(.numberPad)
-                        #endif
+                    #endif
                     FormField(icon: "text.alignleft", placeholder: "Description", text: $description, axis: .vertical)
                 }
                 .padding(.horizontal)
@@ -73,29 +58,21 @@ struct FormView: View {
                 // ── Error ────────────────────────────────────────────────
                 if let error = errorMessage {
                     Text(error)
-                        .font(.footnote)
-                        .foregroundColor(.red)
-                        .padding(.horizontal)
+                        .font(.footnote).foregroundColor(.red)
+                        .padding(.horizontal).multilineTextAlignment(.center)
                 }
 
-                // ── Post Button ──────────────────────────────────────────
-                Button {
-                    Task { await submitPost() }
-                } label: {
+                // ── Post button ───────────────────────────────────────────
+                Button { Task { await submitPost() } } label: {
                     HStack {
-                        if isPosting {
-                            ProgressView()
-                                .tint(.white)
-                                .padding(.trailing, 6)
-                        }
-                        Text(isPosting ? "Posting…" : "Post 🐾")
-                            .font(.headline)
+                        if isPosting { ProgressView().tint(.white).padding(.trailing, 6) }
+                        Text(isPosting ? "Uploading…" : "Post 🐾").font(.headline)
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(isFormComplete && !isPosting
-                        ? LinearGradient(colors: [.pink, .purple], startPoint: .leading, endPoint: .trailing)
-                        : LinearGradient(colors: [.gray], startPoint: .leading, endPoint: .trailing)
+                    .frame(maxWidth: .infinity).padding()
+                    .background(
+                        isFormComplete && !isPosting
+                            ? LinearGradient(colors: [.pink, .purple], startPoint: .leading, endPoint: .trailing)
+                            : LinearGradient(colors: [.gray],          startPoint: .leading, endPoint: .trailing)
                     )
                     .foregroundColor(.white)
                     .clipShape(RoundedRectangle(cornerRadius: 16))
@@ -109,7 +86,16 @@ struct FormView: View {
         .onAppear { activeHomeFlow = .form }
     }
 
-    // MARK: - Submit
+    // MARK: - Cross-platform image helper
+    private func previewImage(_ image: PlatformImage) -> Image {
+        #if os(iOS)
+        return Image(uiImage: image)
+        #else
+        return Image(nsImage: image)
+        #endif
+    }
+
+    // MARK: - Submit (all logic inline)
     private func submitPost() async {
         guard
             isFormComplete,
@@ -117,18 +103,34 @@ struct FormView: View {
             let uid   = Auth.auth().currentUser?.uid
         else { return }
 
-        isPosting     = true
-        errorMessage  = nil
+        isPosting    = true
+        errorMessage = nil
 
         do {
-            try await postsVM.createPost(
-                catName:        catName,
-                description:    description,
-                age:            age,
-                image:          image,
-                authorUID:      uid,
-                authorUsername: appState.currentUsername
+            // 1. Upload image → GitHub pawsome-assets/postImages/
+            let resized  = image.resizedForUpload(maxDimension: 1200)
+            let filename = "\(uid)_\(Int(Date().timeIntervalSince1970)).jpg"
+            let imageURL = try await GitHubUploader.shared.uploadImage(
+                resized, filename: filename, folder: "postImages"
             )
+
+            // 2. Grab author's profile pic
+            let userSnap   = try? await Firestore.firestore().collection("users").document(uid).getDocument()
+            let profilePic = userSnap?.data()?["profilePic"] as? String ?? ""
+
+            // 3. Save post to Firestore
+            try await Firestore.firestore().collection("posts").addDocument(data: [
+                "catName":         catName.trimmingCharacters(in: .whitespacesAndNewlines),
+                "description":     description.trimmingCharacters(in: .whitespacesAndNewlines),
+                "age":             age.trimmingCharacters(in: .whitespacesAndNewlines),
+                "imageURL":        imageURL,
+                "ownerUID":        uid,
+                "ownerUsername":   appState.currentUsername,
+                "ownerProfilePic": profilePic,
+                "timestamp":       Timestamp(),
+                "likes":           [String](),
+                "commentCount":    0
+            ])
 
             appState.selectedImage = nil
             activeHomeFlow         = nil
@@ -149,7 +151,7 @@ struct FormView: View {
     }
 }
 
-// MARK: - Reusable Form Field
+// MARK: - Reusable field
 private struct FormField: View {
     let icon: String
     let placeholder: String
@@ -159,10 +161,8 @@ private struct FormField: View {
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: icon)
-                .foregroundColor(.purple)
-                .frame(width: 20)
+                .foregroundColor(.purple).frame(width: 20)
                 .padding(.top, axis == .vertical ? 12 : 0)
-
             TextField(placeholder, text: $text, axis: axis)
                 .textFieldStyle(.plain)
                 .padding(12)

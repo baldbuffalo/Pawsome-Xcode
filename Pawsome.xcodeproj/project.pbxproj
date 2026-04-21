@@ -469,7 +469,7 @@
 			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 9.0.0;
+				minimumVersion = 9.1.0;
 			};
 		};
 		622262992CAD1008003661E6 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
@@ -477,7 +477,7 @@
 			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 12.8.0;
+				minimumVersion = 12.12.1;
 			};
 		};
 		62D18A9B2F01D2930066C05C /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */ = {
@@ -485,7 +485,7 @@
 			repositoryURL = "https://github.com/googleads/swift-package-manager-google-mobile-ads";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 12.14.0;
+				minimumVersion = 13.2.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
