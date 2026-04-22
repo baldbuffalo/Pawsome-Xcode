@@ -58,6 +58,32 @@ struct CatPostView: View {
             .frame(height: 300)
             .clipped()
 
+            // Post details
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 16) {
+                    Label(post.catName, systemImage: "pawprint.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(.primary)
+
+                    Label("\(post.age) yrs", systemImage: "calendar")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+
+                if !post.description.isEmpty {
+                    Text(post.description)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .lineLimit(3)
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
+
+            Divider()
+                .padding(.horizontal, 14)
+
             // Like / comment bar
             HStack(spacing: 20) {
                 Button(action: onLike) {
@@ -81,19 +107,6 @@ struct CatPostView: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
-
-            // Caption
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(post.catName).font(.subheadline.weight(.semibold))
-                    Text("· \(post.age) yrs").font(.caption).foregroundColor(.secondary)
-                }
-                if !post.description.isEmpty {
-                    Text(post.description).font(.subheadline).lineLimit(3)
-                }
-            }
-            .padding(.horizontal, 14)
-            .padding(.bottom, 14)
         }
         .background(.ultraThinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 18))

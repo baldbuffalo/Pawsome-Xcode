@@ -15,7 +15,7 @@ struct CommentsView: View {
     @State private var listener:    ListenerRegistration?
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 0) {
 
                 // ── Post summary ────────────────────────────────────────
@@ -78,6 +78,9 @@ struct CommentsView: View {
                     TextField("Add a comment…", text: $newComment, axis: .vertical)
                         .lineLimit(1...5)
                         .textFieldStyle(.roundedBorder)
+                        .onSubmit {
+                            Task { await postComment() }
+                        }
 
                     Button {
                         Task { await postComment() }
@@ -130,7 +133,7 @@ struct CommentsView: View {
                     return
                 }
                 comments = snapshot?.documents
-                    .compactMap { PostComment(id: $0.documentID, data: $0.data()) } ?? []
+                    .compactMap { PostComment(id: $0.documentID, postId: post.id, data: $0.data()) } ?? []
             }
     }
 
@@ -154,6 +157,12 @@ struct CommentsView: View {
                 .document(post.id)
                 .collection("comments")
                 .addDocument(data: data)
+
+            try await Firestore.firestore()
+                .collection("posts")
+                .document(post.id)
+                .updateData(["commentCount": FieldValue.increment(Int64(1))])
+
             await MainActor.run {
                 newComment = ""
                 isPosting  = false
@@ -172,6 +181,9 @@ struct CommentsView: View {
                 .collection("posts").document(post.id)
                 .collection("comments").document(comment.id)
                 .delete()
+            try? await Firestore.firestore()
+                .collection("posts").document(post.id)
+                .updateData(["commentCount": FieldValue.increment(Int64(-1))])
         }
     }
 }
@@ -181,6 +193,10 @@ struct CommentRow: View {
     let comment: PostComment
     let currentUID: String
     var onDelete: () -> Void
+
+    @State private var showDeleteConfirm = false
+    @State private var showEditSheet = false
+    @State private var editedText = ""
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
@@ -197,17 +213,70 @@ struct CommentRow: View {
                     Text(comment.timestamp.timeAgoDisplay())
                         .font(.caption2).foregroundColor(.secondary)
                     Spacer()
-                    if comment.ownerUID == currentUID {
-                        Button(role: .destructive) { onDelete() } label: {
-                            Image(systemName: "xmark")
-                                .font(.caption2)
-                                .foregroundColor(.red.opacity(0.55))
-                        }
-                        .buttonStyle(.plain)
-                    }
                 }
                 Text(comment.text).font(.subheadline)
             }
+        }
+        .contextMenu {
+            if comment.ownerUID == currentUID {
+                Button {
+                    editedText = comment.text
+                    showEditSheet = true
+                } label: {
+                    Label("Edit", systemImage: "pencil")
+                }
+
+                Button(role: .destructive) {
+                    showDeleteConfirm = true
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
+            }
+        }
+        .confirmationDialog("Delete this comment?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+            Button("Delete", role: .destructive) { onDelete() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This action cannot be undone.")
+        }
+        .sheet(isPresented: $showEditSheet) {
+            NavigationStack {
+                VStack(spacing: 16) {
+                    TextField("Edit comment…", text: $editedText, axis: .vertical)
+                        .lineLimit(1...8)
+                        .textFieldStyle(.roundedBorder)
+                        .padding()
+
+                    Spacer()
+                }
+                .navigationTitle("Edit Comment")
+                #if os(iOS)
+                .navigationBarTitleDisplayMode(.inline)
+                #endif
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") { showEditSheet = false }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Save") {
+                            saveEdit()
+                        }
+                        .disabled(editedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
+                }
+            }
+        }
+    }
+
+    private func saveEdit() {
+        let trimmed = editedText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        Task {
+            try? await Firestore.firestore()
+                .collection("posts").document(comment.postId)
+                .collection("comments").document(comment.id)
+                .updateData(["text": trimmed])
+            await MainActor.run { showEditSheet = false }
         }
     }
 }

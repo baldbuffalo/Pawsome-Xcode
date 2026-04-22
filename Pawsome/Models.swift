@@ -39,19 +39,21 @@ struct Post: Identifiable {
 // MARK: - PostComment
 struct PostComment: Identifiable {
     let id: String
+    let postId: String
     let text: String
     let ownerUID: String
     let ownerUsername: String
     let ownerProfilePic: String
     let timestamp: Timestamp
 
-    init?(id: String, data: [String: Any]) {
+    init?(id: String, postId: String, data: [String: Any]) {
         guard
             let text     = data["text"]     as? String,
             let ownerUID = data["ownerUID"] as? String
         else { return nil }
 
         self.id              = id
+        self.postId          = postId
         self.text            = text
         self.ownerUID        = ownerUID
         self.ownerUsername   = data["ownerUsername"]   as? String ?? "User"

@@ -20,12 +20,12 @@ final class AdManager: ObservableObject {
 
     private init() {}
 
-    // MARK: - Ad Visibility Config
-    // Add/remove entries here to control which screens have ZERO ads.
-    // Example: to hide ads on Scan + Form, keep [.scan, .form].
     private let screensWithNoAds: Set<AppScreen> = [
+        .home,
         .scan,
-        .form
+        .form,
+        .profile,
+        .other
     ]
 
     var hideAds: Bool {
@@ -61,15 +61,18 @@ final class AdManager: ObservableObject {
 
     // MARK: - GLOBAL OVERLAY (Sides Only)
     var overlay: some View {
-        return HStack {
+        HStack(spacing: 0) {
             if !hideAds {
                 BannerAdView()
                     .frame(width: sideAdWidth)
                     .frame(maxHeight: .infinity)
                     .transition(.move(edge: .leading))
-                
-                Spacer()
-                
+            }
+
+            Spacer()
+                .allowsHitTesting(false)
+
+            if !hideAds {
                 BannerAdView()
                     .frame(width: sideAdWidth)
                     .frame(maxHeight: .infinity)
