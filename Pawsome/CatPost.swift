@@ -18,7 +18,7 @@ struct CatPostView: View {
             HStack(spacing: 10) {
                 AsyncImage(url: URL(string: post.ownerProfilePic)) { phase in
                     if let img = phase.image {
-                        img.resizable().scaledToFill()
+                        img.resizable().scaledToFit()
                     } else {
                         Image(systemName: "person.circle.fill")
                             .resizable().foregroundColor(.gray)
