@@ -39,7 +39,6 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
-				Models.swift,
 			);
 			target = 62355CC42C84CC5400560D69 /* Pawsome */;
 		};
