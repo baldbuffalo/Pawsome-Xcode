@@ -99,7 +99,7 @@ final class GitHubUploader {
 
     // MARK: - Get SHA
     func getFileSHA(path: String) async throws -> String? {
-        var request = makeRequest(
+        let request = makeRequest(
             url: URL(string: "https://api.github.com/repos/\(repo)/contents/\(path)")!,
             method: "GET"
         )

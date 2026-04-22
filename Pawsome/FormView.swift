@@ -168,7 +168,7 @@ private struct FormField: View {
                 .padding(12)
                 .background(.ultraThinMaterial)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
-                .lineLimit(axis == .vertical ? 3...6 : 1)
+                .lineLimit(axis == .vertical ? 3...6 : 1...1)
         }
     }
 }
