@@ -37,7 +37,7 @@ struct FormView: View {
                 if let image = appState.selectedImage {
                     previewImage(image)
                         .resizable()
-                        .scaledToFill()
+                        .scaledToFit()
                         .frame(maxWidth: .infinity)
                         .frame(height: 240)
                         .clipShape(RoundedRectangle(cornerRadius: 18))

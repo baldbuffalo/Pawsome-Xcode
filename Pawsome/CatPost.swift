@@ -7,6 +7,9 @@ struct CatPostView: View {
     var onComment: () -> Void
     var onDelete: (() -> Void)?
 
+    @State private var showFullScreen = false
+    @State private var showDeleteConfirm = false
+
     private var isLiked: Bool {
         post.likes.contains(Auth.auth().currentUser?.uid ?? "")
     }
@@ -18,7 +21,7 @@ struct CatPostView: View {
             HStack(spacing: 10) {
                 AsyncImage(url: URL(string: post.ownerProfilePic)) { phase in
                     if let img = phase.image {
-                        img.resizable().scaledToFit()
+                        img.resizable().scaledToFill()
                     } else {
                         Image(systemName: "person.circle.fill")
                             .resizable().foregroundColor(.gray)
@@ -34,9 +37,18 @@ struct CatPostView: View {
 
                 Spacer()
 
-                if post.ownerUID == Auth.auth().currentUser?.uid, let onDelete {
-                    Button(role: .destructive) { onDelete() } label: {
-                        Image(systemName: "trash").font(.caption).foregroundColor(.red.opacity(0.6))
+                if post.ownerUID == Auth.auth().currentUser?.uid, onDelete != nil {
+                    Menu {
+                        Button(role: .destructive) {
+                            showDeleteConfirm = true
+                        } label: {
+                            Label("Delete Post", systemImage: "trash")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .padding(6)
                     }
                     .buttonStyle(.plain)
                 }
@@ -47,7 +59,7 @@ struct CatPostView: View {
             // Cat photo
             AsyncImage(url: URL(string: post.imageURL)) { phase in
                 if let img = phase.image {
-                    img.resizable().scaledToFill()
+                    img.resizable().scaledToFit()
                 } else if phase.error != nil {
                     Color.gray.opacity(0.2).overlay(Image(systemName: "photo").foregroundColor(.gray))
                 } else {
@@ -57,6 +69,17 @@ struct CatPostView: View {
             .frame(maxWidth: .infinity)
             .frame(height: 300)
             .clipped()
+            .onTapGesture { showFullScreen = true }
+            #if os(iOS)
+            .fullScreenCover(isPresented: $showFullScreen) {
+                FullScreenImageView(imageURL: post.imageURL)
+            }
+            #else
+            .sheet(isPresented: $showFullScreen) {
+                FullScreenImageView(imageURL: post.imageURL)
+                    .frame(minWidth: 600, minHeight: 500)
+            }
+            #endif
 
             // Post details
             VStack(alignment: .leading, spacing: 8) {
@@ -111,5 +134,90 @@ struct CatPostView: View {
         .background(.ultraThinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 18))
         .shadow(color: .black.opacity(0.06), radius: 8, y: 4)
+        .confirmationDialog("Delete this post?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+            Button("Delete", role: .destructive) { onDelete?() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This action cannot be undone.")
+        }
+    }
+}
+
+// MARK: - Full Screen Image Viewer
+struct FullScreenImageView: View {
+    let imageURL: String
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var scale: CGFloat = 1.0
+    @State private var lastScale: CGFloat = 1.0
+    @State private var offset: CGSize = .zero
+    @State private var lastOffset: CGSize = .zero
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            Color.black.ignoresSafeArea()
+
+            AsyncImage(url: URL(string: imageURL)) { phase in
+                if let img = phase.image {
+                    img
+                        .resizable()
+                        .scaledToFit()
+                        .scaleEffect(scale)
+                        .offset(offset)
+                        .gesture(
+                            MagnificationGesture()
+                                .onChanged { value in
+                                    scale = lastScale * value
+                                }
+                                .onEnded { _ in
+                                    lastScale = scale
+                                    if scale < 1 {
+                                        withAnimation { scale = 1; offset = .zero }
+                                        lastScale = 1
+                                        lastOffset = .zero
+                                    }
+                                }
+                        )
+                        .simultaneousGesture(
+                            DragGesture()
+                                .onChanged { value in
+                                    offset = CGSize(
+                                        width: lastOffset.width + value.translation.width,
+                                        height: lastOffset.height + value.translation.height
+                                    )
+                                }
+                                .onEnded { _ in
+                                    lastOffset = offset
+                                }
+                        )
+                        .onTapGesture(count: 2) {
+                            withAnimation {
+                                if scale > 1 {
+                                    scale = 1
+                                    lastScale = 1
+                                    offset = .zero
+                                    lastOffset = .zero
+                                } else {
+                                    scale = 2
+                                    lastScale = 2
+                                }
+                            }
+                        }
+                } else {
+                    ProgressView().tint(.white)
+                }
+            }
+
+            // Close button
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.title)
+                    .foregroundStyle(.white, .black.opacity(0.6))
+                    .padding()
+            }
+            .buttonStyle(.plain)
+        }
     }
 }
