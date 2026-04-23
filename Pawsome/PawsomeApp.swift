@@ -12,6 +12,10 @@ struct PawsomeApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var delegate
     #endif
 
+    init() {
+        FirebaseApp.configure()
+    }
+
     @StateObject private var appState = AppState()
     @StateObject private var adManager = AdManager.shared
     @State private var activeHomeFlow: HomeFlow? = nil
@@ -240,10 +244,9 @@ struct PawsomeApp: App {
             case .none: return "Home"
             }
         }
-
     }
 
-    // MARK: - LOADING VIEW (CENTERED, GLOWED UP)
+    // MARK: - LOADING VIEW
     struct LoadingView: View {
         @State private var spin = false
 

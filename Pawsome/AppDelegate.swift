@@ -25,10 +25,6 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         AppCheck.setAppCheckProviderFactory(AppAttestProviderFactory())
         print("🔐 App Check App Attest ENABLED (production)")
 
-        // 🔥 Firebase
-        FirebaseApp.configure()
-        print("🔥 Firebase configured (iOS)")
-
         // 📢 AdMob
         MobileAds.shared.start()
         print("🔥 AdMob initialized")
@@ -54,8 +50,6 @@ import GoogleSignIn
 final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // 🔥 Firebase (no App Check / AdMob on macOS)
-        FirebaseApp.configure()
         print("🔥 Firebase configured (macOS)")
     }
 
