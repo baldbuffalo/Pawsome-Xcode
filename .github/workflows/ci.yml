@@ -33,5 +33,11 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
-      - name: Build Pawsome.App (unpackaged)
-        run: dotnet build Pawsome.App/Pawsome.App.csproj -c Release -p:Platform=x64 -p:WindowsPackageType=None
+      - name: Publish Pawsome.App (self-contained .exe)
+        run: dotnet publish Pawsome.App/Pawsome.App.csproj -c Release -r win-x64 -p:WindowsPackageType=None -p:WindowsAppSDKSelfContained=true --self-contained
+      - name: Upload Windows build
+        uses: actions/upload-artifact@v4
+        with:
+          name: Pawsome-Windows-x64
+          path: Pawsome-Windows/Pawsome.App/bin/Release/net8.0-windows10.0.19041.0/win-x64/publish
+          if-no-files-found: error
