@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  core:
+    name: Core engine build & tests (Linux)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Pawsome-Windows
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Test Pawsome.Core
+        run: dotnet test Pawsome.Core.Tests/Pawsome.Core.Tests.csproj -c Release
+
+  windows-app:
+    name: Windows app build (WinUI 3)
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: Pawsome-Windows
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Build Pawsome.App (unpackaged)
+        run: dotnet build Pawsome.App/Pawsome.App.csproj -c Release -p:Platform=x64 -p:WindowsPackageType=None
