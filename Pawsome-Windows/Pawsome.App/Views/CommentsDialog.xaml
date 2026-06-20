@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="Pawsome.App.Views.CommentsDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:muxc="using:Microsoft.UI.Xaml.Controls"
+    Title="Comments"
+    CloseButtonText="Done"
+    DefaultButton="Close">
+
+    <Grid Width="440" Height="540" RowSpacing="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Post summary -->
+        <Border Grid.Row="0" Style="{StaticResource CardSurfaceStyle}" Padding="10">
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <Image Source="{x:Bind ViewModel.ImageUrl, Converter={StaticResource UrlToImage}}"
+                       Width="48" Height="48" Stretch="UniformToFill" />
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="{x:Bind ViewModel.CatName}" FontWeight="SemiBold" />
+                    <TextBlock Text="{x:Bind ViewModel.OwnerUsername}" Style="{StaticResource SubtleCaptionStyle}" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- Comments -->
+        <Grid Grid.Row="1">
+            <ProgressRing IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}"
+                          Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
+
+            <StackPanel VerticalAlignment="Center" Spacing="6"
+                        Visibility="{x:Bind ViewModel.IsEmpty, Mode=OneWay, Converter={StaticResource BoolToVis}}">
+                <FontIcon Glyph="&#xE90A;" FontSize="34"
+                          Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                <TextBlock Text="No comments yet" HorizontalAlignment="Center"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                <TextBlock Text="Be the first to comment! 🐾" HorizontalAlignment="Center"
+                           Style="{StaticResource SubtleCaptionStyle}" />
+            </StackPanel>
+
+            <ScrollViewer>
+                <muxc:ItemsRepeater ItemsSource="{x:Bind ViewModel.Comments}">
+                    <muxc:ItemsRepeater.Layout>
+                        <muxc:StackLayout Spacing="4" />
+                    </muxc:ItemsRepeater.Layout>
+                    <muxc:ItemsRepeater.ItemTemplate>
+                        <DataTemplate>
+                            <Grid ColumnSpacing="10" Padding="0,6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <muxc:PersonPicture Grid.Column="0" Width="32" Height="32"
+                                                    ProfilePicture="{Binding OwnerProfilePic, Converter={StaticResource UrlToImage}}"
+                                                    DisplayName="{Binding OwnerUsername}" />
+
+                                <StackPanel Grid.Column="1" Spacing="3">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Text="{Binding OwnerUsername}" FontWeight="SemiBold" FontSize="13" />
+                                        <TextBlock Text="{Binding TimeAgo}" Style="{StaticResource SubtleCaptionStyle}" />
+                                    </StackPanel>
+
+                                    <TextBlock Text="{Binding Text}" TextWrapping="Wrap"
+                                               Visibility="{Binding IsEditing, Converter={StaticResource InvBoolToVis}}" />
+
+                                    <StackPanel Spacing="6"
+                                                Visibility="{Binding IsEditing, Converter={StaticResource BoolToVis}}">
+                                        <TextBox Text="{Binding EditText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                 AcceptsReturn="True" TextWrapping="Wrap" />
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <Button Content="Save" Command="{Binding SaveEditCommand}" />
+                                            <Button Content="Cancel" Command="{Binding CancelEditCommand}" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <Button Grid.Column="2" Background="Transparent" BorderThickness="0" Padding="4"
+                                        VerticalAlignment="Top"
+                                        Visibility="{Binding CanModify, Converter={StaticResource BoolToVis}}">
+                                    <FontIcon Glyph="&#xE712;" FontSize="14" />
+                                    <Button.Flyout>
+                                        <MenuFlyout>
+                                            <MenuFlyoutItem Text="Edit" Command="{Binding BeginEditCommand}" />
+                                            <MenuFlyoutItem Text="Delete" Command="{Binding DeleteCommand}" />
+                                        </MenuFlyout>
+                                    </Button.Flyout>
+                                </Button>
+                            </Grid>
+                        </DataTemplate>
+                    </muxc:ItemsRepeater.ItemTemplate>
+                </muxc:ItemsRepeater>
+            </ScrollViewer>
+        </Grid>
+
+        <!-- Input -->
+        <Grid Grid.Row="2" ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBox Grid.Column="0" PlaceholderText="Add a comment…"
+                     Text="{x:Bind ViewModel.NewComment, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            <Button Grid.Column="1" Command="{x:Bind ViewModel.PostCommentCommand}"
+                    Style="{StaticResource BrandButtonStyle}" Padding="14,8">
+                <FontIcon Glyph="&#xE724;" Foreground="White" />
+            </Button>
+        </Grid>
+    </Grid>
+</ContentDialog>

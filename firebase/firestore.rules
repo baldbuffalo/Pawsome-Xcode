@@ -1,0 +1,74 @@
+rules_version = '2';
+
+// Pawsome Firestore Security Rules
+// Shared by the iOS/macOS (Swift) app and the Windows (WinUI) app.
+// Both clients write to Firestore directly, so these rules are the ONLY thing
+// protecting your data — deploy them before publishing.
+//
+//   firebase deploy --only firestore:rules
+//
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Set of fields that an update is changing.
+    function changedKeys() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    // ── users/{uid} ────────────────────────────────────────────────────────
+    match /users/{uid} {
+      allow read:   if isSignedIn();
+      allow create: if isOwner(uid) && request.resource.data.username is string;
+      allow update: if isOwner(uid);
+      allow delete: if false;
+    }
+
+    // ── counter/{doc} ──────────────────────────────────────────────────────
+    // Backs the atomic "next sequential user number" transaction on first sign-in.
+    match /counter/{doc} {
+      allow read, create, update: if isSignedIn();
+      allow delete: if false;
+    }
+
+    // ── posts/{postId} ─────────────────────────────────────────────────────
+    match /posts/{postId} {
+      allow read: if isSignedIn();
+
+      allow create: if isSignedIn()
+                    && request.resource.data.ownerUID == request.auth.uid
+                    && request.resource.data.catName is string
+                    && request.resource.data.imageURL is string
+                    && request.resource.data.likes is list
+                    && request.resource.data.commentCount is int;
+
+      // The owner may edit/delete their post; any signed-in user may ONLY
+      // change `likes` (heart) and/or `commentCount` (when commenting).
+      allow update: if isOwner(resource.data.ownerUID)
+                    || (isSignedIn() && changedKeys().hasOnly(['likes', 'commentCount']));
+
+      allow delete: if isOwner(resource.data.ownerUID);
+
+      // ── posts/{postId}/comments/{commentId} ──────────────────────────────
+      match /comments/{commentId} {
+        allow read: if isSignedIn();
+
+        allow create: if isSignedIn()
+                      && request.resource.data.ownerUID == request.auth.uid
+                      && request.resource.data.text is string;
+
+        allow update: if isOwner(resource.data.ownerUID)
+                      && changedKeys().hasOnly(['text']);
+
+        allow delete: if isOwner(resource.data.ownerUID);
+      }
+    }
+  }
+}

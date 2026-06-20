@@ -4,3 +4,6 @@ xcuserdata/
 DerivedData/
 .DS_Store
 
+# Build secrets — never commit the real token (the .example is fine to track)
+Secrets.xcconfig
+

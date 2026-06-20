@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Pawsome.App.Views.FeedPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:muxc="using:Microsoft.UI.Xaml.Controls"
+    xmlns:controls="using:Pawsome.App.Controls">
+
+    <Grid Background="{StaticResource FeedBackgroundBrush}">
+        <ScrollViewer>
+            <StackPanel MaxWidth="640" Padding="20" Spacing="16" HorizontalAlignment="Stretch">
+
+                <!-- Header card -->
+                <Border Style="{StaticResource CardSurfaceStyle}" Padding="18">
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="{x:Bind ViewModel.Greeting}" Style="{StaticResource SubtleCaptionStyle}" />
+                            <TextBlock Text="{x:Bind ViewModel.Username, Mode=OneWay}"
+                                       FontSize="26" FontWeight="Bold" />
+                        </StackPanel>
+                        <Button Grid.Column="1" VerticalAlignment="Center"
+                                Background="Transparent" BorderThickness="0"
+                                Command="{x:Bind ViewModel.RefreshCommand}" ToolTipService.ToolTip="Refresh">
+                            <FontIcon Glyph="&#xE72C;" />
+                        </Button>
+                    </Grid>
+                </Border>
+
+                <!-- Create post -->
+                <Button Style="{StaticResource BrandButtonStyle}" Click="CreatePost_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE710;" Foreground="White" />
+                        <TextBlock Text="Create a new post" />
+                    </StackPanel>
+                </Button>
+
+                <!-- Error -->
+                <InfoBar IsOpen="True" Severity="Error"
+                         Message="{x:Bind ViewModel.Error, Mode=OneWay}"
+                         IsClosable="False"
+                         Visibility="{x:Bind ViewModel.Error, Mode=OneWay, Converter={StaticResource StringToVis}}" />
+
+                <!-- Loading -->
+                <ProgressRing IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}"
+                              Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay, Converter={StaticResource BoolToVis}}"
+                              Width="40" Height="40" Margin="0,30,0,0" />
+
+                <!-- Empty state -->
+                <StackPanel Spacing="8" Margin="0,40,0,0" HorizontalAlignment="Center"
+                            Visibility="{x:Bind ViewModel.IsEmpty, Mode=OneWay, Converter={StaticResource BoolToVis}}">
+                    <FontIcon Glyph="&#xE7C3;" FontSize="46"
+                              Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBlock Text="No posts yet" HorizontalAlignment="Center"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBlock Text="Be the first to drop something 👀" HorizontalAlignment="Center"
+                               Style="{StaticResource SubtleCaptionStyle}" />
+                </StackPanel>
+
+                <!-- Feed -->
+                <muxc:ItemsRepeater ItemsSource="{x:Bind ViewModel.Posts}">
+                    <muxc:ItemsRepeater.Layout>
+                        <muxc:StackLayout Spacing="0" />
+                    </muxc:ItemsRepeater.Layout>
+                    <muxc:ItemsRepeater.ItemTemplate>
+                        <DataTemplate>
+                            <controls:PostCard />
+                        </DataTemplate>
+                    </muxc:ItemsRepeater.ItemTemplate>
+                </muxc:ItemsRepeater>
+
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>

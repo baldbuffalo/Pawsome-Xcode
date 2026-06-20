@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Pawsome.App.Views.ShellPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:muxc="using:Microsoft.UI.Xaml.Controls">
+
+    <muxc:NavigationView
+        x:Name="Nav"
+        PaneDisplayMode="Top"
+        IsBackButtonVisible="Collapsed"
+        IsSettingsVisible="False"
+        SelectionChanged="Nav_SelectionChanged">
+
+        <muxc:NavigationView.MenuItems>
+            <muxc:NavigationViewItem Content="Home" Tag="home" IsSelected="True">
+                <muxc:NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE80F;" />
+                </muxc:NavigationViewItem.Icon>
+            </muxc:NavigationViewItem>
+            <muxc:NavigationViewItem Content="Profile" Tag="profile">
+                <muxc:NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE77B;" />
+                </muxc:NavigationViewItem.Icon>
+            </muxc:NavigationViewItem>
+        </muxc:NavigationView.MenuItems>
+
+        <Frame x:Name="ContentFrame" />
+    </muxc:NavigationView>
+</Page>

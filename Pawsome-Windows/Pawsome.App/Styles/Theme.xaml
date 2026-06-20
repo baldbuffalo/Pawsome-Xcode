@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:conv="using:Pawsome.App.Converters">
+
+    <!-- ── Converters (global) ───────────────────────────────────────── -->
+    <conv:BoolToVisibilityConverter x:Key="BoolToVis" />
+    <conv:InverseBoolToVisibilityConverter x:Key="InvBoolToVis" />
+    <conv:InverseBoolConverter x:Key="InvBool" />
+    <conv:StringToVisibilityConverter x:Key="StringToVis" />
+    <conv:CountToVisibilityConverter x:Key="CountToVis" />
+    <conv:UrlToImageSourceConverter x:Key="UrlToImage" />
+    <conv:LikedToBrushConverter x:Key="LikedToBrush" />
+
+    <!-- ── Brand palette ─────────────────────────────────────────────── -->
+    <Color x:Key="BrandPink">#EC4899</Color>
+    <Color x:Key="BrandPurple">#7C3AED</Color>
+    <Color x:Key="BrandBlue">#2563EB</Color>
+    <Color x:Key="BrandCyan">#06B6D4</Color>
+
+    <SolidColorBrush x:Key="BrandPurpleBrush" Color="{StaticResource BrandPurple}" />
+    <SolidColorBrush x:Key="BrandBlueBrush" Color="{StaticResource BrandBlue}" />
+
+    <!-- Diagonal purple → blue (login / scan surfaces) -->
+    <LinearGradientBrush x:Key="BrandDiagonalBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="{StaticResource BrandPurple}" Offset="0" />
+        <GradientStop Color="{StaticResource BrandBlue}" Offset="1" />
+    </LinearGradientBrush>
+
+    <!-- Soft tinted background for the feed -->
+    <LinearGradientBrush x:Key="FeedBackgroundBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#227C3AED" Offset="0" />
+        <GradientStop Color="#222563EB" Offset="0.5" />
+        <GradientStop Color="#1806B6D4" Offset="1" />
+    </LinearGradientBrush>
+
+    <!-- Pink → purple → blue (primary action buttons) -->
+    <LinearGradientBrush x:Key="BrandActionBrush" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop Color="{StaticResource BrandPink}" Offset="0" />
+        <GradientStop Color="{StaticResource BrandPurple}" Offset="0.5" />
+        <GradientStop Color="{StaticResource BrandBlue}" Offset="1" />
+    </LinearGradientBrush>
+
+    <!-- ── Reusable styles ───────────────────────────────────────────── -->
+
+    <!-- Frosted card surface (the WinUI analogue of SwiftUI .ultraThinMaterial) -->
+    <Style x:Key="CardSurfaceStyle" TargetType="Border">
+        <Setter Property="Background" Value="{ThemeResource LayerFillColorDefaultBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="18" />
+    </Style>
+
+    <!-- Prominent gradient call-to-action button -->
+    <Style x:Key="BrandButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+        <Setter Property="Background" Value="{StaticResource BrandActionBrush}" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Padding" Value="20,12" />
+        <Setter Property="CornerRadius" Value="16" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="FontSize" Value="15" />
+    </Style>
+
+    <Style x:Key="SubtleCaptionStyle" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+
+</ResourceDictionary>

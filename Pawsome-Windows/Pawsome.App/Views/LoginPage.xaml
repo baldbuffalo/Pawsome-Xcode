@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Pawsome.App.Views.LoginPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:Pawsome.App.ViewModels">
+
+    <Grid Background="{StaticResource BrandDiagonalBrush}">
+        <Border MaxWidth="420" Margin="24"
+                HorizontalAlignment="Center" VerticalAlignment="Center"
+                Padding="36" CornerRadius="24"
+                Background="#33000000">
+            <StackPanel Spacing="26">
+
+                <StackPanel Spacing="8" HorizontalAlignment="Center">
+                    <TextBlock Text="🐾 Pawsome" FontSize="40" FontWeight="Bold"
+                               Foreground="White" HorizontalAlignment="Center" />
+                    <TextBlock Text="Find. Help. Reunite."
+                               Foreground="#CCFFFFFF" FontSize="16"
+                               HorizontalAlignment="Center" />
+                </StackPanel>
+
+                <Button x:Name="GoogleButton"
+                        Command="{x:Bind ViewModel.SignInCommand}"
+                        IsEnabled="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource InvBool}}"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Center"
+                        Background="White" Foreground="Black"
+                        CornerRadius="14" Padding="16,12">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <FontIcon Glyph="&#xE774;" FontSize="18" />
+                        <TextBlock Text="Continue with Google" FontWeight="SemiBold" />
+                    </StackPanel>
+                </Button>
+
+                <ProgressRing IsActive="{x:Bind ViewModel.IsBusy, Mode=OneWay}"
+                              Foreground="White" Width="28" Height="28"
+                              HorizontalAlignment="Center"
+                              Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
+
+                <InfoBar IsOpen="True"
+                         Visibility="{x:Bind ViewModel.Error, Mode=OneWay, Converter={StaticResource StringToVis}}"
+                         Severity="Error"
+                         Message="{x:Bind ViewModel.Error, Mode=OneWay}"
+                         IsClosable="False" />
+
+                <TextBlock TextWrapping="Wrap" Foreground="#99FFFFFF" FontSize="12"
+                           HorizontalAlignment="Center" TextAlignment="Center"
+                           Text="Signing in opens your browser to Google, then returns here automatically." />
+            </StackPanel>
+        </Border>
+    </Grid>
+</Page>

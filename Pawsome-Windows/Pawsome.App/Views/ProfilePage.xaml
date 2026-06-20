@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Pawsome.App.Views.ProfilePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:muxc="using:Microsoft.UI.Xaml.Controls">
+
+    <Grid Background="{StaticResource FeedBackgroundBrush}">
+        <ScrollViewer>
+            <StackPanel MaxWidth="460" Padding="20" Spacing="22" HorizontalAlignment="Stretch">
+
+                <!-- Avatar -->
+                <Grid HorizontalAlignment="Center" Width="120" Height="120" Margin="0,10,0,0">
+                    <muxc:PersonPicture Width="120" Height="120"
+                                        ProfilePicture="{x:Bind ViewModel.ProfilePicUrl, Mode=OneWay, Converter={StaticResource UrlToImage}}"
+                                        DisplayName="{x:Bind ViewModel.Username, Mode=OneWay}" />
+                    <Button Click="ChangePhoto_Click"
+                            HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                            Width="40" Height="40" CornerRadius="20" Padding="0"
+                            Background="{StaticResource BrandPurpleBrush}">
+                        <FontIcon Glyph="&#xE722;" Foreground="White" FontSize="16" />
+                    </Button>
+                </Grid>
+
+                <ProgressRing IsActive="{x:Bind ViewModel.IsUploading, Mode=OneWay}"
+                              Visibility="{x:Bind ViewModel.IsUploading, Mode=OneWay, Converter={StaticResource BoolToVis}}"
+                              HorizontalAlignment="Center" Width="24" Height="24" />
+
+                <!-- Username -->
+                <StackPanel Spacing="6">
+                    <TextBox Header="Username"
+                             Text="{x:Bind ViewModel.Username, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button Content="Save" Command="{x:Bind ViewModel.SaveUsernameCommand}" />
+                        <TextBlock Text="{x:Bind ViewModel.Status, Mode=OneWay}" VerticalAlignment="Center"
+                                   Foreground="Green" FontSize="13" />
+                    </StackPanel>
+                </StackPanel>
+
+                <InfoBar IsOpen="True" Severity="Error"
+                         Message="{x:Bind ViewModel.Error, Mode=OneWay}" IsClosable="False"
+                         Visibility="{x:Bind ViewModel.Error, Mode=OneWay, Converter={StaticResource StringToVis}}" />
+
+                <!-- Image upload token -->
+                <muxc:Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                               Header="Image upload token">
+                    <StackPanel Spacing="10" Padding="0,6">
+                        <TextBlock TextWrapping="Wrap" Style="{StaticResource SubtleCaptionStyle}"
+                                   Text="Pawsome stores photos in the Pawsome-assets GitHub repo. Paste a GitHub personal-access token with 'contents: write' to enable posting and avatar changes. It is encrypted on this PC only." />
+                        <PasswordBox x:Name="TokenBox" PlaceholderText="ghp_…" />
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <Button Content="Save token" Click="SaveToken_Click" />
+                            <TextBlock x:Name="TokenStatus" VerticalAlignment="Center"
+                                       Foreground="Green" FontSize="13" />
+                        </StackPanel>
+                    </StackPanel>
+                </muxc:Expander>
+
+                <!-- Logout -->
+                <Button Command="{x:Bind ViewModel.LogoutCommand}"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                        Background="#D9DC2626" Foreground="White" CornerRadius="14" Padding="16,12">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xF3B1;" Foreground="White" FontSize="16" />
+                        <TextBlock Text="Log Out" />
+                    </StackPanel>
+                </Button>
+
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>

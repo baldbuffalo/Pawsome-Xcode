@@ -1,0 +1,36 @@
+# .NET / Visual Studio build output
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+ARM64/
+*.user
+*.suo
+.vs/
+
+# Publish / packaging output
+AppPackages/
+BundleArtifacts/
+*.appx
+*.appxbundle
+*.msix
+*.msixbundle
+*.appxupload
+*.cer
+*.pfx
+GeneratedArtifacts/
+_pkginfo.txt
+
+# NuGet
+*.nupkg
+.nuget/
+
+# Rider / VSCode
+.idea/
+.vscode/
+
+# Local secrets (never commit upload tokens)
+secrets.dat
+*.local.json

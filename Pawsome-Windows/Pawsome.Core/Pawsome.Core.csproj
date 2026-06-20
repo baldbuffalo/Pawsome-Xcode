@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <!--
+      Pawsome.Core is the platform-agnostic engine of the native Windows app:
+      models, the Firebase REST client, Google sign-in and the GitHub image
+      uploader. It has ZERO UI dependencies so it compiles standalone (and is
+      unit-tested on CI), then is compiled natively into the WinUI 3 app.
+    -->
+  </PropertyGroup>
+
+</Project>
