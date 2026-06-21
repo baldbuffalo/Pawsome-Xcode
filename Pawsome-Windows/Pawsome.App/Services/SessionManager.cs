@@ -37,12 +37,12 @@ public sealed class SessionManager
     }
 
     /// <summary>Runs the interactive Google sign-in flow.</summary>
-    public async Task SignInWithGoogleAsync()
+    public async Task SignInWithGoogleAsync(CancellationToken ct = default)
     {
-        var googleIdToken = await _services.GoogleAuth.SignInAsync();
-        var session = await _services.Auth.SignInWithGoogleAsync(googleIdToken);
+        var googleIdToken = await _services.GoogleAuth.SignInAsync(ct);
+        var session = await _services.Auth.SignInWithGoogleAsync(googleIdToken, ct);
         _services.Secrets.Set(SecureStore.RefreshTokenKey, session.RefreshToken);
-        await LoadUserAsync(session);
+        await LoadUserAsync(session, ct);
     }
 
     public void SignOut()
@@ -67,10 +67,10 @@ public sealed class SessionManager
         UserChanged?.Invoke();
     }
 
-    private async Task LoadUserAsync(FirebaseSession session)
+    private async Task LoadUserAsync(FirebaseSession session, CancellationToken ct = default)
     {
         CurrentUser = await _services.Firestore.FetchOrCreateUserAsync(
-            session.Uid, session.DisplayName, session.PhotoUrl);
+            session.Uid, session.DisplayName, session.PhotoUrl, ct);
         UserChanged?.Invoke();
     }
 }

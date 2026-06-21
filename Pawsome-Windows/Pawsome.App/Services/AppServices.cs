@@ -1,4 +1,5 @@
 using Pawsome.Core;
+using Pawsome.Core;
 using Pawsome.Core.Auth;
 using Pawsome.Core.Firestore;
 using Pawsome.Core.Storage;
@@ -26,7 +27,7 @@ public sealed class AppServices
         Secrets = new SecureStore();
 
         Auth = new FirebaseAuthService(Http);
-        GoogleAuth = new GoogleAuthFlow(Http, OpenInBrowser);
+        GoogleAuth = new GoogleAuthFlow(Http, OpenInBrowser, ResolveGoogleClientId);
         Firestore = new FirestoreService(Http, Auth);
         GitHub = new GitHubUploader(Http, ResolveGitHubToken);
         Images = new ImageService();
@@ -42,6 +43,10 @@ public sealed class AppServices
     private string? ResolveGitHubToken()
         => Secrets.Get(SecureStore.GitHubTokenKey)
            ?? Environment.GetEnvironmentVariable("PAWSOME_GITHUB_TOKEN");
+
+    private string? ResolveGoogleClientId()
+        => Secrets.Get(SecureStore.GoogleClientIdKey)
+           ?? PawsomeConfig.GoogleDesktopClientId;
 
     private static void OpenInBrowser(string url)
         => _ = Windows.System.Launcher.LaunchUriAsync(new Uri(url));

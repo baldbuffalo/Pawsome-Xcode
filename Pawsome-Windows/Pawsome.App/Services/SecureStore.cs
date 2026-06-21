@@ -14,6 +14,7 @@ public sealed class SecureStore
 {
     public const string RefreshTokenKey = "firebase_refresh_token";
     public const string GitHubTokenKey = "github_token";
+    public const string GoogleClientIdKey = "google_client_id";
 
     private readonly string _path;
     private readonly object _gate = new();

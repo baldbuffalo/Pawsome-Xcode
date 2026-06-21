@@ -21,18 +21,23 @@ public sealed class GoogleAuthFlow
 
     private readonly HttpClient _http;
     private readonly Action<string> _openBrowser;
-    private readonly string _clientId;
+    private readonly Func<string?> _clientIdProvider;
 
-    public GoogleAuthFlow(HttpClient http, Action<string> openBrowser, string? clientId = null)
+    public GoogleAuthFlow(HttpClient http, Action<string> openBrowser, Func<string?> clientIdProvider)
     {
         _http = http;
         _openBrowser = openBrowser;
-        _clientId = clientId ?? PawsomeConfig.GoogleDesktopClientId;
+        _clientIdProvider = clientIdProvider;
     }
 
     /// <summary>Runs the full flow and returns the Google id_token.</summary>
     public async Task<string> SignInAsync(CancellationToken ct = default)
     {
+        var clientId = _clientIdProvider();
+        if (string.IsNullOrWhiteSpace(clientId))
+            throw new AuthException(
+                "No Google \"Desktop app\" OAuth client ID is configured. On the sign-in screen, open \"Advanced\" and paste one (create it in Google Cloud Console → Credentials).");
+
         var (verifier, challenge) = CreatePkcePair();
         var state = RandomUrlSafe(24);
 
@@ -44,7 +49,7 @@ public sealed class GoogleAuthFlow
         listener.Start();
 
         var authUrl =
-            $"{AuthEndpoint}?client_id={Uri.EscapeDataString(_clientId)}" +
+            $"{AuthEndpoint}?client_id={Uri.EscapeDataString(clientId!)}" +
             $"&redirect_uri={Uri.EscapeDataString(redirectUri)}" +
             "&response_type=code" +
             "&scope=" + Uri.EscapeDataString("openid email profile") +
@@ -66,14 +71,14 @@ public sealed class GoogleAuthFlow
         if (query["code"] is not { } code)
             throw new AuthException("No authorization code returned by Google.");
 
-        return await ExchangeCodeForIdTokenAsync(code, verifier, redirectUri, ct).ConfigureAwait(false);
+        return await ExchangeCodeForIdTokenAsync(code, verifier, redirectUri, clientId!, ct).ConfigureAwait(false);
     }
 
-    private async Task<string> ExchangeCodeForIdTokenAsync(string code, string verifier, string redirectUri, CancellationToken ct)
+    private async Task<string> ExchangeCodeForIdTokenAsync(string code, string verifier, string redirectUri, string clientId, CancellationToken ct)
     {
         using var form = new FormUrlEncodedContent(new Dictionary<string, string>
         {
-            ["client_id"] = _clientId,
+            ["client_id"] = clientId,
             ["code"] = code,
             ["code_verifier"] = verifier,
             ["grant_type"] = "authorization_code",

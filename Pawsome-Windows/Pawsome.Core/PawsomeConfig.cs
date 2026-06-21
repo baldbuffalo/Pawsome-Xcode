@@ -24,9 +24,12 @@ public static class PawsomeConfig
     // Application type "Desktop app", then paste the client id here (or set the
     // PAWSOME_GOOGLE_CLIENT_ID env var). A Desktop client uses PKCE and needs no
     // client secret. The iOS client id from the plist will NOT work for desktop.
-    public static string GoogleDesktopClientId =>
-        Environment.GetEnvironmentVariable("PAWSOME_GOOGLE_CLIENT_ID")
-        ?? "238793012439-1c54gpv0kuq9feq77o58t2qoki13v05m.apps.googleusercontent.com";
+    // No fallback on purpose: the iOS client id does NOT work for desktop
+    // loopback sign-in — Google returns "Error 400: invalid_request". A Google
+    // OAuth client of type "Desktop app" is required. Provide it via the login
+    // screen's Advanced field (stored securely) or this environment variable.
+    public static string? GoogleDesktopClientId =>
+        Environment.GetEnvironmentVariable("PAWSOME_GOOGLE_CLIENT_ID");
 
     // ── GitHub image CDN (shared with the iOS / macOS app) ──────────────────
     public const string GitHubAssetsRepo = "baldbuffalo/Pawsome-assets";
