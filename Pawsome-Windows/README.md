@@ -87,13 +87,18 @@ dotnet test Pawsome.Core.Tests/Pawsome.Core.Tests.csproj
 
 ## Publish
 
-**A standalone `.exe` (unpackaged, self-contained — just double-click, no install):**
+**A single self-contained `Pawsome.exe` (the real app — just double-click, no install, DLLs bundled in):**
 
 ```powershell
-dotnet publish Pawsome.App/Pawsome.App.csproj -c Release -r win-x64 `
-  -p:WindowsPackageType=None -p:WindowsAppSDKSelfContained=true --self-contained
-# Output: Pawsome.App/bin/Release/net8.0-windows10.0.19041.0/win-x64/publish/Pawsome.App.exe
+dotnet publish Pawsome.App/Pawsome.App.csproj -p:PublishProfile=win-x64
+# Output: Pawsome.App/bin/Release/net8.0-windows10.0.19041.0/win-x64/publish/Pawsome.exe
 ```
+
+This produces one bundled executable (it self-extracts its runtime to a temp
+folder on first launch). A handful of Windows App SDK native files may still sit
+beside it if they can't be embedded — that's a current WinUI 3 limitation, and
+the `.exe` still runs directly. (`Pawsome.exe` is the app itself, **not** an
+installer.)
 
 **An MSIX package (Microsoft Store / sideload):**
 
