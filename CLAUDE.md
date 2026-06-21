@@ -11,11 +11,12 @@ share one Firebase project (`pawsome--signin-ios`) and one GitHub image store
 ## CI / GitHub Actions
 
 - Workflow: `.github/workflows/ci.yml` (Core tests on Linux, WinUI build + single-file `Pawsome.exe` artifact on Windows).
-- **Always check and use the latest major versions of GitHub Actions.** Before
+- **Always check and use the latest version of every GitHub Action, pinned to the
+  exact full version (major.minor.patch), not just the major tag.** Before
   committing a workflow change, verify the newest release of each action (e.g.
-  `git ls-remote --tags --refs https://github.com/actions/<name>`) and pin to the
-  latest major tag. Current at last update: `actions/checkout@v7`,
-  `actions/setup-dotnet@v5`, `actions/upload-artifact@v7`.
+  `git ls-remote --tags --refs https://github.com/actions/<name>`) and pin to that
+  exact tag. Current at last update: `actions/checkout@v7.0.0`,
+  `actions/setup-dotnet@v5.3.0`, `actions/upload-artifact@v7.0.1`.
 
 ## Conventions
 
