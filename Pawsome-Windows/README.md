@@ -29,6 +29,17 @@ identically** to those of the mobile app.
 - 🖼️ Full-screen image viewer with zoom/pan.
 - 🎨 Fluent design, Mica backdrop, brand purple→blue gradients, branded MSIX tiles & icon.
 
+## Download a ready-to-run build (no PC build needed)
+
+Every push to `main` builds the app and attaches it in the **Actions tab**:
+
+1. Open the repo's **Actions** tab → click the latest green **CI** run.
+2. Scroll to **Artifacts** → download **`Pawsome-Windows-x64`**.
+3. Unzip and run **`Pawsome.exe`** on Windows 10/11 (the runtime is bundled — no install needed).
+
+> Build artifacts are kept for 90 days each. (A version-tagged GitHub Release
+> with a permanent download link can be added on request.)
+
 ## Prerequisites
 
 - Windows 10 (1809 / build 17763) or Windows 11
