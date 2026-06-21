@@ -87,7 +87,10 @@ struct LoginView: View {
     // MARK: - GOOGLE SIGN IN
     private func signInWithGoogle() async {
 
-        guard let clientID = FirebaseApp.app()?.options.clientID else {
+        guard
+            let clientID = Bundle.main.object(forInfoDictionaryKey: "GIDClientID") as? String,
+            !clientID.isEmpty
+        else {
             await showError("Missing Google client ID.")
             return
         }
