@@ -15,7 +15,6 @@ public sealed class LoginViewModel : ObservableObject
     public LoginViewModel(AppServices services)
     {
         _services = services;
-        _googleClientId = services.Secrets.Get(SecureStore.GoogleClientIdKey) ?? "";
         SignInCommand = new AsyncRelayCommand(SignInAsync);
         CancelCommand = new RelayCommand(Cancel);
     }
@@ -26,29 +25,11 @@ public sealed class LoginViewModel : ObservableObject
     private string? _error;
     public string? Error { get => _error; private set => SetProperty(ref _error, value); }
 
-    private string _googleClientId;
-    public string GoogleClientId { get => _googleClientId; set => SetProperty(ref _googleClientId, value); }
-
     public IAsyncRelayCommand SignInCommand { get; }
     public IRelayCommand CancelCommand { get; }
 
     private async Task SignInAsync()
     {
-        // Persist a client id typed into the Advanced field so the flow can use it.
-        var typed = GoogleClientId?.Trim();
-        if (!string.IsNullOrEmpty(typed))
-            _services.Secrets.Set(SecureStore.GoogleClientIdKey, typed);
-
-        var hasClientId =
-            !string.IsNullOrWhiteSpace(_services.Secrets.Get(SecureStore.GoogleClientIdKey)) ||
-            !string.IsNullOrWhiteSpace(PawsomeConfig.GoogleDesktopClientId);
-
-        if (!hasClientId)
-        {
-            Error = "Add a Google \"Desktop app\" OAuth client ID under Advanced below, then try again.";
-            return;
-        }
-
         IsBusy = true;
         Error = null;
 

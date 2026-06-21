@@ -43,9 +43,13 @@ public sealed class AppServices
         => Secrets.Get(SecureStore.GitHubTokenKey)
            ?? Environment.GetEnvironmentVariable("PAWSOME_GITHUB_TOKEN");
 
-    private string? ResolveGoogleClientId()
-        => Secrets.Get(SecureStore.GoogleClientIdKey)
-           ?? PawsomeConfig.GoogleDesktopClientId;
+    private static string? ResolveGoogleClientId()
+    {
+        var baked = typeof(AppServices).Assembly
+            .GetCustomAttributes<System.Reflection.AssemblyMetadataAttribute>()
+            .FirstOrDefault(a => a.Key == "GoogleClientId")?.Value;
+        return string.IsNullOrWhiteSpace(baked) ? PawsomeConfig.GoogleDesktopClientId : baked;
+    }
 
     private static void OpenInBrowser(string url)
         => _ = Windows.System.Launcher.LaunchUriAsync(new Uri(url));

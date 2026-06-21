@@ -58,17 +58,6 @@
                          Message="{x:Bind ViewModel.Error, Mode=OneWay}"
                          IsClosable="False" />
 
-                <!-- Desktop OAuth client id (required for Google sign-in) -->
-                <Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
-                          Header="Advanced — Google client ID">
-                    <StackPanel Spacing="8" Padding="0,6">
-                        <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="#CC000000"
-                                   Text="Desktop sign-in needs a Google OAuth client of type 'Desktop app'. Create one in Google Cloud Console → APIs &amp; Services → Credentials, then paste its Client ID here." />
-                        <TextBox Text="{x:Bind ViewModel.GoogleClientId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                 PlaceholderText="xxxxxxxx.apps.googleusercontent.com" />
-                    </StackPanel>
-                </Expander>
-
                 <TextBlock TextWrapping="Wrap" Foreground="#99FFFFFF" FontSize="12"
                            HorizontalAlignment="Center" TextAlignment="Center"
                            Text="Sign-in opens your browser to Google, then returns here automatically." />

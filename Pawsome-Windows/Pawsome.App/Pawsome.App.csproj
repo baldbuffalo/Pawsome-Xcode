@@ -40,4 +40,8 @@
     <ProjectReference Include="..\Pawsome.Core\Pawsome.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(GoogleClientId)' != ''">
+    <AssemblyMetadata Include="GoogleClientId" Value="$(GoogleClientId)" />
+  </ItemGroup>
+
 </Project>
