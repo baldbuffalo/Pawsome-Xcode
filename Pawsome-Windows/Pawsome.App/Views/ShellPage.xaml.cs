@@ -19,7 +19,7 @@ public sealed partial class ShellPage : Page
     {
         if (args.SelectedItem is not NavigationViewItem item) return;
 
-        var target = item.Tag as string switch
+        var target = (item.Tag as string) switch
         {
             "profile" => typeof(ProfilePage),
             _ => typeof(FeedPage),

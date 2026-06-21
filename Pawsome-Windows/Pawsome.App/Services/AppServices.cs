@@ -1,5 +1,4 @@
 using Pawsome.Core;
-using Pawsome.Core;
 using Pawsome.Core.Auth;
 using Pawsome.Core.Firestore;
 using Pawsome.Core.Storage;
