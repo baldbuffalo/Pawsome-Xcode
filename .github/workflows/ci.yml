@@ -15,8 +15,8 @@ jobs:
       run:
         working-directory: Pawsome-Windows
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '8.0.x'
       - name: Test Pawsome.Core
@@ -29,14 +29,14 @@ jobs:
       run:
         working-directory: Pawsome-Windows
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '8.0.x'
       - name: Publish Pawsome.exe (single self-contained file)
         run: dotnet publish Pawsome.App/Pawsome.App.csproj -c Release -r win-x64 --self-contained -p:WindowsPackageType=None -p:WindowsAppSDKSelfContained=true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:IncludeAllContentForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=embedded
       - name: Upload Windows build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Pawsome-Windows-x64
           path: Pawsome-Windows/Pawsome.App/bin/Release/net8.0-windows10.0.19041.0/win-x64/publish
