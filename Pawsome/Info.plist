@@ -11,7 +11,7 @@
 			<string>GoogleSignIn</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>$(GOOGLE_REVERSED_CLIENT_ID)</string>
+				<string>$(APPLE_GOOGLE_REVERSED_CLIENT_ID)</string>
 			</array>
 		</dict>
 	</array>
@@ -22,7 +22,7 @@
 	<key>GADApplicationIdentifier</key>
 	<string>ca-app-pub-1515384434837305~2451123619</string>
 	<key>GIDClientID</key>
-	<string>$(GOOGLE_CLIENT_ID)</string>
+	<string>$(APPLE_GOOGLE_CLIENT_ID)</string>
 	<key>GitHubToken</key>
 	<string>$(GITHUB_TOKEN)</string>
 	<key>UIBackgroundModes</key>
