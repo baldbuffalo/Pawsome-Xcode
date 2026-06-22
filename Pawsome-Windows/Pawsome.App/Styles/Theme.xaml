@@ -55,7 +55,7 @@
 
     <!-- Prominent gradient call-to-action button -->
     <Style x:Key="BrandButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
-        <Setter Property="Background" Value="{StaticResource BrandActionBrush}" />
+        <Setter Property="Background" Value="{StaticResource BrandPurpleBrush}" />
         <Setter Property="Foreground" Value="White" />
         <Setter Property="Padding" Value="20,12" />
         <Setter Property="CornerRadius" Value="16" />

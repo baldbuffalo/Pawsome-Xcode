@@ -71,8 +71,8 @@ struct FormView: View {
                     .frame(maxWidth: .infinity).padding()
                     .background(
                         isFormComplete && !isPosting
-                            ? LinearGradient(colors: [.pink, .purple], startPoint: .leading, endPoint: .trailing)
-                            : LinearGradient(colors: [.gray],          startPoint: .leading, endPoint: .trailing)
+                            ? Color(red: 0.49, green: 0.23, blue: 0.93)
+                            : Color.gray
                     )
                     .foregroundColor(.white)
                     .clipShape(RoundedRectangle(cornerRadius: 16))

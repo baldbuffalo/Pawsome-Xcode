@@ -30,7 +30,7 @@ struct HomeView: View {
                             .font(.caption).foregroundColor(.secondary)
                         Text(currentUsername)
                             .font(.largeTitle).fontWeight(.bold)
-                            .foregroundStyle(LinearGradient(colors: [.purple, .blue], startPoint: .leading, endPoint: .trailing))
+                            .foregroundStyle(Color(red: 0.49, green: 0.23, blue: 0.93))
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding()
@@ -48,7 +48,7 @@ struct HomeView: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(LinearGradient(colors: [.pink, .purple, .blue], startPoint: .leading, endPoint: .trailing))
+                        .background(Color(red: 0.49, green: 0.23, blue: 0.93))
                         .clipShape(RoundedRectangle(cornerRadius: 18))
                         .shadow(color: .purple.opacity(0.35), radius: 10, y: 5)
                     }

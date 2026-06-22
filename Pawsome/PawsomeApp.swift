@@ -259,11 +259,7 @@ struct PawsomeApp: App {
                 Circle()
                     .trim(from: 0.2, to: 1)
                     .stroke(
-                        LinearGradient(
-                            colors: [.blue, .purple, .pink],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
+                        Color(red: 0.49, green: 0.23, blue: 0.93),
                         style: StrokeStyle(lineWidth: 6, lineCap: .round)
                     )
                     .frame(width: 60, height: 60)

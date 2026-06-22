@@ -4,13 +4,13 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <Grid Background="{StaticResource BrandDiagonalBrush}">
+    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="20">
-            <TextBlock Text="🐾 Pawsome"
-                       FontSize="34" FontWeight="Bold"
-                       Foreground="White"
+            <Image Source="ms-appx:///Assets/icon-mark.png" Width="72" Height="72"
+                   HorizontalAlignment="Center" />
+            <TextBlock Text="Pawsome" FontSize="26" FontWeight="Bold"
                        HorizontalAlignment="Center" />
-            <ProgressRing IsActive="True" Width="48" Height="48" Foreground="White" />
+            <ProgressRing IsActive="True" Width="40" Height="40" />
         </StackPanel>
     </Grid>
 </Page>

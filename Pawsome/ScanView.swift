@@ -34,9 +34,8 @@ struct ScanView: View {
     var body: some View {
         ZStack {
             LinearGradient(
-                colors: [.purple, .blue],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
+                colors: [Color.purple.opacity(0.06), Color.blue.opacity(0.06)],
+                startPoint: .top, endPoint: .bottom
             )
             .ignoresSafeArea()
 
@@ -88,13 +87,7 @@ struct ScanView: View {
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(
-                                LinearGradient(
-                                    colors: [.blue, .purple],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
+                            .background(Color(red: 0.49, green: 0.23, blue: 0.93))
                             .foregroundColor(.white)
                             .clipShape(RoundedRectangle(cornerRadius: 16))
                     }
