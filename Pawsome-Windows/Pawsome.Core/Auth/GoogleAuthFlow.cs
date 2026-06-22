@@ -106,7 +106,9 @@ public sealed class GoogleAuthFlow
             "<body style='font-family:Segoe UI,sans-serif;background:linear-gradient(135deg,#7c3aed,#2563eb);" +
             "color:white;display:flex;height:100vh;align-items:center;justify-content:center;margin:0'>" +
             "<div style='text-align:center'><h1>🐾 You're signed in!</h1>" +
-            "<p>You can close this tab and return to Pawsome.</p></div></body></html>";
+            "<p>Returning to Pawsome… you can close this tab.</p></div>" +
+            "<script>setTimeout(function(){window.open('','_self');window.close();},400);</script>" +
+            "</body></html>";
 
         var buffer = Encoding.UTF8.GetBytes(html);
         response.ContentType = "text/html";
