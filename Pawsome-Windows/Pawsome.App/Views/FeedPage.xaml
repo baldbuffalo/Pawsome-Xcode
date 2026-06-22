@@ -6,7 +6,7 @@
     xmlns:muxc="using:Microsoft.UI.Xaml.Controls"
     xmlns:controls="using:Pawsome.App.Controls">
 
-    <Grid Background="{StaticResource FeedBackgroundBrush}">
+    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
         <ScrollViewer>
             <StackPanel MaxWidth="640" Padding="20" Spacing="16" HorizontalAlignment="Stretch">
 

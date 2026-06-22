@@ -23,9 +23,10 @@
     <SolidColorBrush x:Key="BrandBlueBrush" Color="{StaticResource BrandBlue}" />
 
     <!-- Diagonal purple → blue (login / scan surfaces) -->
-    <LinearGradientBrush x:Key="BrandDiagonalBrush" StartPoint="0,0" EndPoint="1,1">
-        <GradientStop Color="{StaticResource BrandPurple}" Offset="0" />
-        <GradientStop Color="{StaticResource BrandBlue}" Offset="1" />
+    <LinearGradientBrush x:Key="BrandDiagonalBrush" StartPoint="0,0" EndPoint="0.9,1">
+        <GradientStop Color="#7C3AED" Offset="0" />
+        <GradientStop Color="#5B4BE0" Offset="0.5" />
+        <GradientStop Color="#2563EB" Offset="1" />
     </LinearGradientBrush>
 
     <!-- Soft tinted background for the feed -->

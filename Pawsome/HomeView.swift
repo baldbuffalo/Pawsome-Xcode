@@ -16,8 +16,8 @@ struct HomeView: View {
     var body: some View {
         ZStack {
             LinearGradient(
-                colors: [Color.purple.opacity(0.18), Color.blue.opacity(0.18), Color.cyan.opacity(0.12)],
-                startPoint: .topLeading, endPoint: .bottomTrailing
+                colors: [Color.purple.opacity(0.05), Color.blue.opacity(0.05)],
+                startPoint: .top, endPoint: .bottom
             )
             .ignoresSafeArea()
 
