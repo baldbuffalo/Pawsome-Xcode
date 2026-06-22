@@ -7,6 +7,9 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   core:
     name: Core engine build & tests (Linux)
@@ -39,5 +42,13 @@ jobs:
         uses: actions/upload-artifact@v7.0.1
         with:
           name: Pawsome-Windows-x64
-          path: Pawsome-Windows/Pawsome.App/bin/Release/net8.0-windows10.0.19041.0/win-x64/publish
+          path: Pawsome-Windows/Pawsome.App/bin/Release/net8.0-windows10.0.19041.0/win-x64/publish/Pawsome.exe
           if-no-files-found: error
+      - name: Publish raw Pawsome.exe as 'latest' release
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release delete latest --cleanup-tag --yes 2>$null
+          gh release create latest "Pawsome.App/bin/Release/net8.0-windows10.0.19041.0/win-x64/publish/Pawsome.exe" -t "Pawsome (latest)" -n "Auto-built from main" --latest
