@@ -1,3 +1,4 @@
+using System.Reflection;
 using Pawsome.Core;
 using Pawsome.Core.Auth;
 using Pawsome.Core.Firestore;
@@ -46,7 +47,7 @@ public sealed class AppServices
     private static string? ResolveGoogleClientId()
     {
         var baked = typeof(AppServices).Assembly
-            .GetCustomAttributes<System.Reflection.AssemblyMetadataAttribute>()
+            .GetCustomAttributes<AssemblyMetadataAttribute>()
             .FirstOrDefault(a => a.Key == "GoogleClientId")?.Value;
         return string.IsNullOrWhiteSpace(baked) ? PawsomeConfig.GoogleDesktopClientId : baked;
     }
