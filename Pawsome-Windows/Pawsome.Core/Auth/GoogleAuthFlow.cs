@@ -22,12 +22,14 @@ public sealed class GoogleAuthFlow
     private readonly HttpClient _http;
     private readonly Action<string> _openBrowser;
     private readonly Func<string?> _clientIdProvider;
+    private readonly Func<string?> _clientSecretProvider;
 
-    public GoogleAuthFlow(HttpClient http, Action<string> openBrowser, Func<string?> clientIdProvider)
+    public GoogleAuthFlow(HttpClient http, Action<string> openBrowser, Func<string?> clientIdProvider, Func<string?>? clientSecretProvider = null)
     {
         _http = http;
         _openBrowser = openBrowser;
         _clientIdProvider = clientIdProvider;
+        _clientSecretProvider = clientSecretProvider ?? (() => null);
     }
 
     /// <summary>Runs the full flow and returns the Google id_token.</summary>
@@ -76,14 +78,17 @@ public sealed class GoogleAuthFlow
 
     private async Task<string> ExchangeCodeForIdTokenAsync(string code, string verifier, string redirectUri, string clientId, CancellationToken ct)
     {
-        using var form = new FormUrlEncodedContent(new Dictionary<string, string>
+        var fields = new Dictionary<string, string>
         {
             ["client_id"] = clientId,
             ["code"] = code,
             ["code_verifier"] = verifier,
             ["grant_type"] = "authorization_code",
             ["redirect_uri"] = redirectUri,
-        });
+        };
+        var clientSecret = _clientSecretProvider();
+        if (!string.IsNullOrWhiteSpace(clientSecret)) fields["client_secret"] = clientSecret;
+        using var form = new FormUrlEncodedContent(fields);
 
         using var response = await _http.PostAsync(TokenEndpoint, form, ct).ConfigureAwait(false);
         var text = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);

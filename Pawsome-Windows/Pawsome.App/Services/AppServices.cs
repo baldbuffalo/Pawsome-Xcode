@@ -27,7 +27,7 @@ public sealed class AppServices
         Secrets = new SecureStore();
 
         Auth = new FirebaseAuthService(Http);
-        GoogleAuth = new GoogleAuthFlow(Http, OpenInBrowser, ResolveGoogleClientId);
+        GoogleAuth = new GoogleAuthFlow(Http, OpenInBrowser, ResolveGoogleClientId, ResolveGoogleClientSecret);
         Firestore = new FirestoreService(Http, Auth);
         GitHub = new GitHubUploader(Http, ResolveGitHubToken);
         Images = new ImageService();
@@ -44,13 +44,15 @@ public sealed class AppServices
         => Secrets.Get(SecureStore.GitHubTokenKey)
            ?? Environment.GetEnvironmentVariable("PAWSOME_GITHUB_TOKEN");
 
-    private static string? ResolveGoogleClientId()
-    {
-        var baked = typeof(AppServices).Assembly
+    private static string? Meta(string key)
+        => typeof(AppServices).Assembly
             .GetCustomAttributes<AssemblyMetadataAttribute>()
-            .FirstOrDefault(a => a.Key == "GoogleClientId")?.Value;
-        return string.IsNullOrWhiteSpace(baked) ? PawsomeConfig.GoogleDesktopClientId : baked;
-    }
+            .FirstOrDefault(a => a.Key == key)?.Value;
+
+    private static string? ResolveGoogleClientId()
+        => string.IsNullOrWhiteSpace(Meta("GoogleClientId")) ? PawsomeConfig.GoogleDesktopClientId : Meta("GoogleClientId");
+
+    private static string? ResolveGoogleClientSecret() => Meta("GoogleClientSecret");
 
     private static void OpenInBrowser(string url)
         => _ = Windows.System.Launcher.LaunchUriAsync(new Uri(url));

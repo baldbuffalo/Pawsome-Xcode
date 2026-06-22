@@ -44,4 +44,8 @@
     <AssemblyMetadata Include="GoogleClientId" Value="$(GoogleClientId)" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(GoogleClientSecret)' != ''">
+    <AssemblyMetadata Include="GoogleClientSecret" Value="$(GoogleClientSecret)" />
+  </ItemGroup>
+
 </Project>

@@ -40,6 +40,7 @@ public sealed class LoginViewModel : ObservableObject
         {
             await _services.Session.SignInWithGoogleAsync(_cts.Token);
             App.NavigateRoot(typeof(Views.ShellPage));
+            App.BringToFront();
         }
         catch (OperationCanceledException)
         {
