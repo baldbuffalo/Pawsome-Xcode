@@ -16,7 +16,7 @@ public static class PawsomeConfig
 {
     // ── Firebase project (shared with the iOS / macOS app) ──────────────────
     public const string FirebaseProjectId = "pawsome--signin-ios";
-    public const string FirebaseApiKey    = "AIzaSyAOZYH2szj77wjOfMq9G1pLRkVUtdlCSSc";
+    public const string FirebaseApiKey    = "AIzaSyBl9nk70Vocx5nTtG4ctF5HeKazSrSSfHA";
     public const string FirebaseAuthDomain = "pawsome--signin-ios.firebaseapp.com";
 
     // ── Google OAuth (Desktop / Installed-app client) ───────────────────────
