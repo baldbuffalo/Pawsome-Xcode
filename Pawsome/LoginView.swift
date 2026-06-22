@@ -26,13 +26,8 @@ struct LoginView: View {
         ZStack {
             // 🌈 BACKGROUND
             LinearGradient(
-                colors: [
-                    Color(red: 0.49, green: 0.23, blue: 0.93),
-                    Color(red: 0.36, green: 0.29, blue: 0.88),
-                    Color(red: 0.15, green: 0.39, blue: 0.92)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
+                colors: [Color.purple.opacity(0.06), Color.blue.opacity(0.06)],
+                startPoint: .top, endPoint: .bottom
             )
             .ignoresSafeArea()
 
@@ -41,10 +36,10 @@ struct LoginView: View {
                 VStack(spacing: 10) {
                     Text("🐾 Pawsome")
                         .font(.largeTitle.bold())
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
 
                     Text("Find. Help. Reunite.")
-                        .foregroundColor(.white.opacity(0.8))
+                        .foregroundColor(.secondary)
                 }
 
                 // 🔴 GOOGLE SIGN IN
@@ -78,6 +73,8 @@ struct LoginView: View {
                 .shadow(radius: 8)
                 #endif
             }
+            .padding(28)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24))
             .padding()
             .frame(maxWidth: 420)
         }

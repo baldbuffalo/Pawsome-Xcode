@@ -4,29 +4,33 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <Grid Background="{StaticResource BrandDiagonalBrush}">
-        <Border MaxWidth="430" Margin="24"
+    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <Border MaxWidth="380" Margin="24"
                 HorizontalAlignment="Center" VerticalAlignment="Center"
-                Padding="34" CornerRadius="24"
-                Background="#33000000">
-            <StackPanel Spacing="24">
+                Padding="32" CornerRadius="16"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1">
+            <StackPanel Spacing="20">
 
-                <StackPanel Spacing="8" HorizontalAlignment="Center">
-                    <TextBlock Text="🐾 Pawsome" FontSize="40" FontWeight="Bold"
-                               Foreground="White" HorizontalAlignment="Center" />
+                <Image Source="ms-appx:///Assets/icon-mark.png" Width="76" Height="76"
+                       HorizontalAlignment="Center" />
+
+                <StackPanel Spacing="4" HorizontalAlignment="Center">
+                    <TextBlock Text="Pawsome" FontSize="30" FontWeight="Bold"
+                               HorizontalAlignment="Center" />
                     <TextBlock Text="Find. Help. Reunite."
-                               Foreground="#CCFFFFFF" FontSize="16"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                HorizontalAlignment="Center" />
                 </StackPanel>
 
-                <!-- Sign-in button (hidden while a sign-in is in progress) -->
                 <Button Command="{x:Bind ViewModel.SignInCommand}"
                         IsEnabled="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource InvBool}}"
                         Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource InvBoolToVis}}"
                         HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                         Background="White" Foreground="#3C4043"
                         BorderBrush="#DADCE0" BorderThickness="1"
-                        CornerRadius="12" Padding="16,13">
+                        CornerRadius="10" Padding="16,12">
                     <StackPanel Orientation="Horizontal" Spacing="12">
                         <Viewbox Width="20" Height="20">
                             <Canvas Width="48" Height="48">
@@ -41,12 +45,11 @@
                     </StackPanel>
                 </Button>
 
-                <!-- In-progress state with a cancel escape hatch -->
                 <StackPanel Spacing="12" HorizontalAlignment="Center"
                             Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource BoolToVis}}">
-                    <ProgressRing IsActive="True" Foreground="White" Width="30" Height="30" />
+                    <ProgressRing IsActive="True" Width="30" Height="30" />
                     <TextBlock Text="Waiting for sign-in in your browser…"
-                               Foreground="White" FontSize="13"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="13"
                                HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" />
                     <Button Content="Cancel" Command="{x:Bind ViewModel.CancelCommand}"
                             HorizontalAlignment="Center" />
@@ -58,7 +61,8 @@
                          Message="{x:Bind ViewModel.Error, Mode=OneWay}"
                          IsClosable="False" />
 
-                <TextBlock TextWrapping="Wrap" Foreground="#99FFFFFF" FontSize="12"
+                <TextBlock TextWrapping="Wrap"
+                           Foreground="{ThemeResource TextFillColorTertiaryBrush}" FontSize="12"
                            HorizontalAlignment="Center" TextAlignment="Center"
                            Text="Sign-in opens your browser to Google, then returns here automatically." />
             </StackPanel>
