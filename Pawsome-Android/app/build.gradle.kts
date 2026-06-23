@@ -14,10 +14,11 @@ android {
         versionCode = 1
         versionName = "1.0"
 
-        // Baked from CI secrets (reuses the desktop OAuth client via loopback).
-        fun env(vararg names: String) = names.firstNotNullOfOrNull { System.getenv(it)?.ifBlank { null } } ?: ""
-        buildConfigField("String", "GOOGLE_CLIENT_ID", "\"${env("ANDROID_GOOGLE_CLIENT_ID", "WINDOWS_GOOGLE_CLIENT_ID")}\"")
-        buildConfigField("String", "GOOGLE_CLIENT_SECRET", "\"${env("ANDROID_GOOGLE_CLIENT_SECRET", "WINDOWS_GOOGLE_CLIENT_SECRET")}\"")
+        // Baked from CI secrets. GOOGLE_SERVER_CLIENT_ID is the Web OAuth client id
+        // (serverClientId) used by Credential Manager; the app's signing SHA-1 must
+        // be registered in an Android OAuth client in the same project.
+        fun env(name: String) = System.getenv(name)?.ifBlank { null } ?: ""
+        buildConfigField("String", "GOOGLE_SERVER_CLIENT_ID", "\"${env("ANDROID_GOOGLE_WEB_CLIENT_ID")}\"")
         buildConfigField("String", "GITHUB_TOKEN", "\"${env("PAWSOME_GITHUB_TOKEN")}\"")
     }
 
@@ -35,8 +36,22 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+    signingConfigs {
+        create("release") {
+            System.getenv("ANDROID_KEYSTORE_FILE")?.let {
+                storeFile = file(it)
+                storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+                keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+            }
+        }
+    }
     buildTypes {
-        release { isMinifyEnabled = false }
+        release {
+            isMinifyEnabled = false
+            if (System.getenv("ANDROID_KEYSTORE_FILE") != null)
+                signingConfig = signingConfigs.getByName("release")
+        }
     }
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -53,7 +68,9 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.2")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.2")
-    implementation("androidx.browser:browser:1.8.0")
+    implementation("androidx.credentials:credentials:1.3.0")
+    implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
     implementation("io.coil-kt:coil-compose:2.6.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")

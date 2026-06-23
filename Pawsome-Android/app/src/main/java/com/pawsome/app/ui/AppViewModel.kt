@@ -28,7 +28,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val auth = FirebaseAuth()
     private val firestore = Firestore(auth)
     private val github = GitHubUploader()
-    private val google = GoogleAuth(app.applicationContext)
+    private val google = GoogleAuth()
     private val prefs = app.getSharedPreferences("pawsome", Context.MODE_PRIVATE)
 
     var loading by mutableStateOf(true); private set
@@ -52,10 +52,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         loading = false
     }
 
-    fun signIn() = viewModelScope.launch {
+    fun signIn(context: android.content.Context) = viewModelScope.launch {
         busy = true; error = null
         try {
-            val idToken = google.signIn()
+            val idToken = google.signIn(context)
             val s = auth.signInWithGoogle(idToken)
             prefs.edit().putString("rt", s.refreshToken).apply()
             loadUser(s); signedIn = true; loadFeed()

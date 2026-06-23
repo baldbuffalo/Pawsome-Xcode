@@ -40,7 +40,8 @@ fun LoginScreen(vm: AppViewModel) {
                 )
                 Text("Pawsome", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                 Text("Find. Help. Reunite.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Button(onClick = { vm.signIn() }, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) {
+                val context = androidx.compose.ui.platform.LocalContext.current
+                Button(onClick = { vm.signIn(context) }, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) {
                     if (vm.busy) CircularProgressIndicator(
                         Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary
                     ) else Text("Sign in with Google")

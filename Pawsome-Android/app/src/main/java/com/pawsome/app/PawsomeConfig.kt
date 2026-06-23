@@ -5,8 +5,7 @@ object PawsomeConfig {
     const val apiKey = "AIzaSyBl9nk70Vocx5nTtG4ctF5HeKazSrSSfHA"
     const val githubRepo = "baldbuffalo/Pawsome-assets"
 
-    val googleClientId: String get() = BuildConfig.GOOGLE_CLIENT_ID
-    val googleClientSecret: String get() = BuildConfig.GOOGLE_CLIENT_SECRET
+    val googleServerClientId: String get() = BuildConfig.GOOGLE_SERVER_CLIENT_ID
     val githubToken: String get() = BuildConfig.GITHUB_TOKEN
 
     val firestoreBase: String

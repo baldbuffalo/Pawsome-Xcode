@@ -71,15 +71,23 @@ jobs:
           gradle-version: '8.7'
       - name: Build APK
         env:
-          ANDROID_GOOGLE_CLIENT_ID: ${{ secrets.WINDOWS_GOOGLE_CLIENT_ID }}
-          ANDROID_GOOGLE_CLIENT_SECRET: ${{ secrets.WINDOWS_GOOGLE_CLIENT_SECRET }}
+          ANDROID_GOOGLE_WEB_CLIENT_ID: ${{ secrets.ANDROID_GOOGLE_WEB_CLIENT_ID }}
           PAWSOME_GITHUB_TOKEN: ${{ secrets.PAWSOME_GITHUB_TOKEN }}
-        run: gradle assembleDebug
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            export ANDROID_KEYSTORE_FILE="$RUNNER_TEMP/release.jks"
+          fi
+          gradle assembleRelease
       - name: Upload APK artifact
         uses: actions/upload-artifact@v7.0.1
         with:
           name: Pawsome-Android
-          path: Pawsome-Android/app/build/outputs/apk/debug/*.apk
+          path: Pawsome-Android/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
       - name: Add Pawsome.apk to 'latest' release
         if: github.ref == 'refs/heads/main'
@@ -87,5 +95,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          cp "$(ls app/build/outputs/apk/debug/*.apk | head -n1)" Pawsome.apk
+          cp "$(ls app/build/outputs/apk/release/*.apk | head -n1)" Pawsome.apk
           gh release upload latest Pawsome.apk --clobber
