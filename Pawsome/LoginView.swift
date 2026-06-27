@@ -72,22 +72,6 @@ struct LoginView: View {
                 .cornerRadius(14)
                 .shadow(radius: 8)
                 #endif
-
-                // 🪟 MICROSOFT SIGN IN
-                Button {
-                    Task { await signInWithMicrosoft() }
-                } label: {
-                    HStack {
-                        Image(systemName: "m.square.fill")
-                        Text("Continue with Microsoft").bold()
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.white)
-                    .foregroundColor(.black)
-                    .cornerRadius(14)
-                    .shadow(radius: 8)
-                }
             }
             .padding(28)
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24))
@@ -162,22 +146,6 @@ struct LoginView: View {
                     user.profile?.imageURL(withDimension: 200)?.absoluteString
             )
 
-        } catch {
-            await showError(error.localizedDescription)
-        }
-    }
-
-    // MARK: - MICROSOFT SIGN IN
-    private func signInWithMicrosoft() async {
-        do {
-            let provider = OAuthProvider(providerID: "microsoft.com")
-            provider.customParameters = ["prompt": "select_account"]
-            let authResult = try await Auth.auth().signIn(with: provider, uiDelegate: nil)
-            await fetchUserAndLogin(
-                uid: authResult.user.uid,
-                defaultUsername: authResult.user.displayName,
-                profileImageURL: authResult.user.photoURL?.absoluteString
-            )
         } catch {
             await showError(error.localizedDescription)
         }
