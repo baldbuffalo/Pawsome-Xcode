@@ -72,6 +72,22 @@ struct LoginView: View {
                 .cornerRadius(14)
                 .shadow(radius: 8)
                 #endif
+
+                // 𝕏 SIGN IN
+                Button {
+                    Task { await signInWithTwitter() }
+                } label: {
+                    HStack {
+                        Image(systemName: "xmark.seal.fill")
+                        Text("Continue with X").bold()
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.black)
+                    .foregroundColor(.white)
+                    .cornerRadius(14)
+                    .shadow(radius: 8)
+                }
             }
             .padding(28)
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24))
@@ -146,6 +162,21 @@ struct LoginView: View {
                     user.profile?.imageURL(withDimension: 200)?.absoluteString
             )
 
+        } catch {
+            await showError(error.localizedDescription)
+        }
+    }
+
+    // MARK: - X / TWITTER SIGN IN
+    private func signInWithTwitter() async {
+        do {
+            let provider = OAuthProvider(providerID: "twitter.com")
+            let authResult = try await Auth.auth().signIn(with: provider, uiDelegate: nil)
+            await fetchUserAndLogin(
+                uid: authResult.user.uid,
+                defaultUsername: authResult.user.displayName,
+                profileImageURL: authResult.user.photoURL?.absoluteString
+            )
         } catch {
             await showError(error.localizedDescription)
         }
