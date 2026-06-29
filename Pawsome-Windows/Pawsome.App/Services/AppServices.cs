@@ -16,6 +16,7 @@ public sealed class AppServices
     public SecureStore Secrets { get; }
     public FirebaseAuthService Auth { get; }
     public GoogleAuthFlow GoogleAuth { get; }
+    public TwitterAuthFlow TwitterAuth { get; }
     public FirestoreService Firestore { get; }
     public GitHubUploader GitHub { get; }
     public ImageService Images { get; }
@@ -28,6 +29,7 @@ public sealed class AppServices
 
         Auth = new FirebaseAuthService(Http);
         GoogleAuth = new GoogleAuthFlow(Http, OpenInBrowser, ResolveGoogleClientId, ResolveGoogleClientSecret);
+        TwitterAuth = new TwitterAuthFlow(Http, OpenInBrowser, () => Meta("TwitterConsumerKey"), () => Meta("TwitterConsumerSecret"));
         Firestore = new FirestoreService(Http, Auth);
         GitHub = new GitHubUploader(Http, ResolveGitHubToken);
         Images = new ImageService();

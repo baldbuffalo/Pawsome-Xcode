@@ -6,6 +6,8 @@ object PawsomeConfig {
     const val githubRepo = "baldbuffalo/Pawsome-assets"
 
     val googleServerClientId: String get() = BuildConfig.GOOGLE_SERVER_CLIENT_ID
+    val twitterConsumerKey: String get() = BuildConfig.TWITTER_CONSUMER_KEY
+    val twitterConsumerSecret: String get() = BuildConfig.TWITTER_CONSUMER_SECRET
     val githubToken: String get() = BuildConfig.GITHUB_TOKEN
 
     val firestoreBase: String

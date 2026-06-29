@@ -45,6 +45,15 @@ public sealed class SessionManager
         await LoadUserAsync(session, ct);
     }
 
+    /// <summary>Runs the interactive X/Twitter sign-in flow.</summary>
+    public async Task SignInWithTwitterAsync(CancellationToken ct = default)
+    {
+        var tokens = await _services.TwitterAuth.SignInAsync(ct);
+        var session = await _services.Auth.SignInWithTwitterAsync(tokens.Token, tokens.TokenSecret, ct);
+        _services.Secrets.Set(SecureStore.RefreshTokenKey, session.RefreshToken);
+        await LoadUserAsync(session, ct);
+    }
+
     public void SignOut()
     {
         _services.Auth.SignOut();

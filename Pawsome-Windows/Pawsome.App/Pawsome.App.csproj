@@ -48,4 +48,11 @@
     <AssemblyMetadata Include="GoogleClientSecret" Value="$(GoogleClientSecret)" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(TwitterConsumerKey)' != ''">
+    <AssemblyMetadata Include="TwitterConsumerKey" Value="$(TwitterConsumerKey)" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TwitterConsumerSecret)' != ''">
+    <AssemblyMetadata Include="TwitterConsumerSecret" Value="$(TwitterConsumerSecret)" />
+  </ItemGroup>
+
 </Project>

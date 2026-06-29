@@ -49,6 +49,33 @@ public sealed class FirebaseAuthService
         return session;
     }
 
+    /// <summary>Exchanges X/Twitter OAuth 1.0a tokens for a Firebase session.</summary>
+    public async Task<FirebaseSession> SignInWithTwitterAsync(string accessToken, string tokenSecret, CancellationToken ct = default)
+    {
+        var url = $"{PawsomeConfig.IdentityToolkitBaseUrl}:signInWithIdp?key={PawsomeConfig.FirebaseApiKey}";
+        var payload = new JsonObject
+        {
+            ["postBody"] = $"access_token={Uri.EscapeDataString(accessToken)}&oauth_token_secret={Uri.EscapeDataString(tokenSecret)}&providerId=twitter.com",
+            ["requestUri"] = "http://localhost",
+            ["returnSecureToken"] = true,
+            ["returnIdpCredential"] = true,
+        };
+
+        var json = await PostJsonAsync(url, payload, ct).ConfigureAwait(false);
+        var session = new FirebaseSession
+        {
+            Uid = json["localId"]!.GetValue<string>(),
+            IdToken = json["idToken"]!.GetValue<string>(),
+            RefreshToken = json["refreshToken"]!.GetValue<string>(),
+            ExpiresAt = ExpiryFromSeconds(json["expiresIn"]?.GetValue<string>()),
+            DisplayName = json["displayName"]?.GetValue<string>(),
+            Email = json["email"]?.GetValue<string>(),
+            PhotoUrl = json["photoUrl"]?.GetValue<string>(),
+        };
+        SetSession(session);
+        return session;
+    }
+
     /// <summary>Restores a session from a saved refresh token (silent sign-in).</summary>
     public async Task<FirebaseSession?> RestoreAsync(string refreshToken, CancellationToken ct = default)
     {

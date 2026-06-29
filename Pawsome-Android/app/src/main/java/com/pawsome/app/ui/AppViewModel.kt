@@ -11,6 +11,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.pawsome.app.auth.GoogleAuth
+import com.pawsome.app.auth.TwitterAuth
 import com.pawsome.app.model.AppUser
 import com.pawsome.app.model.Post
 import com.pawsome.app.net.FirebaseAuth
@@ -29,6 +30,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val firestore = Firestore(auth)
     private val github = GitHubUploader()
     private val google = GoogleAuth()
+    private val twitter = TwitterAuth()
     private val prefs = app.getSharedPreferences("pawsome", Context.MODE_PRIVATE)
 
     var loading by mutableStateOf(true); private set
@@ -57,6 +59,18 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         try {
             val idToken = google.signIn(context)
             val s = auth.signInWithGoogle(idToken)
+            prefs.edit().putString("rt", s.refreshToken).apply()
+            loadUser(s); signedIn = true; loadFeed()
+        } catch (e: Exception) {
+            error = e.message ?: "Sign-in failed"
+        } finally { busy = false }
+    }
+
+    fun signInTwitter(context: android.content.Context) = viewModelScope.launch {
+        busy = true; error = null
+        try {
+            val tokens = twitter.signIn(context)
+            val s = auth.signInWithTwitter(tokens.token, tokens.tokenSecret)
             prefs.edit().putString("rt", s.refreshToken).apply()
             loadUser(s); signedIn = true; loadFeed()
         } catch (e: Exception) {

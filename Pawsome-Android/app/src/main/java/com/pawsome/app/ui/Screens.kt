@@ -46,6 +46,11 @@ fun LoginScreen(vm: AppViewModel) {
                         Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary
                     ) else Text("Sign in with Google")
                 }
+                Button(
+                    onClick = { vm.signInTwitter(context) }, enabled = !vm.busy,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
+                ) { Text("Sign in with X", color = Color.White) }
                 vm.error?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 13.sp) }
             }
         }

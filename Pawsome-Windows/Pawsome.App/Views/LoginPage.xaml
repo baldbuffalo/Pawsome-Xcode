@@ -45,6 +45,15 @@
                     </StackPanel>
                 </Button>
 
+                <Button Command="{x:Bind ViewModel.TwitterSignInCommand}"
+                        IsEnabled="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource InvBool}}"
+                        Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource InvBoolToVis}}"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                        Background="Black" Foreground="White"
+                        CornerRadius="10" Padding="16,12">
+                    <TextBlock Text="Sign in with X" FontWeight="SemiBold" FontSize="15" />
+                </Button>
+
                 <StackPanel Spacing="12" HorizontalAlignment="Center"
                             Visibility="{x:Bind ViewModel.IsBusy, Mode=OneWay, Converter={StaticResource BoolToVis}}">
                     <ProgressRing IsActive="True" Width="30" Height="30" />

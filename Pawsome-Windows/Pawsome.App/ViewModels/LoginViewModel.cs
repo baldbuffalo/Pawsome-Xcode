@@ -1,7 +1,6 @@
 using System.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Pawsome.Core;
 using Pawsome.App.Services;
 
 namespace Pawsome.App.ViewModels;
@@ -15,7 +14,8 @@ public sealed class LoginViewModel : ObservableObject
     public LoginViewModel(AppServices services)
     {
         _services = services;
-        SignInCommand = new AsyncRelayCommand(SignInAsync);
+        SignInCommand = new AsyncRelayCommand(() => RunAsync(_services.Session.SignInWithGoogleAsync));
+        TwitterSignInCommand = new AsyncRelayCommand(() => RunAsync(_services.Session.SignInWithTwitterAsync));
         CancelCommand = new RelayCommand(Cancel);
     }
 
@@ -26,25 +26,23 @@ public sealed class LoginViewModel : ObservableObject
     public string? Error { get => _error; private set => SetProperty(ref _error, value); }
 
     public IAsyncRelayCommand SignInCommand { get; }
+    public IAsyncRelayCommand TwitterSignInCommand { get; }
     public IRelayCommand CancelCommand { get; }
 
-    private async Task SignInAsync()
+    private async Task RunAsync(Func<CancellationToken, Task> signIn)
     {
         IsBusy = true;
         Error = null;
-
-        // Auto-cancel after a few minutes so a closed/abandoned browser tab never
-        // leaves the app stuck on the spinner.
         _cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
         try
         {
-            await _services.Session.SignInWithGoogleAsync(_cts.Token);
+            await signIn(_cts.Token);
             App.NavigateRoot(typeof(Views.ShellPage));
             App.BringToFront();
         }
         catch (OperationCanceledException)
         {
-            Error = "Sign-in was canceled. Tap \"Sign in with Google\" to try again.";
+            Error = "Sign-in was canceled. Tap a sign-in button to try again.";
         }
         catch (Exception ex)
         {

@@ -41,6 +41,24 @@ class FirebaseAuth {
         ).also { current = it }
     }
 
+    suspend fun signInWithTwitter(accessToken: String, tokenSecret: String): Session = withContext(Dispatchers.IO) {
+        val enc = { s: String -> java.net.URLEncoder.encode(s, "UTF-8") }
+        val body = JSONObject()
+            .put("postBody", "access_token=${enc(accessToken)}&oauth_token_secret=${enc(tokenSecret)}&providerId=twitter.com")
+            .put("requestUri", "http://localhost")
+            .put("returnSecureToken", true)
+            .put("returnIdpCredential", true)
+        val json = post("${PawsomeConfig.identityBase}:signInWithIdp?key=${PawsomeConfig.apiKey}", body)
+        Session(
+            json.getString("localId"),
+            json.getString("idToken"),
+            json.getString("refreshToken"),
+            expiry(json.optString("expiresIn")),
+            json.optString("displayName").ifBlank { null },
+            json.optString("photoUrl").ifBlank { null },
+        ).also { current = it }
+    }
+
     suspend fun restore(refreshToken: String): Session? = withContext(Dispatchers.IO) {
         runCatching { refresh(refreshToken).also { current = it } }.getOrNull()
     }
