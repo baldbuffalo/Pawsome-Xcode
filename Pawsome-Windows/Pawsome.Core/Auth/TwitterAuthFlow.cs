@@ -38,8 +38,7 @@ public sealed class TwitterAuthFlow
             throw new AuthException("No X/Twitter API key/secret configured in this build.");
 
         using var listener = new HttpListener();
-        var port = GetFreePort();
-        var callback = $"http://127.0.0.1:{port}/";
+        var callback = "http://127.0.0.1:8723/"; // must exactly match the X app's approved callback
         listener.Prefixes.Add(callback);
         listener.Start();
 

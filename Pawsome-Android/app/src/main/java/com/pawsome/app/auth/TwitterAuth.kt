@@ -29,9 +29,9 @@ class TwitterAuth {
         if (key.isBlank() || secret.isBlank())
             throw AuthException("No X/Twitter API key/secret configured in this build.")
 
-        ServerSocket(0, 1, InetAddress.getByName("127.0.0.1")).use { server ->
+        ServerSocket(8723, 1, InetAddress.getByName("127.0.0.1")).use { server ->
             server.soTimeout = 180_000
-            val callback = "http://127.0.0.1:${server.localPort}/"
+            val callback = "http://127.0.0.1:8723/"
 
             val reqForm = parseForm(post(REQUEST_TOKEN, key, secret, null, mapOf("oauth_callback" to callback)))
             val reqToken = reqForm["oauth_token"] ?: throw AuthException("request_token failed")
