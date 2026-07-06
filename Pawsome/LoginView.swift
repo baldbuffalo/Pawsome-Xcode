@@ -21,6 +21,9 @@ struct LoginView: View {
     @State private var showError = false
     @State private var errorMessage = ""
     @State private var currentNonce: String?
+    @State private var isLoadingGoogle = false
+    @State private var isLoadingApple = false
+    @State private var isLoadingTwitter = false
 
     var body: some View {
         ZStack {
@@ -44,11 +47,20 @@ struct LoginView: View {
 
                 // 🔴 GOOGLE SIGN IN
                 Button {
-                    Task { await signInWithGoogle() }
+                    Task {
+                        isLoadingGoogle = true
+                        await signInWithGoogle()
+                        isLoadingGoogle = false
+                    }
                 } label: {
                     HStack {
-                        Image(systemName: "globe")
-                        Text("Continue with Google").bold()
+                        if isLoadingGoogle {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .black))
+                        } else {
+                            Image(systemName: "globe")
+                        }
+                        Text(isLoadingGoogle ? "Signing in..." : "Continue with Google").bold()
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
@@ -57,6 +69,7 @@ struct LoginView: View {
                     .cornerRadius(14)
                     .shadow(radius: 8)
                 }
+                .disabled(isLoadingGoogle || isLoadingApple || isLoadingTwitter)
 
                 // 🍎 APPLE SIGN IN
                 #if canImport(AuthenticationServices)
@@ -66,20 +79,35 @@ struct LoginView: View {
                     request.requestedScopes = [.fullName, .email]
                     request.nonce = sha256(nonce)
                 } onCompletion: { result in
-                    Task { await handleAppleSignIn(result) }
+                    isLoadingApple = true
+                    Task {
+                        await handleAppleSignIn(result)
+                        isLoadingApple = false
+                    }
                 }
                 .frame(height: 50)
                 .cornerRadius(14)
                 .shadow(radius: 8)
+                .opacity(isLoadingApple ? 0.6 : 1)
+                .disabled(isLoadingApple || isLoadingGoogle || isLoadingTwitter)
                 #endif
 
                 // 𝕏 SIGN IN
                 Button {
-                    Task { await signInWithTwitter() }
+                    Task {
+                        isLoadingTwitter = true
+                        await signInWithTwitter()
+                        isLoadingTwitter = false
+                    }
                 } label: {
                     HStack {
-                        Image(systemName: "xmark.seal.fill")
-                        Text("Continue with X").bold()
+                        if isLoadingTwitter {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        } else {
+                            Image(systemName: "xmark.seal.fill")
+                        }
+                        Text(isLoadingTwitter ? "Signing in..." : "Continue with X").bold()
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
@@ -88,6 +116,7 @@ struct LoginView: View {
                     .cornerRadius(14)
                     .shadow(radius: 8)
                 }
+                .disabled(isLoadingTwitter || isLoadingGoogle || isLoadingApple)
             }
             .padding(28)
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24))

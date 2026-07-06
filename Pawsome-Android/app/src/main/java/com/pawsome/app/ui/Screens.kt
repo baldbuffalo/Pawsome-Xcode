@@ -50,7 +50,11 @@ fun LoginScreen(vm: AppViewModel) {
                     onClick = { vm.signInTwitter(context) }, enabled = !vm.busy,
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
-                ) { Text("Sign in with X", color = Color.White) }
+                ) {
+                    if (vm.busy) CircularProgressIndicator(
+                        Modifier.size(18.dp), strokeWidth = 2.dp, color = Color.White
+                    ) else Text("Sign in with X", color = Color.White)
+                }
                 vm.error?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 13.sp) }
             }
         }

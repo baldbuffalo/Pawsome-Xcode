@@ -38,6 +38,11 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         open url: URL,
         options: [UIApplication.OpenURLOptionsKey: Any] = [:]
     ) -> Bool {
+        // Handle Firebase OAuth callbacks
+        if Auth.auth().canHandle(url) {
+            return true
+        }
+        // Handle Google Sign-In callbacks
         return GIDSignIn.sharedInstance.handle(url)
     }
 }
@@ -46,6 +51,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
 #if os(macOS)
 import AppKit
 import GoogleSignIn
+import FirebaseAuth
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
 
@@ -55,6 +61,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func application(_ application: NSApplication, open urls: [URL]) {
         for url in urls {
+            // Handle Firebase OAuth callbacks
+            if Auth.auth().canHandle(url) {
+                continue
+            }
+            // Handle Google Sign-In callbacks
             _ = GIDSignIn.sharedInstance.handle(url)
         }
     }
