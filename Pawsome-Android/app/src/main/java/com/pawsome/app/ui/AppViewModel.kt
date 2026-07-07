@@ -89,7 +89,8 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
 
     fun signOut() {
         firebaseAuth.signOut()
-        signedIn = false; user = null; posts = emptyList()
+        busyGoogle = false; busyTwitter = false; busyPost = false
+        signedIn = false; user = null; posts = emptyList(); error = null
     }
 
     fun loadFeed() = viewModelScope.launch {
