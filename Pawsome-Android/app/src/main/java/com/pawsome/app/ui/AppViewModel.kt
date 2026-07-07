@@ -89,14 +89,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         busyTwitter = true; error = null
         twitterStartTime = System.currentTimeMillis()
         try {
-            android.util.Log.d("AppViewModel", "Starting Twitter sign in")
+            error = "Connecting to X..."
             twitter.startSignIn()
-            android.util.Log.d("AppViewModel", "startSignIn completed, waiting for callback")
+            error = "Waiting for browser..."
             // The spinner stays visible while waiting for the callback
             // When the callback arrives, handleTwitterCallback() will complete the flow
         } catch (e: Exception) {
-            android.util.Log.e("AppViewModel", "startSignIn failed", e)
-            error = e.message ?: "Sign-in failed"
+            error = "Error: ${e.message}"
             busyTwitter = false
         }
     }
@@ -121,22 +120,20 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun handleTwitterCallback(uri: android.net.Uri) {
         viewModelScope.launch {
             try {
-                android.util.Log.d("AppViewModel", "Handling Twitter callback")
+                error = "Getting access token..."
                 val tokens = twitter.handleCallback(uri)
                 if (tokens != null) {
-                    android.util.Log.d("AppViewModel", "Got tokens, signing in")
+                    error = "Signing into Firebase..."
                     val s = auth.signInWithTwitter(tokens.token, tokens.tokenSecret)
                     prefs.edit().putString("rt", s.refreshToken).apply()
+                    error = "Loading user data..."
                     loadUser(s); signedIn = true; loadFeed()
+                    error = null
                 } else {
-                    android.util.Log.e("AppViewModel", "handleCallback returned null")
                     error = "Sign-in failed: invalid callback"
                 }
             } catch (e: Exception) {
-                android.util.Log.e("AppViewModel", "Callback error", e)
-                val errorMsg = e.message ?: e.toString()
-                android.util.Log.e("AppViewModel", "Error: $errorMsg")
-                error = errorMsg
+                error = "Error: ${e.message}"
             } finally {
                 busyTwitter = false
             }
