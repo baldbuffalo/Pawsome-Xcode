@@ -30,8 +30,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val firestore = Firestore(auth)
     private val github = GitHubUploader()
     private val google = GoogleAuth()
-    private val prefs = app.getSharedPreferences("pawsome", Context.MODE_PRIVATE)
-    private val twitter = TwitterAuth(app, prefs)
+    private val twitter = TwitterAuth(app)
 
     init {
         // Check for Twitter callback when ViewModel is created
@@ -54,8 +53,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var error by mutableStateOf<String?>(null)
     var user by mutableStateOf<AppUser?>(null); private set
     var posts by mutableStateOf<List<Post>>(emptyList()); private set
-
-    private var twitterStartTime: Long = 0
 
     val isBusy: Boolean get() = busyGoogle || busyTwitter
 
@@ -85,56 +82,21 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         } finally { busyGoogle = false }
     }
 
-    fun signInTwitter() = viewModelScope.launch {
+    fun signInTwitter() {
         busyTwitter = true; error = null
-        twitterStartTime = System.currentTimeMillis()
-        try {
-            error = "Connecting to X..."
-            twitter.startSignIn()
-            error = "Waiting for browser..."
-            // The spinner stays visible while waiting for the callback
-            // When the callback arrives, handleTwitterCallback() will complete the flow
-        } catch (e: Exception) {
-            error = "Sign-in failed"
-            busyTwitter = false
-        }
-    }
-
-    fun onAppForegrounded() {
-        // Check for callback when app comes to foreground
-        if (busyTwitter) {
-            val uri = com.pawsome.app.TwitterCallbackHolder.callbackUri
-            if (uri != null) {
-                com.pawsome.app.TwitterCallbackHolder.callbackUri = null
-                handleTwitterCallback(uri)
-                return
-            }
-            // Check if we've been waiting too long (3 minutes)
-            if (System.currentTimeMillis() - twitterStartTime > 180000) {
-                error = "Sign-in timed out. Please try again."
-                busyTwitter = false
-            }
-        }
-    }
-
-    fun handleTwitterCallback(uri: android.net.Uri) {
-        viewModelScope.launch {
-            try {
-                error = "Getting access token..."
-                val tokens = twitter.handleCallback(uri)
-                if (tokens != null) {
-                    error = "Signing into Firebase..."
-                    val s = auth.signInWithTwitter(tokens.token, tokens.tokenSecret)
-                    prefs.edit().putString("rt", s.refreshToken).apply()
-                    error = "Loading user data..."
-                    loadUser(s); signedIn = true; loadFeed()
-                    error = null
+        twitter.startSignIn { token, secret ->
+            viewModelScope.launch {
+                if (token != null && secret != null) {
+                    try {
+                        val s = auth.signInWithTwitter(token, secret)
+                        prefs.edit().putString("rt", s.refreshToken).apply()
+                        loadUser(s); signedIn = true; loadFeed()
+                    } catch (e: Exception) {
+                        error = "Sign-in failed"
+                    }
                 } else {
-                    error = "Sign-in failed: invalid callback"
+                    error = "Sign-in failed"
                 }
-            } catch (e: Exception) {
-                error = "Sign-in failed"
-            } finally {
                 busyTwitter = false
             }
         }
