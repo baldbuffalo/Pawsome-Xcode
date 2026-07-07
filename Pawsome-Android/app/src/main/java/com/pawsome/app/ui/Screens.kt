@@ -48,7 +48,7 @@ fun LoginScreen(vm: AppViewModel) {
                     ) else Text("Sign in with Google")
                 }
                 Button(
-                    onClick = { vm.signInTwitter(context) }, enabled = !vm.isBusy,
+                    onClick = { vm.signInTwitter() }, enabled = !vm.isBusy,
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
                 ) {

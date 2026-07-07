@@ -1,5 +1,6 @@
 package com.pawsome.app
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -31,11 +32,43 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+        // Handle Twitter callback if app was launched from deep link
+        handleIntent(intent)
     }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent?) {
+        val uri = intent?.data ?: return
+        if (uri.scheme == "pawsome") {
+            // Notify the ViewModel about the callback
+            // We use a static reference or shared state to pass this
+            TwitterCallbackHolder.callbackUri = uri
+        }
+    }
+}
+
+// Holder for Twitter callback URI - simple approach
+object TwitterCallbackHolder {
+    var callbackUri: android.net.Uri? = null
 }
 
 @Composable
 private fun Root(vm: AppViewModel = viewModel()) {
+    // Check for Twitter callback when on login screen
+    androidx.compose.runtime.LaunchedEffect(vm.busyTwitter) {
+        if (vm.busyTwitter) {
+            val uri = TwitterCallbackHolder.callbackUri
+            if (uri != null) {
+                TwitterCallbackHolder.callbackUri = null
+                vm.handleTwitterCallback(uri)
+            }
+        }
+    }
+    
     when {
         vm.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
         !vm.signedIn -> LoginScreen(vm)

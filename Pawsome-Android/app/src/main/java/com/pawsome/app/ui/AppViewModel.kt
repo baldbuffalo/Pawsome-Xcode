@@ -30,8 +30,21 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val firestore = Firestore(auth)
     private val github = GitHubUploader()
     private val google = GoogleAuth()
-    private val twitter = TwitterAuth()
+    private val twitter = TwitterAuth(app)
     private val prefs = app.getSharedPreferences("pawsome", Context.MODE_PRIVATE)
+
+    init {
+        // Check for Twitter callback when ViewModel is created
+        checkTwitterCallback()
+    }
+
+    private fun checkTwitterCallback() {
+        val uri = com.pawsome.app.TwitterCallbackHolder.callbackUri
+        if (uri != null) {
+            com.pawsome.app.TwitterCallbackHolder.callbackUri = null
+            handleTwitterCallback(uri)
+        }
+    }
 
     var loading by mutableStateOf(true); private set
     var signedIn by mutableStateOf(false); private set
@@ -70,16 +83,33 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         } finally { busyGoogle = false }
     }
 
-    fun signInTwitter(context: android.content.Context) = viewModelScope.launch {
+    fun signInTwitter() = viewModelScope.launch {
         busyTwitter = true; error = null
         try {
-            val tokens = twitter.signIn(context)
-            val s = auth.signInWithTwitter(tokens.token, tokens.tokenSecret)
-            prefs.edit().putString("rt", s.refreshToken).apply()
-            loadUser(s); signedIn = true; loadFeed()
+            twitter.startSignIn()
+            // The spinner stays visible while waiting for the callback
+            // When the callback arrives, handleTwitterCallback() will complete the flow
         } catch (e: Exception) {
             error = e.message ?: "Sign-in failed"
-        } finally { busyTwitter = false }
+            busyTwitter = false
+        }
+    }
+
+    fun handleTwitterCallback(uri: android.net.Uri) {
+        viewModelScope.launch {
+            try {
+                val tokens = twitter.handleCallback(uri)
+                if (tokens != null) {
+                    val s = auth.signInWithTwitter(tokens.token, tokens.tokenSecret)
+                    prefs.edit().putString("rt", s.refreshToken).apply()
+                    loadUser(s); signedIn = true; loadFeed()
+                }
+            } catch (e: Exception) {
+                error = e.message ?: "Callback handling failed"
+            } finally {
+                busyTwitter = false
+            }
+        }
     }
 
     private suspend fun loadUser(s: Session) {
