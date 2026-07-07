@@ -17,12 +17,14 @@ import javax.crypto.spec.SecretKeySpec
 
 data class TwitterTokens(val token: String, val tokenSecret: String)
 
+/** Global holder for Twitter OAuth state - survives activity recreation */
+object TwitterAuthHolder {
+    var pendingToken: String? = null
+    var pendingSecret: String? = null
+}
+
 /** X / Twitter OAuth 1.0a sign-in using custom URL scheme callback. */
 class TwitterAuth(private val context: Context) {
-
-    // Store pending OAuth state for callback handling
-    private var pendingToken: String? = null
-    private var pendingSecret: String? = null
 
     /** Start the Twitter sign-in flow - opens browser and returns immediately.
      *  The actual result comes through handleCallback() called from the activity. */
@@ -39,9 +41,9 @@ class TwitterAuth(private val context: Context) {
         val reqToken = reqForm["oauth_token"] ?: throw AuthException("request_token failed")
         val reqSecret = reqForm["oauth_token_secret"] ?: ""
         
-        // Store for callback
-        pendingToken = reqToken
-        pendingSecret = reqSecret
+        // Store for callback in global holder
+        TwitterAuthHolder.pendingToken = reqToken
+        TwitterAuthHolder.pendingSecret = reqSecret
 
         withContext(Dispatchers.Main) {
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse("$AUTHORIZE?oauth_token=${enc(reqToken)}"))
@@ -61,24 +63,25 @@ class TwitterAuth(private val context: Context) {
         val verifier = params["oauth_verifier"]
         val oauthToken = params["oauth_token"]
         
-        // Verify this is the right callback
-        if (verifier == null || oauthToken != pendingToken) {
+        if (verifier == null) {
+            android.util.Log.e("TwitterAuth", "No verifier in callback")
             return null
         }
         
-        val token = pendingToken ?: return null
-        val tokenSecret = pendingSecret ?: return null
+        // Use token from callback if pending was cleared (activity recreation)
+        val token = if (TwitterAuthHolder.pendingToken != null) TwitterAuthHolder.pendingToken!! else oauthToken
+        val tokenSecret = TwitterAuthHolder.pendingSecret ?: ""
         
-        // Clear pending state
-        pendingToken = null
-        pendingSecret = null
+        // Clear global state
+        TwitterAuthHolder.pendingToken = null
+        TwitterAuthHolder.pendingSecret = null
         
         // Exchange for access token (synchronously since we're already on the callback thread)
         val key = PawsomeConfig.twitterConsumerKey
         val appSecret = PawsomeConfig.twitterConsumerSecret
         
         val accForm = parseForm(
-            post(ACCESS_TOKEN, key, appSecret, TwitterTokens(token, tokenSecret), mapOf("oauth_verifier" to verifier!!))
+            post(ACCESS_TOKEN, key, appSecret, TwitterTokens(token, tokenSecret), mapOf("oauth_verifier" to verifier))
         )
         
         return TwitterTokens(
