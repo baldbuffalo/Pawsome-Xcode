@@ -5,6 +5,16 @@ import com.example.pawsome.net.millis
 import com.example.pawsome.net.str
 import com.example.pawsome.net.strList
 
+enum class PostStatus(val displayName: String, val emoji: String) {
+    LOST("Lost", "🆘"),
+    FOUND("Found", "🎉"),
+    REUNITED("Reunited", "🏠");
+    
+    companion object {
+        fun fromString(s: String?): PostStatus = entries.find { it.name.equals(s, true) } ?: LOST
+    }
+}
+
 data class Post(
     val id: String,
     val catName: String,
@@ -17,6 +27,8 @@ data class Post(
     val timestampMillis: Long,
     val likes: List<String>,
     val commentCount: Int,
+    val status: PostStatus = PostStatus.LOST,
+    val location: String = "",
 ) {
     val likeCount get() = likes.size
     val timeAgo get() = timeAgoFrom(timestampMillis)
@@ -33,7 +45,9 @@ data class Post(
                 d.str("description") ?: "", d.str("age") ?: "",
                 imageUrl, ownerUid,
                 d.str("ownerUsername") ?: "User", d.str("ownerProfilePic") ?: "",
-                d.millis("timestamp"), d.strList("likes"), d.long("commentCount").toInt()
+                d.millis("timestamp"), d.strList("likes"), d.long("commentCount").toInt(),
+                PostStatus.fromString(d.str("status")),
+                d.str("location") ?: ""
             )
         }
     }

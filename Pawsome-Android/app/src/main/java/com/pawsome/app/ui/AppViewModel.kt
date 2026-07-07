@@ -112,7 +112,7 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
         } catch (e: Exception) { error = e.message }
     }
 
-    fun createPost(uri: Uri, name: String, age: String, desc: String, onDone: () -> Unit) =
+    fun createPost(uri: Uri, name: String, age: String, desc: String, location: String, status: com.example.pawsome.model.PostStatus, onDone: () -> Unit) =
         viewModelScope.launch {
             busyPost = true; error = null
             try {
@@ -127,6 +127,7 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
                         "imageURL" to url, "ownerUID" to u.uid, "ownerUsername" to u.username,
                         "ownerProfilePic" to (u.profilePic ?: ""), "timestamp" to Instant.now(),
                         "likes" to emptyList<String>(), "commentCount" to 0L,
+                        "status" to status.name, "location" to location.trim(),
                     )
                 )
                 loadFeed(); onDone()
