@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -28,6 +29,8 @@ import com.pawsome.app.model.Post
 
 @Composable
 fun LoginScreen(vm: AppViewModel) {
+    val context = LocalContext.current
+    
     Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
         Card(Modifier.widthIn(max = 380.dp)) {
             Column(
@@ -41,14 +44,14 @@ fun LoginScreen(vm: AppViewModel) {
                 )
                 Text("Pawsome", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                 Text("Find. Help. Reunite.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                val context = androidx.compose.ui.platform.LocalContext.current
                 Button(onClick = { vm.signIn(context) }, enabled = !vm.isBusy, modifier = Modifier.fillMaxWidth()) {
                     if (vm.busyGoogle) CircularProgressIndicator(
                         Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary
                     ) else Text("Sign in with Google")
                 }
                 Button(
-                    onClick = { vm.signInTwitter() }, enabled = !vm.isBusy,
+                    onClick = { vm.signInTwitter() },
+                    enabled = !vm.isBusy,
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
                 ) {

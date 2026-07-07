@@ -1,10 +1,12 @@
 package com.pawsome.app
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
@@ -12,6 +14,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pawsome.app.ui.AppViewModel
 import com.pawsome.app.ui.CreatePostScreen
@@ -30,11 +35,60 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+        // Handle Twitter callback if app was launched from deep link
+        handleIntent(intent)
     }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent?) {
+        val uri = intent?.data ?: return
+        if (uri.scheme == "pawsome") {
+            // Store the callback URI for the ViewModel to process
+            CallbackHolder.callbackUri = uri
+        }
+    }
+}
+
+// Holder for callback URI
+object CallbackHolder {
+    var callbackUri: android.net.Uri? = null
 }
 
 @Composable
 private fun Root(vm: AppViewModel = viewModel()) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    
+    // Listen for lifecycle changes to detect when app comes to foreground
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                // Check for stored callback URI
+                val uri = CallbackHolder.callbackUri
+                if (uri != null) {
+                    CallbackHolder.callbackUri = null
+                    vm.handleTwitterCallback(uri)
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+    
+    // Check for callback on first composition
+    LaunchedEffect(Unit) {
+        val uri = CallbackHolder.callbackUri
+        if (uri != null) {
+            CallbackHolder.callbackUri = null
+            vm.handleTwitterCallback(uri)
+        }
+    }
+    
     when {
         vm.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
         !vm.signedIn -> LoginScreen(vm)
@@ -64,8 +118,8 @@ private fun MainScaffold(vm: AppViewModel) {
                 )
             }
         }
-    ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding)) {
+    ) { paddingValues ->
+        Box(Modifier.fillMaxSize().padding(paddingValues)) {
             when {
                 creating -> CreatePostScreen(vm) { creating = false }
                 tab == 1 -> ProfileScreen(vm)

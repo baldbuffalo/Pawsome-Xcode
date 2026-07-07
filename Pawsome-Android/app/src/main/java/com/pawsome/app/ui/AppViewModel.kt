@@ -4,7 +4,6 @@ import android.app.Application
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -24,26 +23,14 @@ import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.time.Instant
 
-class AppViewModel(app: Application) : AndroidViewModel(app) {
+class AppViewModel(private val app: Application) : AndroidViewModel(app) {
 
     private val auth = FirebaseAuth()
     private val firestore = Firestore(auth)
     private val github = GitHubUploader()
     private val google = GoogleAuth()
     private val twitter = TwitterAuth(app)
-
-    init {
-        // Check for Twitter callback when ViewModel is created
-        checkTwitterCallback()
-    }
-
-    private fun checkTwitterCallback() {
-        val uri = com.pawsome.app.TwitterCallbackHolder.callbackUri
-        if (uri != null) {
-            com.pawsome.app.TwitterCallbackHolder.callbackUri = null
-            handleTwitterCallback(uri)
-        }
-    }
+    private val prefs = app.getSharedPreferences("pawsome", Context.MODE_PRIVATE)
 
     var loading by mutableStateOf(true); private set
     var signedIn by mutableStateOf(false); private set
@@ -84,19 +71,33 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun signInTwitter() {
         busyTwitter = true; error = null
-        twitter.startSignIn { token, secret ->
-            viewModelScope.launch {
-                if (token != null && secret != null) {
-                    try {
-                        val s = auth.signInWithTwitter(token, secret)
-                        prefs.edit().putString("rt", s.refreshToken).apply()
-                        loadUser(s); signedIn = true; loadFeed()
-                    } catch (e: Exception) {
-                        error = "Sign-in failed"
-                    }
+        viewModelScope.launch {
+            try {
+                twitter.startSignIn()
+            } catch (e: Exception) {
+                error = "Sign-in failed"
+                busyTwitter = false
+            }
+        }
+    }
+
+    fun handleTwitterCallback(uri: android.net.Uri) {
+        viewModelScope.launch {
+            try {
+                val verifier = uri.getQueryParameter("oauth_verifier")
+                val oauthToken = uri.getQueryParameter("oauth_token")
+                if (verifier != null && oauthToken != null) {
+                    val tokenSecret = twitter.getRequestSecret()
+                    val tokens = twitter.exchangeToken(oauthToken, verifier, tokenSecret)
+                    val s = auth.signInWithTwitter(tokens.token, tokens.tokenSecret)
+                    prefs.edit().putString("rt", s.refreshToken).apply()
+                    loadUser(s); signedIn = true; loadFeed()
                 } else {
                     error = "Sign-in failed"
                 }
+            } catch (e: Exception) {
+                error = "Sign-in failed"
+            } finally {
                 busyTwitter = false
             }
         }
