@@ -107,15 +107,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 handleTwitterCallback(uri)
                 return
             }
-            // If no URI but we have pending Twitter auth, it means user cancelled
-            if (com.pawsome.app.auth.TwitterAuthHolder.pendingToken == null && 
-                com.pawsome.app.auth.TwitterAuthHolder.pendingSecret == null) {
-                // Token was consumed but no URI means something went wrong
-                // Check if we've been waiting too long (3 minutes)
-                if (System.currentTimeMillis() - twitterStartTime > 180000) {
-                    error = "Sign-in timed out. Please try again."
-                    busyTwitter = false
-                }
+            // Check if we've been waiting too long (3 minutes)
+            if (System.currentTimeMillis() - twitterStartTime > 180000) {
+                error = "Sign-in timed out. Please try again."
+                busyTwitter = false
             }
         }
     }
