@@ -48,6 +48,7 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
     init {
         // Listen for auth state changes
         firebaseAuth.addAuthStateListener { auth ->
+            busyGoogle = false; busyTwitter = false
             if (auth.currentUser != null) {
                 val u = auth.currentUser!!
                 viewModelScope.launch {
@@ -89,8 +90,7 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
 
     fun signOut() {
         firebaseAuth.signOut()
-        busyGoogle = false; busyTwitter = false; busyPost = false
-        signedIn = false; user = null; posts = emptyList(); error = null
+        signedIn = false; user = null; posts = emptyList()
     }
 
     fun loadFeed() = viewModelScope.launch {
