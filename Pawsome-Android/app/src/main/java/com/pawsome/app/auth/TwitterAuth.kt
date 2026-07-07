@@ -56,21 +56,23 @@ class TwitterAuth(private val context: Context) {
     /** Called from MainActivity when the custom URL scheme is received.
      *  Returns the tokens if successful, null if callback doesn't match. */
     fun handleCallback(uri: Uri): TwitterTokens? {
-        val params = uri.queryParameterNames.mapNotNull { name ->
-            name to uri.getQueryParameters(name).firstOrNull()
-        }.toMap()
-
-        val verifier = params["oauth_verifier"]
-        val oauthToken = params["oauth_token"]
+        val verifier = uri.getQueryParameter("oauth_verifier")
+        val oauthToken = uri.getQueryParameter("oauth_token")
         
         if (verifier == null) {
             android.util.Log.e("TwitterAuth", "No verifier in callback")
             return null
         }
         
-        // Use token from callback if pending was cleared (activity recreation)
-        val token = TwitterAuthHolder.pendingToken ?: oauthToken ?: return null
+        if (oauthToken == null) {
+            android.util.Log.e("TwitterAuth", "No oauth_token in callback")
+            return null
+        }
+        
+        // Get the token secret from holder, or use empty string if cleared
         val tokenSecret = TwitterAuthHolder.pendingSecret ?: ""
+        
+        android.util.Log.d("TwitterAuth", "Processing callback: token=${oauthToken.take(10)}..., verifier=${verifier.take(10)}...")
         
         // Clear global state
         TwitterAuthHolder.pendingToken = null
@@ -81,7 +83,7 @@ class TwitterAuth(private val context: Context) {
         val appSecret = PawsomeConfig.twitterConsumerSecret
         
         val accForm = parseForm(
-            post(ACCESS_TOKEN, key, appSecret, TwitterTokens(token, tokenSecret), mapOf("oauth_verifier" to verifier))
+            post(ACCESS_TOKEN, key, appSecret, TwitterTokens(oauthToken, tokenSecret), mapOf("oauth_verifier" to verifier))
         )
         
         return TwitterTokens(

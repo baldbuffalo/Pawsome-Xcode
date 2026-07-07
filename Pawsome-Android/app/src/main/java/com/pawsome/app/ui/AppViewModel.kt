@@ -123,16 +123,20 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun handleTwitterCallback(uri: android.net.Uri) {
         viewModelScope.launch {
             try {
+                android.util.Log.d("AppViewModel", "Handling Twitter callback")
                 val tokens = twitter.handleCallback(uri)
                 if (tokens != null) {
+                    android.util.Log.d("AppViewModel", "Got tokens, signing in")
                     val s = auth.signInWithTwitter(tokens.token, tokens.tokenSecret)
                     prefs.edit().putString("rt", s.refreshToken).apply()
                     loadUser(s); signedIn = true; loadFeed()
                 } else {
-                    error = "Invalid callback received"
+                    android.util.Log.e("AppViewModel", "handleCallback returned null")
+                    error = "Sign-in failed: invalid callback"
                 }
             } catch (e: Exception) {
-                error = e.message ?: "Callback handling failed"
+                android.util.Log.e("AppViewModel", "Callback error", e)
+                error = e.message ?: "Sign-in failed"
             } finally {
                 busyTwitter = false
             }
