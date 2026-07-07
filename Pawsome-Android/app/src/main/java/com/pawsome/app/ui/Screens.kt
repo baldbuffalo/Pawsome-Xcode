@@ -19,6 +19,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,7 +37,6 @@ import com.example.pawsome.R
 import com.example.pawsome.model.Post
 import com.example.pawsome.model.PostStatus
 import com.example.pawsome.ui.theme.*
-import androidx.lifecycle.viewmodelScope
 import kotlinx.coroutines.launch
 
 // ============== LOGIN SCREEN ==============
@@ -498,6 +498,7 @@ fun AboutScreen(onBack: () -> Unit) {
     var updateStatus by remember { mutableStateOf<String?>(null) }
     var isUpdateAvailable by remember { mutableStateOf(false) }
     val currentHash = "f69335d"
+    val scope = rememberCoroutineScope()
 
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(20.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -536,7 +537,7 @@ fun AboutScreen(onBack: () -> Unit) {
             onClick = {
                 checking = true
                 updateStatus = null
-                viewModelScope.launch {
+                scope.launch {
                     try {
                         val url = java.net.URL("https://api.github.com/repos/baldbuffalo/Pawsome-Xcode/commits/main")
                         val connection = url.openConnection() as java.net.HttpURLConnection

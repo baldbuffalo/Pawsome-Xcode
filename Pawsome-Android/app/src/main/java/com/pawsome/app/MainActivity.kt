@@ -14,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.pawsome.ui.AboutScreen
 import com.example.pawsome.ui.AppViewModel
 import com.example.pawsome.ui.CreatePostScreen
 import com.example.pawsome.ui.FeedScreen
