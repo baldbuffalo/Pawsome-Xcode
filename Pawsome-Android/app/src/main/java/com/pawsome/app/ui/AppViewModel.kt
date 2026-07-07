@@ -50,12 +50,13 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
         // Listen for auth state changes
         firebaseAuth.addAuthStateListener { auth ->
             if (auth.currentUser != null) {
-                viewModelScope.launch {
-                    val u = auth.currentUser!!
-                    user = firestore.fetchOrCreateUser(u.uid, u.displayName, u.photoUrl?.toString())
-                    signedIn = true
-                    loadFeed()
-                }
+                val u = auth.currentUser!!
+                user = firestore.fetchOrCreateUser(u.uid, u.displayName, u.photoUrl?.toString())
+                signedIn = true
+                viewModelScope.launch { loadFeed() }
+            } else {
+                signedIn = false
+                user = null
             }
             loading = false
         }
