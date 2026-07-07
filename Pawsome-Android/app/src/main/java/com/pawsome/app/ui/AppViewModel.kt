@@ -11,6 +11,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.pawsome.app.auth.GoogleAuth
+import com.pawsome.app.auth.TwitterAuth
 import com.pawsome.app.model.AppUser
 import com.pawsome.app.model.Post
 import com.pawsome.app.net.FirebaseAuth
@@ -28,6 +29,7 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
     private val firestore = Firestore(auth)
     private val github = GitHubUploader()
     private val google = GoogleAuth()
+    private val twitter = TwitterAuth(app)
     private val prefs = app.getSharedPreferences("pawsome", Context.MODE_PRIVATE)
 
     var loading by mutableStateOf(true); private set
@@ -69,8 +71,36 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
 
     fun signInTwitter() {
         busyTwitter = true; error = null
-        error = "Twitter sign-in not configured"
-        busyTwitter = false
+        viewModelScope.launch {
+            try {
+                twitter.startSignIn()
+            } catch (e: Exception) {
+                error = e.message ?: "Sign-in failed"
+                busyTwitter = false
+            }
+        }
+    }
+
+    fun handleTwitterCallback(uri: Uri) {
+        viewModelScope.launch {
+            try {
+                val verifier = uri.getQueryParameter("oauth_verifier")
+                val oauthToken = uri.getQueryParameter("oauth_token")
+                if (verifier != null && oauthToken != null) {
+                    val tokenSecret = twitter.getRequestSecret()
+                    val tokens = twitter.exchangeToken(oauthToken, verifier, tokenSecret)
+                    val s = auth.signInWithTwitter(tokens.token, tokens.tokenSecret)
+                    prefs.edit().putString("rt", s.refreshToken).apply()
+                    loadUser(s); signedIn = true; loadFeed()
+                } else {
+                    error = "Invalid callback"
+                }
+            } catch (e: Exception) {
+                error = e.message ?: "Sign-in failed"
+            } finally {
+                busyTwitter = false
+            }
+        }
     }
 
     fun signOut() {

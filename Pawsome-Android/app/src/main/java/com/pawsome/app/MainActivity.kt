@@ -1,5 +1,6 @@
 package com.pawsome.app
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -32,10 +33,31 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent?) {
+        val uri = intent?.data ?: return
+        if (uri.scheme == "pawsome") {
+            // Pass to the current ViewModel if available
+            currentVm?.handleTwitterCallback(uri)
+        }
+    }
+
+    companion object {
+        var currentVm: AppViewModel? = null
+    }
 }
 
 @Composable
 private fun Root(vm: AppViewModel = viewModel()) {
+    LaunchedEffect(vm) {
+        MainActivity.currentVm = vm
+    }
+    
     when {
         vm.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
         !vm.signedIn -> LoginScreen(vm)
