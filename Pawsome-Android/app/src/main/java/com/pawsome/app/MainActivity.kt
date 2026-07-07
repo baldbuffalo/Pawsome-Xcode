@@ -14,6 +14,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pawsome.app.ui.AppViewModel
 import com.pawsome.app.ui.CreatePostScreen
@@ -44,31 +47,30 @@ class MainActivity : ComponentActivity() {
     private fun handleIntent(intent: Intent?) {
         val uri = intent?.data ?: return
         if (uri.scheme == "pawsome") {
-            // Notify the ViewModel about the callback
-            // We use a static reference or shared state to pass this
             TwitterCallbackHolder.callbackUri = uri
         }
     }
 }
 
-// Holder for Twitter callback URI - simple approach
+// Holder for Twitter callback URI
 object TwitterCallbackHolder {
     var callbackUri: android.net.Uri? = null
 }
 
 @Composable
 private fun Root(vm: AppViewModel = viewModel()) {
-    // Poll for Twitter callback when on login screen
-    androidx.compose.runtime.LaunchedEffect(Unit) {
-        while (true) {
-            if (vm.busyTwitter) {
-                val uri = TwitterCallbackHolder.callbackUri
-                if (uri != null) {
-                    TwitterCallbackHolder.callbackUri = null
-                    vm.handleTwitterCallback(uri)
-                }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    
+    // Listen for lifecycle changes to detect when app comes to foreground
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                vm.onAppForegrounded()
             }
-            kotlinx.coroutines.delay(100)
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
     

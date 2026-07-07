@@ -55,6 +55,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var user by mutableStateOf<AppUser?>(null); private set
     var posts by mutableStateOf<List<Post>>(emptyList()); private set
 
+    private var twitterStartTime: Long = 0
+
     val isBusy: Boolean get() = busyGoogle || busyTwitter
 
     val uid get() = auth.current?.uid
@@ -85,6 +87,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun signInTwitter() = viewModelScope.launch {
         busyTwitter = true; error = null
+        twitterStartTime = System.currentTimeMillis()
         try {
             twitter.startSignIn()
             // The spinner stays visible while waiting for the callback
@@ -92,6 +95,23 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         } catch (e: Exception) {
             error = e.message ?: "Sign-in failed"
             busyTwitter = false
+        }
+    }
+
+    fun onAppForegrounded() {
+        // Check for callback when app comes to foreground
+        if (busyTwitter) {
+            val uri = com.pawsome.app.TwitterCallbackHolder.callbackUri
+            if (uri != null) {
+                com.pawsome.app.TwitterCallbackHolder.callbackUri = null
+                handleTwitterCallback(uri)
+                return
+            }
+            // Check if we've been waiting too long (3 minutes)
+            if (System.currentTimeMillis() - twitterStartTime > 180000) {
+                error = "Sign-in timed out. Please try again."
+                busyTwitter = false
+            }
         }
     }
 
@@ -103,6 +123,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     val s = auth.signInWithTwitter(tokens.token, tokens.tokenSecret)
                     prefs.edit().putString("rt", s.refreshToken).apply()
                     loadUser(s); signedIn = true; loadFeed()
+                } else {
+                    error = "Invalid callback received"
                 }
             } catch (e: Exception) {
                 error = e.message ?: "Callback handling failed"
