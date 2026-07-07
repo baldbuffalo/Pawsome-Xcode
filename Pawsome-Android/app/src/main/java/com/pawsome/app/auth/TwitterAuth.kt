@@ -69,7 +69,7 @@ class TwitterAuth(private val context: Context) {
         }
         
         // Use token from callback if pending was cleared (activity recreation)
-        val token = if (TwitterAuthHolder.pendingToken != null) TwitterAuthHolder.pendingToken!! else oauthToken
+        val token = TwitterAuthHolder.pendingToken ?: oauthToken ?: return null
         val tokenSecret = TwitterAuthHolder.pendingSecret ?: ""
         
         // Clear global state
