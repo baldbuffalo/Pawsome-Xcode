@@ -58,14 +58,17 @@ object TwitterCallbackHolder {
 
 @Composable
 private fun Root(vm: AppViewModel = viewModel()) {
-    // Check for Twitter callback when on login screen
-    androidx.compose.runtime.LaunchedEffect(vm.busyTwitter) {
-        if (vm.busyTwitter) {
-            val uri = TwitterCallbackHolder.callbackUri
-            if (uri != null) {
-                TwitterCallbackHolder.callbackUri = null
-                vm.handleTwitterCallback(uri)
+    // Poll for Twitter callback when on login screen
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        while (true) {
+            if (vm.busyTwitter) {
+                val uri = TwitterCallbackHolder.callbackUri
+                if (uri != null) {
+                    TwitterCallbackHolder.callbackUri = null
+                    vm.handleTwitterCallback(uri)
+                }
             }
+            kotlinx.coroutines.delay(100)
         }
     }
     
