@@ -47,6 +47,12 @@ private fun Root(vm: AppViewModel = viewModel()) {
 private fun MainScaffold(vm: AppViewModel) {
     var tab by remember { mutableStateOf(0) }
     var creating by remember { mutableStateOf(false) }
+    var showAbout by remember { mutableStateOf(false) }
+
+    if (showAbout) {
+        AboutScreen { showAbout = false }
+        return
+    }
 
     Scaffold(
         bottomBar = {
@@ -69,7 +75,7 @@ private fun MainScaffold(vm: AppViewModel) {
         Box(Modifier.fillMaxSize().padding(paddingValues)) {
             when {
                 creating -> CreatePostScreen(vm) { creating = false }
-                tab == 1 -> ProfileScreen(vm)
+                tab == 1 -> ProfileScreen(vm) { showAbout = true }
                 else -> FeedScreen(vm) { creating = true }
             }
         }

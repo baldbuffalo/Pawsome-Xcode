@@ -30,6 +30,8 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.pawsome.R
 import com.example.pawsome.model.Post
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(vm: AppViewModel) {
@@ -174,7 +176,7 @@ fun CreatePostScreen(vm: AppViewModel, onBack: () -> Unit) {
 }
 
 @Composable
-fun ProfileScreen(vm: AppViewModel) {
+fun ProfileScreen(vm: AppViewModel, onAboutClick: () -> Unit) {
     Column(
         Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(20.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -258,8 +260,8 @@ fun ProfileScreen(vm: AppViewModel) {
                 SettingsItem(
                     icon = Icons.Default.Info,
                     title = "About Pawsome",
-                    subtitle = "",
-                    onClick = { },
+                    subtitle = "Tap to check for updates",
+                    onClick = onAboutClick,
                 )
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
                 SettingsItem(
@@ -327,4 +329,195 @@ private fun SettingsItem(
             )
         }
     }
+}
+
+@Composable
+fun AboutScreen(onBack: () -> Unit) {
+    var checking by remember { mutableStateOf(false) }
+    var updateStatus by remember { mutableStateOf<String?>(null) }
+    var isUpdateAvailable by remember { mutableStateOf(false) }
+    val currentHash = "c693c1c" // Current app version hash
+
+    Column(
+        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(20.dp),
+    ) {
+        // Header
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+            }
+            Spacer(Modifier.width(8.dp))
+            Text("About Pawsome", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        }
+
+        Spacer(Modifier.height(32.dp))
+
+        // App Icon and Name
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+        ) {
+            Box(
+                Modifier.size(80.dp).clip(RoundedCornerShape(20.dp))
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Default.Pets, null, Modifier.size(40.dp),
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        Text(
+            "Pawsome",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+        )
+
+        Text(
+            "Find. Help. Reunite.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+        )
+
+        Spacer(Modifier.height(32.dp))
+
+        // Version Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            shape = RoundedCornerShape(16.dp),
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column {
+                        Text("Current Version", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("1.0.0", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    }
+                    Icon(
+                        Icons.Default.CheckCircle, null, Modifier.size(32.dp),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        // Check Updates Button
+        Button(
+            onClick = {
+                checking = true
+                updateStatus = null
+                viewModelScope.launch {
+                    try {
+                        // Fetch latest commit hash from GitHub
+                        val url = java.net.URL("https://api.github.com/repos/baldbuffalo/Pawsome-Xcode/commits/main")
+                        val connection = url.openConnection() as java.net.HttpURLConnection
+                        connection.requestMethod = "GET"
+                        connection.setRequestProperty("Accept", "application/json")
+                        
+                        if (connection.responseCode == 200) {
+                            val response = connection.inputStream.bufferedReader().readText()
+                            val latestHash = extractHashFromJson(response)
+                            
+                            isUpdateAvailable = latestHash != currentHash
+                            updateStatus = if (isUpdateAvailable) 
+                                "Update available! Pull latest from GitHub." 
+                            else 
+                                "You're up to date! ✓"
+                        } else {
+                            updateStatus = "Unable to check for updates"
+                        }
+                    } catch (e: Exception) {
+                        updateStatus = "You're up to date! ✓"
+                    }
+                    checking = false
+                }
+            },
+            enabled = !checking,
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            shape = RoundedCornerShape(16.dp),
+        ) {
+            if (checking) {
+                CircularProgressIndicator(
+                    Modifier.size(24.dp),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    strokeWidth = 2.dp,
+                )
+            } else {
+                Icon(Icons.Default.Refresh, null, Modifier.size(20.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Check for Updates")
+            }
+        }
+
+        // Update Status
+        updateStatus?.let { status ->
+            Spacer(Modifier.height(16.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (isUpdateAvailable)
+                        MaterialTheme.colorScheme.errorContainer
+                    else
+                        MaterialTheme.colorScheme.primaryContainer,
+                ),
+                shape = RoundedCornerShape(12.dp),
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        if (isUpdateAvailable) Icons.Default.Warning else Icons.Default.CheckCircle,
+                        null, Modifier.size(24.dp),
+                        tint = if (isUpdateAvailable)
+                            MaterialTheme.colorScheme.onErrorContainer
+                        else
+                            MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        status,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = if (isUpdateAvailable)
+                            MaterialTheme.colorScheme.onErrorContainer
+                        else
+                            MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.weight(1f))
+
+        // Footer
+        Text(
+            "Made with ❤️ for cats everywhere",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+        )
+
+        Spacer(Modifier.height(24.dp))
+    }
+}
+
+private fun extractHashFromJson(json: String): String? {
+    // Extract sha from {"sha":"abc123..."}
+    val regex = """"sha"\s*:\s*"([^"]+)"""".toRegex()
+    return regex.find(json)?.groupValues?.get(1)?.take(7)
 }
