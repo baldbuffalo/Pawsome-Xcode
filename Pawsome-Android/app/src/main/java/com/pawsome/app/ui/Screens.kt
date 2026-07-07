@@ -258,7 +258,7 @@ fun ProfileScreen(vm: AppViewModel) {
                 SettingsItem(
                     icon = Icons.Default.Info,
                     title = "About Pawsome",
-                    subtitle = "Version 1.0.0",
+                    subtitle = "",
                     onClick = { },
                 )
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
