@@ -89,10 +89,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         busyTwitter = true; error = null
         twitterStartTime = System.currentTimeMillis()
         try {
+            android.util.Log.d("AppViewModel", "Starting Twitter sign in")
             twitter.startSignIn()
+            android.util.Log.d("AppViewModel", "startSignIn completed, waiting for callback")
             // The spinner stays visible while waiting for the callback
             // When the callback arrives, handleTwitterCallback() will complete the flow
         } catch (e: Exception) {
+            android.util.Log.e("AppViewModel", "startSignIn failed", e)
             error = e.message ?: "Sign-in failed"
             busyTwitter = false
         }
@@ -131,7 +134,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 }
             } catch (e: Exception) {
                 android.util.Log.e("AppViewModel", "Callback error", e)
-                error = e.message ?: "Sign-in failed"
+                val errorMsg = e.message ?: e.toString()
+                android.util.Log.e("AppViewModel", "Error: $errorMsg")
+                error = errorMsg
             } finally {
                 busyTwitter = false
             }
