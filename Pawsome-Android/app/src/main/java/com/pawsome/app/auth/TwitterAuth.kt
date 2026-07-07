@@ -2,6 +2,7 @@ package com.pawsome.app.auth
 
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.net.Uri
 import com.pawsome.app.PawsomeConfig
 import com.pawsome.app.net.AuthException
@@ -17,14 +18,8 @@ import javax.crypto.spec.SecretKeySpec
 
 data class TwitterTokens(val token: String, val tokenSecret: String)
 
-/** Global holder for Twitter OAuth state - survives activity recreation */
-object TwitterAuthHolder {
-    var pendingToken: String? = null
-    var pendingSecret: String? = null
-}
-
 /** X / Twitter OAuth 1.0a sign-in using custom URL scheme callback. */
-class TwitterAuth(private val context: Context) {
+class TwitterAuth(private val context: Context, private val prefs: SharedPreferences) {
 
     /** Start the Twitter sign-in flow - opens browser and returns immediately.
      *  The actual result comes through handleCallback() called from the activity. */
@@ -41,9 +36,11 @@ class TwitterAuth(private val context: Context) {
         val reqToken = reqForm["oauth_token"] ?: throw AuthException("request_token failed")
         val reqSecret = reqForm["oauth_token_secret"] ?: ""
         
-        // Store for callback in global holder
-        TwitterAuthHolder.pendingToken = reqToken
-        TwitterAuthHolder.pendingSecret = reqSecret
+        // Store for callback in SharedPreferences (survives process death)
+        prefs.edit()
+            .putString("twitter_req_token", reqToken)
+            .putString("twitter_req_secret", reqSecret)
+            .apply()
 
         withContext(Dispatchers.Main) {
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse("$AUTHORIZE?oauth_token=${enc(reqToken)}"))
@@ -69,14 +66,16 @@ class TwitterAuth(private val context: Context) {
             return null
         }
         
-        // Get the token secret from holder, or use empty string if cleared
-        val tokenSecret = TwitterAuthHolder.pendingSecret ?: ""
+        // Get the token secret from SharedPreferences
+        val tokenSecret = prefs.getString("twitter_req_secret", "") ?: ""
         
-        android.util.Log.d("TwitterAuth", "Processing callback: token=${oauthToken.take(10)}..., verifier=${verifier.take(10)}...")
+        android.util.Log.d("TwitterAuth", "Processing callback: token=${oauthToken.take(10)}...")
         
-        // Clear global state
-        TwitterAuthHolder.pendingToken = null
-        TwitterAuthHolder.pendingSecret = null
+        // Clear stored state
+        prefs.edit()
+            .remove("twitter_req_token")
+            .remove("twitter_req_secret")
+            .apply()
         
         // Exchange for access token (synchronously since we're already on the callback thread)
         val key = PawsomeConfig.twitterConsumerKey

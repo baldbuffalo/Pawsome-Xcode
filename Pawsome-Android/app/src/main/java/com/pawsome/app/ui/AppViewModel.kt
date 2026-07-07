@@ -30,8 +30,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val firestore = Firestore(auth)
     private val github = GitHubUploader()
     private val google = GoogleAuth()
-    private val twitter = TwitterAuth(app)
     private val prefs = app.getSharedPreferences("pawsome", Context.MODE_PRIVATE)
+    private val twitter = TwitterAuth(app, prefs)
 
     init {
         // Check for Twitter callback when ViewModel is created
