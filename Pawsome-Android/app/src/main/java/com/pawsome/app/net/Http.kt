@@ -1,4 +1,4 @@
-package com.pawsome.app.net
+package com.example.pawsome.net
 
 import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit

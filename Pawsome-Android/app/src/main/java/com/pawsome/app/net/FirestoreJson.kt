@@ -1,4 +1,4 @@
-package com.pawsome.app.net
+package com.example.pawsome.net
 
 import org.json.JSONArray
 import org.json.JSONObject

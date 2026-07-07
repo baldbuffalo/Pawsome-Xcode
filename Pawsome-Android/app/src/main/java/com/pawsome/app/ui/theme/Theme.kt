@@ -1,4 +1,4 @@
-package com.pawsome.app.ui.theme
+package com.example.pawsome.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme

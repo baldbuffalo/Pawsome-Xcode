@@ -1,4 +1,4 @@
-package com.pawsome.app.ui
+package com.example.pawsome.ui
 
 import android.app.Application
 import android.content.Context
@@ -10,11 +10,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.pawsome.app.auth.GoogleAuth
-import com.pawsome.app.model.AppUser
-import com.pawsome.app.model.Post
-import com.pawsome.app.net.Firestore
-import com.pawsome.app.net.GitHubUploader
+import com.example.pawsome.auth.GoogleAuth
+import com.example.pawsome.model.AppUser
+import com.example.pawsome.model.Post
+import com.example.pawsome.net.Firestore
+import com.example.pawsome.net.GitHubUploader
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.OAuthProvider
 import kotlinx.coroutines.tasks.await

@@ -1,8 +1,8 @@
-package com.pawsome.app.net
+package com.example.pawsome.net
 
-import com.pawsome.app.PawsomeConfig
-import com.pawsome.app.model.AppUser
-import com.pawsome.app.model.Post
+import com.example.pawsome.PawsomeConfig
+import com.example.pawsome.model.AppUser
+import com.example.pawsome.model.Post
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await

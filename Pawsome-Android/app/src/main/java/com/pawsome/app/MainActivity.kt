@@ -1,4 +1,4 @@
-package com.pawsome.app
+package com.example.pawsome
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -14,12 +14,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.pawsome.app.ui.AppViewModel
-import com.pawsome.app.ui.CreatePostScreen
-import com.pawsome.app.ui.FeedScreen
-import com.pawsome.app.ui.LoginScreen
-import com.pawsome.app.ui.ProfileScreen
-import com.pawsome.app.ui.theme.PawsomeTheme
+import com.example.pawsome.ui.AppViewModel
+import com.example.pawsome.ui.CreatePostScreen
+import com.example.pawsome.ui.FeedScreen
+import com.example.pawsome.ui.LoginScreen
+import com.example.pawsome.ui.ProfileScreen
+import com.example.pawsome.ui.theme.PawsomeTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

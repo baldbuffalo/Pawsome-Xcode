@@ -1,7 +1,7 @@
-package com.pawsome.app.net
+package com.example.pawsome.net
 
 import android.util.Base64
-import com.pawsome.app.PawsomeConfig
+import com.example.pawsome.PawsomeConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.Headers

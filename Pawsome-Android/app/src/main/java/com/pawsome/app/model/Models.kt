@@ -1,9 +1,9 @@
-package com.pawsome.app.model
+package com.example.pawsome.model
 
-import com.pawsome.app.net.long
-import com.pawsome.app.net.millis
-import com.pawsome.app.net.str
-import com.pawsome.app.net.strList
+import com.example.pawsome.net.long
+import com.example.pawsome.net.millis
+import com.example.pawsome.net.str
+import com.example.pawsome.net.strList
 
 data class Post(
     val id: String,

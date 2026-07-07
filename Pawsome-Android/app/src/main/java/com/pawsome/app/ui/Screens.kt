@@ -1,4 +1,4 @@
-package com.pawsome.app.ui
+package com.example.pawsome.ui
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -24,8 +24,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.pawsome.app.R
-import com.pawsome.app.model.Post
+import com.example.pawsome.R
+import com.example.pawsome.model.Post
 
 @Composable
 fun LoginScreen(vm: AppViewModel) {

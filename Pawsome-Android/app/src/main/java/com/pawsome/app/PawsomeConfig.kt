@@ -1,4 +1,4 @@
-package com.pawsome.app
+package com.example.pawsome
 
 object PawsomeConfig {
     const val projectId = "pawsome--signin-ios"

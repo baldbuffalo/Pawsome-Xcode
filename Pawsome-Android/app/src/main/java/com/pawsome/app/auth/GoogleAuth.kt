@@ -1,4 +1,4 @@
-package com.pawsome.app.auth
+package com.example.pawsome.auth
 
 import android.content.Context
 import androidx.credentials.CredentialManager
@@ -6,8 +6,8 @@ import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
-import com.pawsome.app.PawsomeConfig
-import com.pawsome.app.net.AuthException
+import com.example.pawsome.PawsomeConfig
+import com.example.pawsome.net.AuthException
 
 /** Native Android Google sign-in via Credential Manager. Returns a Google ID token. */
 class GoogleAuth {
