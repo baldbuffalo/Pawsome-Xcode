@@ -3,6 +3,7 @@ package com.example.pawsome.ui
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -12,6 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -174,21 +176,155 @@ fun CreatePostScreen(vm: AppViewModel, onBack: () -> Unit) {
 @Composable
 fun ProfileScreen(vm: AppViewModel) {
     Column(
-        Modifier.fillMaxSize().padding(24.dp),
+        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(20.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        Spacer(Modifier.height(12.dp))
-        AsyncImage(
-            vm.user?.profilePic?.ifBlank { null }, null,
-            Modifier.size(110.dp).clip(CircleShape), contentScale = ContentScale.Crop,
+        Spacer(Modifier.height(24.dp))
+        
+        // Profile Avatar with gradient ring
+        Box(contentAlignment = Alignment.Center) {
+            Box(
+                Modifier.size(120.dp).clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                AsyncImage(
+                    vm.user?.profilePic?.ifBlank { null }, null,
+                    Modifier.size(112.dp).clip(CircleShape), contentScale = ContentScale.Crop,
+                )
+                if (vm.user?.profilePic.isNullOrBlank()) {
+                    Icon(Icons.Default.Person, null, Modifier.size(56.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                }
+            }
+        }
+        
+        Spacer(Modifier.height(16.dp))
+        
+        // Username
+        Text(
+            vm.user?.username ?: "User",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
         )
-        Text(vm.user?.username ?: "User", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        
+        Text(
+            "@${vm.user?.username ?: "user"}",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        
+        Spacer(Modifier.height(32.dp))
+        
+        // Settings Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            shape = RoundedCornerShape(16.dp),
+        ) {
+            Column(modifier = Modifier.padding(4.dp)) {
+                SettingsItem(
+                    icon = Icons.Default.Notifications,
+                    title = "Notifications",
+                    subtitle = "Manage your notification preferences",
+                    onClick = { },
+                )
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                SettingsItem(
+                    icon = Icons.Default.Pets,
+                    title = "My Posts",
+                    subtitle = "${vm.user?.username ?: "0"} posts",
+                    onClick = { },
+                )
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                SettingsItem(
+                    icon = Icons.Default.Favorite,
+                    title = "Liked Posts",
+                    subtitle = "Posts you've liked",
+                    onClick = { },
+                )
+            }
+        }
+        
+        Spacer(Modifier.height(16.dp))
+        
+        // About Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            shape = RoundedCornerShape(16.dp),
+        ) {
+            Column(modifier = Modifier.padding(4.dp)) {
+                SettingsItem(
+                    icon = Icons.Default.Info,
+                    title = "About Pawsome",
+                    subtitle = "Version 1.0.0",
+                    onClick = { },
+                )
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                SettingsItem(
+                    icon = Icons.Default.Help,
+                    title = "Help & Support",
+                    subtitle = "Get help or report issues",
+                    onClick = { },
+                )
+            }
+        }
+        
         Spacer(Modifier.weight(1f))
+        Spacer(Modifier.height(16.dp))
+        
+        // Logout Button
         Button(
             onClick = { vm.signOut() },
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626)),
-            modifier = Modifier.fillMaxWidth(),
-        ) { Text("Log Out") }
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.errorContainer,
+                contentColor = MaterialTheme.colorScheme.onErrorContainer,
+            ),
+            shape = RoundedCornerShape(16.dp),
+        ) {
+            Icon(Icons.Default.Logout, null, Modifier.size(20.dp))
+            Spacer(Modifier.width(8.dp))
+            Text("Log Out", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        }
+        
+        Spacer(Modifier.height(24.dp))
+    }
+}
+
+@Composable
+private fun SettingsItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        color = Color.Transparent,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                icon, null, Modifier.size(24.dp),
+                tint = MaterialTheme.colorScheme.primary,
+            )
+            Spacer(Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                Text(
+                    subtitle, style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowForwardIos, null, Modifier.size(16.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
