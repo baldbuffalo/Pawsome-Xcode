@@ -95,7 +95,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             // The spinner stays visible while waiting for the callback
             // When the callback arrives, handleTwitterCallback() will complete the flow
         } catch (e: Exception) {
-            error = "Error: ${e.message}"
+            error = "Sign-in failed"
             busyTwitter = false
         }
     }
@@ -133,7 +133,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     error = "Sign-in failed: invalid callback"
                 }
             } catch (e: Exception) {
-                error = "Error: ${e.message}"
+                error = "Sign-in failed"
             } finally {
                 busyTwitter = false
             }
