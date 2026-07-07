@@ -12,6 +12,8 @@
     <conv:CountToVisibilityConverter x:Key="CountToVis" />
     <conv:UrlToImageSourceConverter x:Key="UrlToImage" />
     <conv:LikedToBrushConverter x:Key="LikedToBrush" />
+    <conv:BoolToSignInTextGoogleConverter x:Key="BoolToSignInTextGoogle" />
+    <conv:BoolToSignInTextTwitterConverter x:Key="BoolToSignInTextTwitter" />
 
     <!-- ── Brand palette ─────────────────────────────────────────────── -->
     <Color x:Key="BrandPink">#EC4899</Color>

@@ -42,17 +42,17 @@ fun LoginScreen(vm: AppViewModel) {
                 Text("Pawsome", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                 Text("Find. Help. Reunite.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 val context = androidx.compose.ui.platform.LocalContext.current
-                Button(onClick = { vm.signIn(context) }, enabled = !vm.busy, modifier = Modifier.fillMaxWidth()) {
-                    if (vm.busy) CircularProgressIndicator(
+                Button(onClick = { vm.signIn(context) }, enabled = !vm.isBusy, modifier = Modifier.fillMaxWidth()) {
+                    if (vm.busyGoogle) CircularProgressIndicator(
                         Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary
                     ) else Text("Sign in with Google")
                 }
                 Button(
-                    onClick = { vm.signInTwitter(context) }, enabled = !vm.busy,
+                    onClick = { vm.signInTwitter(context) }, enabled = !vm.isBusy,
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Black),
                 ) {
-                    if (vm.busy) CircularProgressIndicator(
+                    if (vm.busyTwitter) CircularProgressIndicator(
                         Modifier.size(18.dp), strokeWidth = 2.dp, color = Color.White
                     ) else Text("Sign in with X", color = Color.White)
                 }
@@ -156,9 +156,9 @@ fun CreatePostScreen(vm: AppViewModel, onBack: () -> Unit) {
         vm.error?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 13.sp) }
         Button(
             onClick = { uri?.let { vm.createPost(it, name, age, desc, onBack) } },
-            enabled = !vm.busy && uri != null && name.isNotBlank() && age.isNotBlank() && desc.isNotBlank(),
+            enabled = !vm.busyPost && uri != null && name.isNotBlank() && age.isNotBlank() && desc.isNotBlank(),
             modifier = Modifier.fillMaxWidth(),
-        ) { Text(if (vm.busy) "Posting…" else "Post 🐾") }
+        ) { Text(if (vm.busyPost) "Posting…" else "Post 🐾") }
     }
 }
 

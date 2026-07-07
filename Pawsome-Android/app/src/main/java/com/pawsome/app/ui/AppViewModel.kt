@@ -35,10 +35,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     var loading by mutableStateOf(true); private set
     var signedIn by mutableStateOf(false); private set
-    var busy by mutableStateOf(false); private set
+    var busyGoogle by mutableStateOf(false); private set
+    var busyTwitter by mutableStateOf(false); private set
+    var busyPost by mutableStateOf(false); private set
     var error by mutableStateOf<String?>(null)
     var user by mutableStateOf<AppUser?>(null); private set
     var posts by mutableStateOf<List<Post>>(emptyList()); private set
+
+    val isBusy: Boolean get() = busyGoogle || busyTwitter
 
     val uid get() = auth.current?.uid
 
@@ -55,7 +59,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun signIn(context: android.content.Context) = viewModelScope.launch {
-        busy = true; error = null
+        busyGoogle = true; error = null
         try {
             val idToken = google.signIn(context)
             val s = auth.signInWithGoogle(idToken)
@@ -63,11 +67,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             loadUser(s); signedIn = true; loadFeed()
         } catch (e: Exception) {
             error = e.message ?: "Sign-in failed"
-        } finally { busy = false }
+        } finally { busyGoogle = false }
     }
 
     fun signInTwitter(context: android.content.Context) = viewModelScope.launch {
-        busy = true; error = null
+        busyTwitter = true; error = null
         try {
             val tokens = twitter.signIn(context)
             val s = auth.signInWithTwitter(tokens.token, tokens.tokenSecret)
@@ -75,7 +79,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             loadUser(s); signedIn = true; loadFeed()
         } catch (e: Exception) {
             error = e.message ?: "Sign-in failed"
-        } finally { busy = false }
+        } finally { busyTwitter = false }
     }
 
     private suspend fun loadUser(s: Session) {
@@ -108,7 +112,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun createPost(uri: Uri, name: String, age: String, desc: String, onDone: () -> Unit) =
         viewModelScope.launch {
-            busy = true; error = null
+            busyPost = true; error = null
             try {
                 val u = user ?: throw Exception("Not signed in")
                 if (!github.hasToken) throw Exception("No image-upload token in this build.")
@@ -124,7 +128,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     )
                 )
                 loadFeed(); onDone()
-            } catch (e: Exception) { error = e.message } finally { busy = false }
+            } catch (e: Exception) { error = e.message } finally { busyPost = false }
         }
 
     private fun encodeJpeg(uri: Uri, maxDim: Int = 1200): ByteArray {

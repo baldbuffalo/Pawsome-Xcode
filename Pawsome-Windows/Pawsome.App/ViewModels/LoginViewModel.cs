@@ -14,13 +14,18 @@ public sealed class LoginViewModel : ObservableObject
     public LoginViewModel(AppServices services)
     {
         _services = services;
-        SignInCommand = new AsyncRelayCommand(() => RunAsync(_services.Session.SignInWithGoogleAsync));
-        TwitterSignInCommand = new AsyncRelayCommand(() => RunAsync(_services.Session.SignInWithTwitterAsync));
+        SignInCommand = new AsyncRelayCommand(() => RunGoogleAsync());
+        TwitterSignInCommand = new AsyncRelayCommand(() => RunTwitterAsync());
         CancelCommand = new RelayCommand(Cancel);
     }
 
-    private bool _isBusy;
-    public bool IsBusy { get => _isBusy; private set => SetProperty(ref _isBusy, value); }
+    private bool _isBusyGoogle;
+    public bool IsBusyGoogle { get => _isBusyGoogle; private set => SetProperty(ref _isBusyGoogle, value); }
+
+    private bool _isBusyTwitter;
+    public bool IsBusyTwitter { get => _isBusyTwitter; private set => SetProperty(ref _isBusyTwitter, value); }
+
+    public bool IsBusy => IsBusyGoogle || IsBusyTwitter;
 
     private string? _error;
     public string? Error { get => _error; private set => SetProperty(ref _error, value); }
@@ -29,14 +34,14 @@ public sealed class LoginViewModel : ObservableObject
     public IAsyncRelayCommand TwitterSignInCommand { get; }
     public IRelayCommand CancelCommand { get; }
 
-    private async Task RunAsync(Func<CancellationToken, Task> signIn)
+    private async Task RunGoogleAsync()
     {
-        IsBusy = true;
+        IsBusyGoogle = true;
         Error = null;
         _cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
         try
         {
-            await signIn(_cts.Token);
+            await _services.Session.SignInWithGoogleAsync(_cts.Token);
             App.NavigateRoot(typeof(Views.ShellPage));
             App.BringToFront();
         }
@@ -50,7 +55,34 @@ public sealed class LoginViewModel : ObservableObject
         }
         finally
         {
-            IsBusy = false;
+            IsBusyGoogle = false;
+            _cts?.Dispose();
+            _cts = null;
+        }
+    }
+
+    private async Task RunTwitterAsync()
+    {
+        IsBusyTwitter = true;
+        Error = null;
+        _cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        try
+        {
+            await _services.Session.SignInWithTwitterAsync(_cts.Token);
+            App.NavigateRoot(typeof(Views.ShellPage));
+            App.BringToFront();
+        }
+        catch (OperationCanceledException)
+        {
+            Error = "Sign-in was canceled. Tap a sign-in button to try again.";
+        }
+        catch (Exception ex)
+        {
+            Error = ex.Message;
+        }
+        finally
+        {
+            IsBusyTwitter = false;
             _cts?.Dispose();
             _cts = null;
         }
