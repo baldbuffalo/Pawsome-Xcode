@@ -11,7 +11,6 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.pawsome.app.auth.GoogleAuth
-import com.pawsome.app.auth.TwitterAuth
 import com.pawsome.app.model.AppUser
 import com.pawsome.app.model.Post
 import com.pawsome.app.net.Firestore
