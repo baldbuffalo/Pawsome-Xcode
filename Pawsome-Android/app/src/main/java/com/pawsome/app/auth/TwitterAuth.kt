@@ -23,7 +23,7 @@ data class TwitterTokens(val token: String, val tokenSecret: String)
 class TwitterAuth(private val context: Context) {
 
     /** Start Twitter sign-in - opens browser for authorization.
-     *  The callback URL (https://pawsome--signin-ios.firebaseapp.com/__/auth/handler) 
+     *  The callback URL https://pawsome--signin-ios.firebaseapp.com/__/auth/handler
      *  must be set in X Developer Portal. */
     suspend fun startSignIn(): Unit = withContext(Dispatchers.IO) {
         val key = PawsomeConfig.twitterConsumerKey
@@ -31,19 +31,11 @@ class TwitterAuth(private val context: Context) {
         if (key.isBlank() || secret.isBlank())
             throw AuthException("No X/Twitter API key/secret configured")
 
-        // Request token from Twitter with custom URL scheme callback
-        val callback = "pawsome://twitter-callback"
-        val reqForm = parseForm(post(REQUEST_TOKEN, key, secret, null, mapOf("oauth_callback" to callback)))
+        // Request token from Twitter
+        val reqForm = parseForm(post(REQUEST_TOKEN, key, secret, null, emptyMap()))
         val reqToken = reqForm["oauth_token"] ?: throw AuthException("Failed to get request token")
-        val reqSecret = reqForm["oauth_token_secret"] ?: ""
 
-        // Store request token secret for callback
-        context.getSharedPreferences("pawsome", Context.MODE_PRIVATE).edit()
-            .putString("twitter_req_token", reqToken)
-            .putString("twitter_req_secret", reqSecret)
-            .apply()
-
-        // Open browser for authorization
+        // Open browser for authorization - Twitter redirects to Firebase callback
         withContext(Dispatchers.Main) {
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse("$AUTHORIZE?oauth_token=$reqToken"))
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

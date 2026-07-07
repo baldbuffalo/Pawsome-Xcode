@@ -41,8 +41,8 @@ class MainActivity : ComponentActivity() {
 
     private fun handleIntent(intent: Intent?) {
         val uri = intent?.data ?: return
-        if (uri.scheme == "pawsome") {
-            // Pass to the current ViewModel if available
+        // Handle Firebase Auth callback (Twitter OAuth completion)
+        if (uri.host == "pawsome--signin-ios.firebaseapp.com" && uri.path?.startsWith("/__/auth/handler") == true) {
             currentVm?.handleTwitterCallback(uri)
         }
     }
