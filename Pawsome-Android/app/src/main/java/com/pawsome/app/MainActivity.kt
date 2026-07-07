@@ -1,6 +1,5 @@
 package com.pawsome.app
 
-import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -33,31 +32,10 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        handleIntent(intent)
-    }
-
-    private fun handleIntent(intent: Intent?) {
-        val uri = intent?.data ?: return
-        // Handle Firebase Auth callback (Twitter OAuth completion)
-        if (uri.host == "pawsome--signin-ios.firebaseapp.com" && uri.path?.startsWith("/__/auth/handler") == true) {
-            currentVm?.handleTwitterCallback(uri)
-        }
-    }
-
-    companion object {
-        var currentVm: AppViewModel? = null
-    }
 }
 
 @Composable
 private fun Root(vm: AppViewModel = viewModel()) {
-    LaunchedEffect(vm) {
-        MainActivity.currentVm = vm
-    }
-    
     when {
         vm.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
         !vm.signedIn -> LoginScreen(vm)
