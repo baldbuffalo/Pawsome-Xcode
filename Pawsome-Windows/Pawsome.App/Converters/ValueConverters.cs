@@ -81,23 +81,3 @@ public sealed class LikedToBrushConverter : IValueConverter
     public object ConvertBack(object value, Type targetType, object parameter, string language)
         => throw new NotSupportedException();
 }
-
-/// <summary>bool → Google sign-in text (Loading... or Sign in with Google).</summary>
-public sealed class BoolToSignInTextGoogleConverter : IValueConverter
-{
-    public object Convert(object value, Type targetType, object parameter, string language)
-        => value is true ? "Loading..." : "Sign in with Google";
-
-    public object ConvertBack(object value, Type targetType, object parameter, string language)
-        => throw new NotSupportedException();
-}
-
-/// <summary>bool → Twitter/X sign-in text (Loading... or Sign in with X).</summary>
-public sealed class BoolToSignInTextTwitterConverter : IValueConverter
-{
-    public object Convert(object value, Type targetType, object parameter, string language)
-        => value is true ? "Loading..." : "Sign in with X";
-
-    public object ConvertBack(object value, Type targetType, object parameter, string language)
-        => throw new NotSupportedException();
-}
