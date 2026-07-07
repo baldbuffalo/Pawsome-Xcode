@@ -94,18 +94,18 @@ jobs:
         uses: actions/download-artifact@v8.0.1
         with:
           name: Pawsome-Windows-x64
-          path: .
+          path: windows
       - name: Download Android build
         uses: actions/download-artifact@v8.0.1
         with:
           name: Pawsome-Android
-          path: .
+          path: android
       - name: Create release with both artifacts
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          mv Pawsome.exe Pawsome-Windows-x64/Pawsome.exe
-          APK_FILE=$(ls *.apk | head -n1)
+          mv windows/Pawsome.exe Pawsome.exe
+          APK_FILE=$(ls android/*.apk | head -n1)
           gh release delete latest --cleanup-tag --yes 2>$null
-          gh release create latest Pawsome-Windows-x64/Pawsome.exe "$APK_FILE" -t "Pawsome" -n "Auto-built from main" --latest
+          gh release create latest Pawsome.exe "$APK_FILE" -t "Pawsome" -n "Auto-built from main" --latest
