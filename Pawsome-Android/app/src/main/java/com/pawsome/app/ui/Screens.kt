@@ -6,7 +6,9 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -142,7 +144,10 @@ fun CreatePostScreen(vm: AppViewModel, onBack: () -> Unit) {
     var uri by remember { mutableStateOf<android.net.Uri?>(null) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri = it }
 
-    Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    Column(
+        Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null); Text("Back") }
             Spacer(Modifier.weight(1f)); Text("New Post", fontWeight = FontWeight.SemiBold); Spacer(Modifier.weight(1f))
@@ -162,6 +167,7 @@ fun CreatePostScreen(vm: AppViewModel, onBack: () -> Unit) {
             enabled = !vm.busyPost && uri != null && name.isNotBlank() && age.isNotBlank() && desc.isNotBlank(),
             modifier = Modifier.fillMaxWidth(),
         ) { Text(if (vm.busyPost) "Posting…" else "Post 🐾") }
+        Spacer(Modifier.height(16.dp))
     }
 }
 
