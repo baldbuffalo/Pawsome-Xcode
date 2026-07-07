@@ -13,7 +13,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -31,8 +30,6 @@ import com.pawsome.app.model.Post
 @Composable
 fun LoginScreen(vm: AppViewModel) {
     val context = LocalContext.current
-    val activity = context as? android.app.Activity
-    val scope = rememberCoroutineScope()
     
     Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
         Card(Modifier.widthIn(max = 380.dp)) {
@@ -53,21 +50,7 @@ fun LoginScreen(vm: AppViewModel) {
                     ) else Text("Sign in with Google")
                 }
                 Button(
-                    onClick = {
-                        if (activity != null) {
-                            vm.busyTwitter = true
-                            scope.launch {
-                                try {
-                                    val twitter = TwitterAuth()
-                                    val result = twitter.startSignIn(activity)
-                                    vm.onTwitterSignInResult(result)
-                                } catch (e: Exception) {
-                                    vm.error = "Sign-in failed"
-                                    vm.busyTwitter = false
-                                }
-                            }
-                        }
-                    },
+                    onClick = { vm.signInTwitter(context) },
                     enabled = !vm.isBusy,
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Black),

@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -17,7 +18,7 @@ import com.pawsome.app.net.Firestore
 import com.pawsome.app.net.GitHubUploader
 import com.pawsome.app.net.Session
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.AuthResult
+import com.google.firebase.auth.OAuthProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -51,9 +52,11 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
         firebaseAuth.addAuthStateListener { auth ->
             if (auth.currentUser != null) {
                 val u = auth.currentUser!!
-                user = firestore.fetchOrCreateUser(u.uid, u.displayName, u.photoUrl?.toString())
-                signedIn = true
-                viewModelScope.launch { loadFeed() }
+                viewModelScope.launch {
+                    user = firestore.fetchOrCreateUser(u.uid, u.displayName, u.photoUrl?.toString())
+                    signedIn = true
+                    loadFeed()
+                }
             } else {
                 signedIn = false
                 user = null
@@ -73,15 +76,14 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
         } finally { busyGoogle = false }
     }
 
-    fun onTwitterSignInResult(result: AuthResult?) {
+    fun signInTwitter(context: android.content.Context) {
+        busyTwitter = true; error = null
         viewModelScope.launch {
-            if (result != null) {
-                val u = result.user!!
-                user = firestore.fetchOrCreateUser(u.uid, u.displayName, u.photoUrl?.toString())
-                signedIn = true
-                loadFeed()
-            } else {
-                error = "Sign-in failed"
+            try {
+                val provider = OAuthProvider.newBuilder("twitter.com", firebaseAuth).build()
+                firebaseAuth.startActivityForSignInWithProvider(context as android.app.Activity, provider).await()
+            } catch (e: Exception) {
+                error = e.message ?: "Sign-in failed"
             }
             busyTwitter = false
         }
