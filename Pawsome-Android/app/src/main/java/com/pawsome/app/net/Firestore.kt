@@ -3,7 +3,9 @@ package com.pawsome.app.net
 import com.pawsome.app.PawsomeConfig
 import com.pawsome.app.model.AppUser
 import com.pawsome.app.model.Post
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
@@ -15,8 +17,9 @@ import java.time.Instant
 
 class FirestoreException(message: String) : Exception(message)
 
-class Firestore(private val auth: FirebaseAuth) {
+class Firestore() {
 
+    private val firebaseAuth = FirebaseAuth.getInstance()
     private val base get() = PawsomeConfig.firestoreBase
     private fun fullName(rel: String) =
         "projects/${PawsomeConfig.projectId}/databases/(default)/documents/$rel"
@@ -115,12 +118,12 @@ class Firestore(private val auth: FirebaseAuth) {
     }
 
     private fun exec(method: String, url: String, body: JSONObject?): String? {
-        val token = runCatching { kotlinx.coroutines.runBlocking { auth.validIdToken() } }
+        val token = runCatching { kotlinx.coroutines.runBlocking { firebaseAuth.currentUser?.getIdToken(false)?.await() } }
             .getOrElse { throw FirestoreException("Not signed in") }
         val rb = body?.toString()?.toRequestBody(JSON)
             ?: if (method == "POST" || method == "PATCH") "".toRequestBody(JSON) else null
         val req = Request.Builder().url(url).method(method, rb)
-            .header("Authorization", "Bearer $token").build()
+            .header("Authorization", "Bearer ${token?.token ?: ""}").build()
         Http.client.newCall(req).execute().use { resp ->
             if (resp.code == 404) return null
             val text = resp.body?.string() ?: ""

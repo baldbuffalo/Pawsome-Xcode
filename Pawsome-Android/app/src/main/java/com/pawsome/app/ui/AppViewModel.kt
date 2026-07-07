@@ -13,23 +13,24 @@ import com.pawsome.app.auth.GoogleAuth
 import com.pawsome.app.auth.TwitterAuth
 import com.pawsome.app.model.AppUser
 import com.pawsome.app.model.Post
-import com.pawsome.app.net.FirebaseAuth
 import com.pawsome.app.net.Firestore
 import com.pawsome.app.net.GitHubUploader
 import com.pawsome.app.net.Session
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.AuthResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.time.Instant
 
 class AppViewModel(private val app: Application) : AndroidViewModel(app) {
 
-    private val auth = FirebaseAuth()
-    private val firestore = Firestore(auth)
+    private val firebaseAuth = FirebaseAuth.getInstance()
+    private val firestore = Firestore()
     private val github = GitHubUploader()
     private val google = GoogleAuth()
-    private val twitter = TwitterAuth(app)
     private val prefs = app.getSharedPreferences("pawsome", Context.MODE_PRIVATE)
 
     var loading by mutableStateOf(true); private set
@@ -43,72 +44,50 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
 
     val isBusy: Boolean get() = busyGoogle || busyTwitter
 
-    val uid get() = auth.current?.uid
+    val uid: String? get() = firebaseAuth.currentUser?.uid
 
-    init { viewModelScope.launch { tryRestore() } }
-
-    private suspend fun tryRestore() {
-        val rt = prefs.getString("rt", null)
-        if (rt != null) {
-            val s = auth.restore(rt)
-            if (s != null) { loadUser(s); signedIn = true; loadFeed() }
-            else prefs.edit().remove("rt").apply()
+    init { 
+        // Listen for auth state changes
+        firebaseAuth.addAuthStateListener { auth ->
+            if (auth.currentUser != null) {
+                viewModelScope.launch {
+                    val u = auth.currentUser!!
+                    user = firestore.fetchOrCreateUser(u.uid, u.displayName, u.photoUrl?.toString())
+                    signedIn = true
+                    loadFeed()
+                }
+            }
+            loading = false
         }
-        loading = false
     }
 
     fun signIn(context: android.content.Context) = viewModelScope.launch {
         busyGoogle = true; error = null
         try {
             val idToken = google.signIn(context)
-            val s = auth.signInWithGoogle(idToken)
-            prefs.edit().putString("rt", s.refreshToken).apply()
-            loadUser(s); signedIn = true; loadFeed()
+            val credential = com.google.firebase.auth.GoogleAuthProvider.getCredential(idToken, null)
+            firebaseAuth.signInWithCredential(credential).await()
         } catch (e: Exception) {
             error = e.message ?: "Sign-in failed"
         } finally { busyGoogle = false }
     }
 
-    fun signInTwitter() {
-        busyTwitter = true; error = null
+    fun onTwitterSignInResult(result: AuthResult?) {
         viewModelScope.launch {
-            try {
-                twitter.startSignIn()
-            } catch (e: Exception) {
+            if (result != null) {
+                val u = result.user!!
+                user = firestore.fetchOrCreateUser(u.uid, u.displayName, u.photoUrl?.toString())
+                signedIn = true
+                loadFeed()
+            } else {
                 error = "Sign-in failed"
-                busyTwitter = false
             }
+            busyTwitter = false
         }
-    }
-
-    fun handleTwitterCallback(uri: android.net.Uri) {
-        viewModelScope.launch {
-            try {
-                val verifier = uri.getQueryParameter("oauth_verifier")
-                val oauthToken = uri.getQueryParameter("oauth_token")
-                if (verifier != null && oauthToken != null) {
-                    val tokenSecret = twitter.getRequestSecret()
-                    val tokens = twitter.exchangeToken(oauthToken, verifier, tokenSecret)
-                    val s = auth.signInWithTwitter(tokens.token, tokens.tokenSecret)
-                    prefs.edit().putString("rt", s.refreshToken).apply()
-                    loadUser(s); signedIn = true; loadFeed()
-                } else {
-                    error = "Sign-in failed"
-                }
-            } catch (e: Exception) {
-                error = "Sign-in failed"
-            } finally {
-                busyTwitter = false
-            }
-        }
-    }
-
-    private suspend fun loadUser(s: Session) {
-        user = firestore.fetchOrCreateUser(s.uid, s.displayName, s.photoUrl)
     }
 
     fun signOut() {
-        auth.signOut(); prefs.edit().remove("rt").apply()
+        firebaseAuth.signOut()
         signedIn = false; user = null; posts = emptyList()
     }
 
