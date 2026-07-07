@@ -107,5 +107,6 @@ jobs:
         run: |
           mv windows/Pawsome.exe Pawsome.exe
           APK_FILE=$(ls android/*.apk | head -n1)
+          mv "$APK_FILE" Pawsome.apk
           gh release delete latest --cleanup-tag --yes 2>/dev/null || true
-          gh release create latest Pawsome.exe "$APK_FILE" -t "Pawsome" -n "Auto-built from main" --latest
+          gh release create latest Pawsome.exe Pawsome.apk -t "Pawsome" -n "Auto-built from main" --latest
