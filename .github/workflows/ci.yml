@@ -44,14 +44,6 @@ jobs:
           name: Pawsome-Windows-x64
           path: Pawsome-Windows/Pawsome.App/bin/Release/net8.0-windows10.0.19041.0/win-x64/publish/Pawsome.exe
           if-no-files-found: error
-      - name: Publish raw Pawsome.exe as 'latest' release
-        if: github.ref == 'refs/heads/main'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: |
-          gh release delete latest --cleanup-tag --yes 2>$null
-          gh release create latest "Pawsome.App/bin/Release/net8.0-windows10.0.19041.0/win-x64/publish/Pawsome.exe" -t "Pawsome" -n "Auto-built from main" --latest
 
   android-app:
     name: Android app build (Jetpack Compose)
@@ -90,11 +82,30 @@ jobs:
           name: Pawsome-Android
           path: Pawsome-Android/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
-      - name: Add Pawsome.apk to 'latest' release
-        if: github.ref == 'refs/heads/main'
+
+  release:
+    name: Create release with all builds
+    runs-on: ubuntu-latest
+    needs: [core, windows-app, android-app]
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v7.0.0
+      - name: Download Windows build
+        uses: actions/download-artifact@v7.0.1
+        with:
+          name: Pawsome-Windows-x64
+          path: .
+      - name: Download Android build
+        uses: actions/download-artifact@v7.0.1
+        with:
+          name: Pawsome-Android
+          path: .
+      - name: Create release with both artifacts
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          cp "$(ls app/build/outputs/apk/release/*.apk | head -n1)" Pawsome.apk
-          gh release upload latest Pawsome.apk --clobber
+          mv Pawsome.exe Pawsome-Windows-x64/Pawsome.exe
+          APK_FILE=$(ls *.apk | head -n1)
+          gh release delete latest --cleanup-tag --yes 2>$null
+          gh release create latest Pawsome-Windows-x64/Pawsome.exe "$APK_FILE" -t "Pawsome" -n "Auto-built from main" --latest
