@@ -140,7 +140,7 @@ fun CreatePostScreen(vm: AppViewModel, onBack: () -> Unit) {
 
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onBack) { Icon(Icons.Filled.ArrowBack, null); Text("Back") }
+            TextButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null); Text("Back") }
             Spacer(Modifier.weight(1f)); Text("New Post", fontWeight = FontWeight.SemiBold); Spacer(Modifier.weight(1f))
         }
         uri?.let {
