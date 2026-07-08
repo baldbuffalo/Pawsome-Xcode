@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -136,8 +137,16 @@ fun LoginScreen(vm: AppViewModel) {
 @Composable
 fun FeedScreen(vm: AppViewModel, onCreate: () -> Unit) {
     var selectedFilter by remember { mutableStateOf<PostStatus?>(null) }
+    val listState = rememberLazyListState()
     val filteredPosts = remember(vm.posts, selectedFilter) {
         if (selectedFilter == null) vm.posts else vm.posts.filter { it.status == selectedFilter }
+    }
+
+    // Auto-scroll to top when posts are refreshed (new post added)
+    LaunchedEffect(vm.posts.size) {
+        if (vm.posts.isNotEmpty()) {
+            listState.animateScrollToItem(0)
+        }
     }
 
     Column(Modifier.fillMaxSize()) {
@@ -147,10 +156,7 @@ fun FeedScreen(vm: AppViewModel, onCreate: () -> Unit) {
                 .background(Brush.horizontalGradient(colors = listOf(CatOrange, BrandPurple)))
                 .padding(20.dp).padding(top = 24.dp)
         ) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("Pawsome 🐱", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Color.White)
-                IconButton(onClick = { vm.loadFeed() }) { Icon(Icons.Default.Refresh, "Refresh", tint = Color.White) }
-            }
+            Text("Pawsome 🐱", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Color.White)
         }
         
         // Filter Chips
@@ -205,7 +211,8 @@ fun FeedScreen(vm: AppViewModel, onCreate: () -> Unit) {
             }
         } else {
             LazyColumn(
-                Modifier.fillMaxSize(),
+                state = listState,
+                modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
