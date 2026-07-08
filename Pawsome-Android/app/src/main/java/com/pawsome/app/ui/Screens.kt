@@ -147,14 +147,9 @@ fun FeedScreen(vm: AppViewModel, onCreate: () -> Unit) {
                 .background(Brush.horizontalGradient(colors = listOf(CatOrange, BrandPurple)))
                 .padding(20.dp).padding(top = 24.dp)
         ) {
-            Column {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Column {
-                        Text("Hello, ${vm.user?.username ?: "there"}! 👋", style = MaterialTheme.typography.titleMedium, color = Color.White.copy(alpha = 0.9f))
-                        Text("Let's find some cats! 🐱", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Color.White)
-                    }
-                    IconButton(onClick = { vm.loadFeed() }) { Icon(Icons.Default.Refresh, "Refresh", tint = Color.White) }
-                }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("Pawsome 🐱", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Color.White)
+                IconButton(onClick = { vm.loadFeed() }) { Icon(Icons.Default.Refresh, "Refresh", tint = Color.White) }
             }
         }
         
