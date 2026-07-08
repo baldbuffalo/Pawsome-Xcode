@@ -46,6 +46,19 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
     val uid: String? get() = firebaseAuth.currentUser?.uid
 
     init {
+        // Check if user is already signed in (synchronous)
+        val currentUser = firebaseAuth.currentUser
+        if (currentUser != null) {
+            signedIn = true
+            loading = false
+            viewModelScope.launch {
+                user = firestore.fetchOrCreateUser(currentUser.uid, currentUser.displayName, currentUser.photoUrl?.toString())
+                loadFeed()
+            }
+        } else {
+            loading = false
+        }
+
         // Listen for auth state changes
         firebaseAuth.addAuthStateListener { auth ->
             busyGoogle = false; busyTwitter = false
@@ -60,7 +73,6 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
                 signedIn = false
                 user = null
             }
-            loading = false
         }
     }
 
