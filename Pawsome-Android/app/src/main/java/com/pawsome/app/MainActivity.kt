@@ -18,6 +18,7 @@ import com.example.pawsome.ui.AboutScreen
 import com.example.pawsome.ui.AppViewModel
 import com.example.pawsome.ui.CreatePostScreen
 import com.example.pawsome.ui.FeedScreen
+import com.example.pawsome.ui.HelpScreen
 import com.example.pawsome.ui.LoginScreen
 import com.example.pawsome.ui.ProfileScreen
 import com.example.pawsome.ui.theme.PawsomeTheme
@@ -49,35 +50,35 @@ private fun MainScaffold(vm: AppViewModel) {
     var tab by remember { mutableStateOf(0) }
     var creating by remember { mutableStateOf(false) }
     var showAbout by remember { mutableStateOf(false) }
+    var showHelp by remember { mutableStateOf(false) }
 
-    if (showAbout) {
-        AboutScreen { showAbout = false }
-        return
-    }
-
-    Scaffold(
-        bottomBar = {
-            NavigationBar {
-                NavigationBarItem(
-                    selected = tab == 0 && !creating,
-                    onClick = { tab = 0; creating = false },
-                    icon = { Icon(Icons.Filled.Home, null) },
-                    label = { Text("Home") },
-                )
-                NavigationBarItem(
-                    selected = tab == 1,
-                    onClick = { tab = 1; creating = false },
-                    icon = { Icon(Icons.Filled.Person, null) },
-                    label = { Text("Profile") },
-                )
+    when {
+        showAbout -> AboutScreen { showAbout = false }
+        showHelp -> HelpScreen { showHelp = false }
+        else -> Scaffold(
+            bottomBar = {
+                NavigationBar {
+                    NavigationBarItem(
+                        selected = tab == 0 && !creating,
+                        onClick = { tab = 0; creating = false },
+                        icon = { Icon(Icons.Filled.Home, null) },
+                        label = { Text("Home") },
+                    )
+                    NavigationBarItem(
+                        selected = tab == 1,
+                        onClick = { tab = 1; creating = false },
+                        icon = { Icon(Icons.Filled.Person, null) },
+                        label = { Text("Profile") },
+                    )
+                }
             }
-        }
-    ) { paddingValues ->
-        Box(Modifier.fillMaxSize().padding(paddingValues)) {
-            when {
-                creating -> CreatePostScreen(vm) { creating = false }
-                tab == 1 -> ProfileScreen(vm) { showAbout = true }
-                else -> FeedScreen(vm) { creating = true }
+        ) { paddingValues ->
+            Box(Modifier.fillMaxSize().padding(paddingValues)) {
+                when {
+                    creating -> CreatePostScreen(vm) { creating = false }
+                    tab == 1 -> ProfileScreen(vm, { showAbout = true }, { showHelp = true })
+                    else -> FeedScreen(vm) { creating = true }
+                }
             }
         }
     }

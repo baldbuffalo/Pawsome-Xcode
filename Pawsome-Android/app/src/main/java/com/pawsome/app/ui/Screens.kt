@@ -1,18 +1,21 @@
 package com.example.pawsome.ui
 
+import android.app.Activity
+import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.*
+import androidx.compose.foundation.gestures.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -24,15 +27,21 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.example.pawsome.R
 import com.example.pawsome.model.Post
@@ -59,7 +68,6 @@ fun LoginScreen(vm: AppViewModel) {
             ),
         contentAlignment = Alignment.Center,
     ) {
-        // Paw prints decoration
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopEnd) {
             Text("🐾", fontSize = 120.sp, modifier = Modifier.padding(24.dp).padding(top = 60.dp))
         }
@@ -78,7 +86,6 @@ fun LoginScreen(vm: AppViewModel) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(20.dp),
             ) {
-                // Logo
                 Box(
                     Modifier.size(100.dp).clip(RoundedCornerShape(24.dp))
                         .background(Brush.linearGradient(colors = listOf(CatOrange, BrandPurple))),
@@ -92,7 +99,6 @@ fun LoginScreen(vm: AppViewModel) {
                 
                 Spacer(Modifier.height(12.dp))
                 
-                // Google Button
                 Button(
                     onClick = { vm.signIn(context) },
                     enabled = !vm.isBusy,
@@ -109,7 +115,6 @@ fun LoginScreen(vm: AppViewModel) {
                     }
                 }
                 
-                // X Button
                 Button(
                     onClick = { vm.signInTwitter(context) },
                     enabled = !vm.isBusy,
@@ -132,17 +137,89 @@ fun LoginScreen(vm: AppViewModel) {
     }
 }
 
+// ============== IMAGE VIEWER (Instagram-like zoom) ==============
+
+@Composable
+fun ImageViewer(imageUrl: String, onDismiss: () -> Unit) {
+    var scale by remember { mutableFloatStateOf(1f) }
+    var offset by remember { mutableStateOf(Offset.Zero) }
+    val doubleTapDetector = remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.95f)).clickable { onDismiss() },
+            contentAlignment = Alignment.Center,
+        ) {
+            // Close button
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)
+            ) {
+                Icon(Icons.Default.Close, "Close", tint = Color.White, modifier = Modifier.size(32.dp))
+            }
+            
+            // Zoomable image
+            AsyncImage(
+                imageUrl, null,
+                Modifier.fillMaxSize()
+                    .graphicsLayer(
+                        scaleX = scale,
+                        scaleY = scale,
+                        translationX = offset.x,
+                        translationY = offset.y,
+                    )
+                    .pointerInput(Unit) {
+                        detectTransformGestures { _, pan, zoom, _ ->
+                            scale = (scale * zoom).coerceIn(1f, 4f)
+                            if (scale > 1f) {
+                                offset = Offset(
+                                    x = offset.x + pan.x,
+                                    y = offset.y + pan.y,
+                                )
+                            } else {
+                                offset = Offset.Zero
+                            }
+                        }
+                    }
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onDoubleTap = {
+                                if (scale > 1f) {
+                                    scale = 1f
+                                    offset = Offset.Zero
+                                } else {
+                                    scale = 2.5f
+                                }
+                            },
+                            onTap = {
+                                if (scale > 1f) {
+                                    scale = 1f
+                                    offset = Offset.Zero
+                                }
+                            }
+                        )
+                    },
+                contentScale = ContentScale.Fit,
+            )
+        }
+    }
+}
+
 // ============== FEED SCREEN ==============
 
 @Composable
 fun FeedScreen(vm: AppViewModel, onCreate: () -> Unit) {
     var selectedFilter by remember { mutableStateOf<PostStatus?>(null) }
     val listState = rememberLazyListState()
+    var imageToView by remember { mutableStateOf<String?>(null) }
     val filteredPosts = remember(vm.posts, selectedFilter) {
         if (selectedFilter == null) vm.posts else vm.posts.filter { it.status == selectedFilter }
     }
 
-    // Auto-scroll to top when posts are refreshed (new post added)
     LaunchedEffect(vm.posts.size) {
         if (vm.posts.isNotEmpty()) {
             listState.animateScrollToItem(0)
@@ -150,7 +227,6 @@ fun FeedScreen(vm: AppViewModel, onCreate: () -> Unit) {
     }
 
     Column(Modifier.fillMaxSize()) {
-        // Colorful Header
         Box(
             Modifier.fillMaxWidth()
                 .background(Brush.horizontalGradient(colors = listOf(CatOrange, BrandPurple)))
@@ -159,7 +235,6 @@ fun FeedScreen(vm: AppViewModel, onCreate: () -> Unit) {
             Text("Pawsome 🐱", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Color.White)
         }
         
-        // Filter Chips
         LazyRow(
             Modifier.fillMaxWidth().padding(vertical = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -186,7 +261,6 @@ fun FeedScreen(vm: AppViewModel, onCreate: () -> Unit) {
             }
         }
         
-        // Create Post Button
         Button(
             onClick = onCreate,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(52.dp),
@@ -199,7 +273,6 @@ fun FeedScreen(vm: AppViewModel, onCreate: () -> Unit) {
         
         Spacer(Modifier.height(8.dp))
         
-        // Posts List
         if (filteredPosts.isEmpty()) {
             Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -216,16 +289,20 @@ fun FeedScreen(vm: AppViewModel, onCreate: () -> Unit) {
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                items(filteredPosts, key = { it.id }) { p -> PostCard(p, vm.uid, { vm.toggleLike(p) }, { vm.deletePost(p) }) }
+                items(filteredPosts, key = { it.id }) { p -> PostCard(p, vm.uid, { vm.toggleLike(p) }, { vm.deletePost(p) }, { imageToView = p.imageUrl }) }
             }
         }
+    }
+    
+    imageToView?.let { url ->
+        ImageViewer(url) { imageToView = null }
     }
 }
 
 // ============== POST CARD ==============
 
 @Composable
-private fun PostCard(post: Post, uid: String?, onLike: () -> Unit, onDelete: () -> Unit) {
+private fun PostCard(post: Post, uid: String?, onLike: () -> Unit, onDelete: () -> Unit, onImageClick: () -> Unit) {
     val statusColor = when (post.status) { PostStatus.LOST -> LostRed; PostStatus.FOUND -> FoundGreen; PostStatus.REUNITED -> ReunitedGold }
     
     Card(
@@ -235,7 +312,6 @@ private fun PostCard(post: Post, uid: String?, onLike: () -> Unit, onDelete: () 
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
     ) {
         Column {
-            // Header
             Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                 AsyncImage(post.ownerProfilePic.ifBlank { null }, null, Modifier.size(44.dp).clip(CircleShape), contentScale = ContentScale.Crop)
                 Spacer(Modifier.width(12.dp))
@@ -259,15 +335,14 @@ private fun PostCard(post: Post, uid: String?, onLike: () -> Unit, onDelete: () 
                 if (post.ownerUid == uid) IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, "Delete", tint = MaterialTheme.colorScheme.error) }
             }
             
-            // Image
+            // Clickable image
             Box {
-                AsyncImage(post.imageUrl, null, Modifier.fillMaxWidth().height(280.dp), contentScale = ContentScale.Crop)
+                AsyncImage(post.imageUrl, null, Modifier.fillMaxWidth().height(280.dp).clickable { onImageClick() }, contentScale = ContentScale.Crop)
                 Surface(modifier = Modifier.padding(12.dp).align(Alignment.TopEnd), shape = RoundedCornerShape(10.dp), color = statusColor) {
                     Text(post.status.displayName.uppercase(), modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 }
             }
             
-            // Content
             Column(Modifier.padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(post.catName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -284,7 +359,6 @@ private fun PostCard(post: Post, uid: String?, onLike: () -> Unit, onDelete: () 
                 }
             }
             
-            // Actions
             Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp).padding(bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 val liked = post.isLikedBy(uid)
                 FilledTonalButton(
@@ -320,7 +394,6 @@ fun CreatePostScreen(vm: AppViewModel, onBack: () -> Unit) {
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri = it }
 
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).verticalScroll(rememberScrollState())) {
-        // Header
         Row(Modifier.fillMaxWidth().background(Brush.horizontalGradient(listOf(CatOrange, BrandPurple))).padding(16.dp).padding(top = 24.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = Color.White) }
             Spacer(Modifier.width(8.dp))
@@ -328,7 +401,6 @@ fun CreatePostScreen(vm: AppViewModel, onBack: () -> Unit) {
         }
         
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-            // Status Selector
             Text("What's the status?", fontWeight = FontWeight.SemiBold)
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 PostStatus.entries.filter { it != PostStatus.REUNITED }.forEach { status ->
@@ -350,7 +422,6 @@ fun CreatePostScreen(vm: AppViewModel, onBack: () -> Unit) {
                 }
             }
             
-            // Image
             if (uri != null) {
                 Box {
                     AsyncImage(uri, null, Modifier.fillMaxWidth().height(220.dp), contentScale = ContentScale.Fit)
@@ -375,7 +446,6 @@ fun CreatePostScreen(vm: AppViewModel, onBack: () -> Unit) {
                 Text(if (uri == null) "Choose Image" else "Change Image")
             }
             
-            // Fields
             OutlinedTextField(name, { name = it }, label = { Text("Cat Name") }, modifier = Modifier.fillMaxWidth(), singleLine = true, leadingIcon = { Icon(Icons.Default.Pets, null) })
             OutlinedTextField(age, { age = it }, label = { Text("Age (years)") }, modifier = Modifier.fillMaxWidth(), singleLine = true, leadingIcon = { Icon(Icons.Default.Cake, null) })
             OutlinedTextField(location, { location = it }, label = { Text("Location (optional)") }, modifier = Modifier.fillMaxWidth(), singleLine = true, leadingIcon = { Icon(Icons.Default.LocationOn, null) })
@@ -403,7 +473,9 @@ fun CreatePostScreen(vm: AppViewModel, onBack: () -> Unit) {
 // ============== PROFILE SCREEN ==============
 
 @Composable
-fun ProfileScreen(vm: AppViewModel, onAboutClick: () -> Unit) {
+fun ProfileScreen(vm: AppViewModel, onAboutClick: () -> Unit, onHelpClick: () -> Unit) {
+    val context = LocalContext.current
+    
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Spacer(Modifier.height(24.dp))
         
@@ -420,7 +492,6 @@ fun ProfileScreen(vm: AppViewModel, onAboutClick: () -> Unit) {
         
         Spacer(Modifier.height(32.dp))
         
-        // Stats
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
             StatItem(count = vm.posts.size.toString(), label = "Posts")
             StatItem(count = vm.posts.sumOf { it.likeCount }.toString(), label = "Likes")
@@ -429,7 +500,6 @@ fun ProfileScreen(vm: AppViewModel, onAboutClick: () -> Unit) {
         
         Spacer(Modifier.height(24.dp))
         
-        // Settings Card
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp)) {
             Column(modifier = Modifier.padding(4.dp)) {
                 SettingsItem(icon = Icons.Default.Notifications, title = "Notifications", subtitle = "Manage your notification preferences", onClick = { })
@@ -442,12 +512,11 @@ fun ProfileScreen(vm: AppViewModel, onAboutClick: () -> Unit) {
         
         Spacer(Modifier.height(16.dp))
         
-        // About Card
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp)) {
             Column(modifier = Modifier.padding(4.dp)) {
-                SettingsItem(icon = Icons.Default.Info, title = "About Pawsome", subtitle = "Tap to check for updates", onClick = onAboutClick)
+                SettingsItem(icon = Icons.Default.Info, title = "About Pawsome", subtitle = "Version 1.0.0", onClick = onAboutClick)
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
-                SettingsItem(icon = Icons.Default.Help, title = "Help & Support", subtitle = "Get help or report issues", onClick = { })
+                SettingsItem(icon = Icons.Default.Help, title = "Help & Support", subtitle = "Get help or report issues", onClick = onHelpClick)
             }
         }
         
@@ -499,7 +568,7 @@ fun AboutScreen(onBack: () -> Unit) {
     var checking by remember { mutableStateOf(false) }
     var updateStatus by remember { mutableStateOf<String?>(null) }
     var isUpdateAvailable by remember { mutableStateOf(false) }
-    val currentHash = "f69335d"
+    val currentHash = "fe0fe56"
     val scope = rememberCoroutineScope()
 
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(20.dp)) {
@@ -580,6 +649,66 @@ fun AboutScreen(onBack: () -> Unit) {
 
         Spacer(Modifier.weight(1f))
         Text("Made with ❤️ for cats everywhere", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+        Spacer(Modifier.height(24.dp))
+    }
+}
+
+// ============== HELP SCREEN ==============
+
+@Composable
+fun HelpScreen(onBack: () -> Unit) {
+    val context = LocalContext.current
+    
+    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(20.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
+            Spacer(Modifier.width(8.dp))
+            Text("Help & Support", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        }
+
+        Spacer(Modifier.height(24.dp))
+
+        Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp)) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text("Need help with Pawsome?", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(8.dp))
+                Text("If you're experiencing issues or have questions, please report them on GitHub.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        Button(
+            onClick = {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/baldbuffalo/Pawsome-Xcode/issues"))
+                context.startActivity(intent)
+            },
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            shape = RoundedCornerShape(16.dp),
+        ) {
+            Icon(Icons.Default.BugReport, null)
+            Spacer(Modifier.width(8.dp))
+            Text("Report an Issue on GitHub")
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        OutlinedButton(
+            onClick = {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/baldbuffalo/Pawsome-Xcode"))
+                context.startActivity(intent)
+            },
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            shape = RoundedCornerShape(16.dp),
+        ) {
+            Icon(Icons.Default.Code, null)
+            Spacer(Modifier.width(8.dp))
+            Text("View Source Code")
+        }
+
+        Spacer(Modifier.weight(1f))
+        
+        Text("Pawsome v1.0.0", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
         Spacer(Modifier.height(24.dp))
     }
 }
