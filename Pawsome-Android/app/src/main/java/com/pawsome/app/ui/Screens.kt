@@ -7,6 +7,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateOffsetAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -145,7 +146,9 @@ fun LoginScreen(vm: AppViewModel) {
 fun ImageViewer(imageUrl: String, onDismiss: () -> Unit) {
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
+    var tapPosition by remember { mutableStateOf(Offset.Zero) }
     val animatedScale by animateFloatAsState(targetValue = scale, animationSpec = spring(dampingRatio = 0.7f, stiffness = 300f), label = "scale")
+    val animatedOffset by animateOffsetAsState(targetValue = offset, animationSpec = spring(dampingRatio = 0.7f, stiffness = 300f), label = "offset")
     
     Dialog(
         onDismissRequest = onDismiss,
@@ -170,11 +173,11 @@ fun ImageViewer(imageUrl: String, onDismiss: () -> Unit) {
                     .graphicsLayer(
                         scaleX = animatedScale,
                         scaleY = animatedScale,
-                        translationX = offset.x,
-                        translationY = offset.y,
+                        translationX = animatedOffset.x,
+                        translationY = animatedOffset.y,
                     )
                     .pointerInput(Unit) {
-                        detectTransformGestures { _, pan, zoom, _ ->
+                        detectTransformGestures { centroid, pan, zoom, _ ->
                             scale = (scale * zoom).coerceIn(1f, 4f)
                             if (scale > 1f) {
                                 offset = Offset(
@@ -188,13 +191,19 @@ fun ImageViewer(imageUrl: String, onDismiss: () -> Unit) {
                     }
                     .pointerInput(Unit) {
                         detectTapGestures(
-                            onDoubleTap = {
+                            onDoubleTap = { tapOffset ->
+                                tapPosition = tapOffset
                                 if (scale > 1f) {
                                     scale = 1f
                                     offset = Offset.Zero
                                 } else {
                                     scale = 2.5f
-                                    offset = Offset.Zero
+                                    // Zoom towards tap position
+                                    val newOffset = Offset(
+                                        x = -tapOffset.x * 1.5f,
+                                        y = -tapOffset.y * 1.5f,
+                                    )
+                                    offset = newOffset
                                 }
                             },
                             onTap = {
