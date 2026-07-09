@@ -6,6 +6,8 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.*
@@ -143,18 +145,18 @@ fun LoginScreen(vm: AppViewModel) {
 fun ImageViewer(imageUrl: String, onDismiss: () -> Unit) {
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
-    val doubleTapDetector = remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
+    val animatedScale by animateFloatAsState(targetValue = scale, animationSpec = spring(dampingRatio = 0.7f, stiffness = 300f), label = "scale")
     
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Box(
-            Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.95f)).clickable { onDismiss() },
+            Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.95f)).clickable { 
+                if (scale <= 1f) onDismiss()
+            },
             contentAlignment = Alignment.Center,
         ) {
-            // Close button
             IconButton(
                 onClick = onDismiss,
                 modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)
@@ -162,13 +164,12 @@ fun ImageViewer(imageUrl: String, onDismiss: () -> Unit) {
                 Icon(Icons.Default.Close, "Close", tint = Color.White, modifier = Modifier.size(32.dp))
             }
             
-            // Zoomable image
             AsyncImage(
                 imageUrl, null,
                 Modifier.fillMaxSize()
                     .graphicsLayer(
-                        scaleX = scale,
-                        scaleY = scale,
+                        scaleX = animatedScale,
+                        scaleY = animatedScale,
                         translationX = offset.x,
                         translationY = offset.y,
                     )
@@ -193,6 +194,7 @@ fun ImageViewer(imageUrl: String, onDismiss: () -> Unit) {
                                     offset = Offset.Zero
                                 } else {
                                     scale = 2.5f
+                                    offset = Offset.Zero
                                 }
                             },
                             onTap = {
