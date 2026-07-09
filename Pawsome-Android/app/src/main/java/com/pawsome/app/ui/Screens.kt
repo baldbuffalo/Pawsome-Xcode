@@ -7,7 +7,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.animateOffsetAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -146,18 +145,14 @@ fun LoginScreen(vm: AppViewModel) {
 fun ImageViewer(imageUrl: String, onDismiss: () -> Unit) {
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
-    var tapPosition by remember { mutableStateOf(Offset.Zero) }
-    val animatedScale by animateFloatAsState(targetValue = scale, animationSpec = spring(dampingRatio = 0.7f, stiffness = 300f), label = "scale")
-    val animatedOffset by animateOffsetAsState(targetValue = offset, animationSpec = spring(dampingRatio = 0.7f, stiffness = 300f), label = "offset")
+    val animatedScale by animateFloatAsState(targetValue = scale, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow), label = "scale")
     
     Dialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (scale <= 1f) onDismiss() },
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Box(
-            Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.95f)).clickable { 
-                if (scale <= 1f) onDismiss()
-            },
+            Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.95f)),
             contentAlignment = Alignment.Center,
         ) {
             IconButton(
@@ -167,55 +162,62 @@ fun ImageViewer(imageUrl: String, onDismiss: () -> Unit) {
                 Icon(Icons.Default.Close, "Close", tint = Color.White, modifier = Modifier.size(32.dp))
             }
             
-            AsyncImage(
-                imageUrl, null,
+            Box(
                 Modifier.fillMaxSize()
-                    .graphicsLayer(
-                        scaleX = animatedScale,
-                        scaleY = animatedScale,
-                        translationX = animatedOffset.x,
-                        translationY = animatedOffset.y,
-                    )
-                    .pointerInput(Unit) {
-                        detectTransformGestures { centroid, pan, zoom, _ ->
-                            scale = (scale * zoom).coerceIn(1f, 4f)
-                            if (scale > 1f) {
-                                offset = Offset(
-                                    x = offset.x + pan.x,
-                                    y = offset.y + pan.y,
-                                )
-                            } else {
-                                offset = Offset.Zero
-                            }
-                        }
-                    }
                     .pointerInput(Unit) {
                         detectTapGestures(
                             onDoubleTap = { tapOffset ->
-                                tapPosition = tapOffset
                                 if (scale > 1f) {
                                     scale = 1f
                                     offset = Offset.Zero
                                 } else {
-                                    scale = 2.5f
-                                    // Zoom towards tap position
+                                    // Calculate zoom to the tap position
+                                    val targetScale = 3f
+                                    val centerX = size.width / 2f
+                                    val centerY = size.height / 2f
+                                    // Zoom towards the tap point
                                     val newOffset = Offset(
-                                        x = -tapOffset.x * 1.5f,
-                                        y = -tapOffset.y * 1.5f,
+                                        x = (centerX - tapOffset.x) * (targetScale - 1),
+                                        y = (centerY - tapOffset.y) * (targetScale - 1),
                                     )
+                                    scale = targetScale
                                     offset = newOffset
-                                }
-                            },
-                            onTap = {
-                                if (scale > 1f) {
-                                    scale = 1f
-                                    offset = Offset.Zero
                                 }
                             }
                         )
-                    },
-                contentScale = ContentScale.Fit,
-            )
+                    }
+                    .pointerInput(Unit) {
+                        detectTransformGestures { _, pan, zoom, _ ->
+                            val newScale = (scale * zoom).coerceIn(1f, 5f)
+                            
+                            if (newScale <= 1f) {
+                                scale = 1f
+                                offset = Offset.Zero
+                            } else {
+                                scale = newScale
+                                // Pan with limits
+                                val maxX = (size.width * (scale - 1)) / 2
+                                val maxY = (size.height * (scale - 1)) / 2
+                                offset = Offset(
+                                    x = (offset.x + pan.x).coerceIn(-maxX, maxX),
+                                    y = (offset.y + pan.y).coerceIn(-maxY, maxY),
+                                )
+                            }
+                        }
+                    }
+            ) {
+                AsyncImage(
+                    imageUrl, null,
+                    Modifier.fillMaxSize()
+                        .graphicsLayer(
+                            scaleX = animatedScale,
+                            scaleY = animatedScale,
+                            translationX = offset.x,
+                            translationY = offset.y,
+                        ),
+                    contentScale = ContentScale.Fit,
+                )
+            }
         }
     }
 }
