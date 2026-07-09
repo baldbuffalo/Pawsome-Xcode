@@ -227,18 +227,9 @@ fun FeedScreen(vm: AppViewModel, onCreate: () -> Unit) {
     }
 
     Column(Modifier.fillMaxSize()) {
-        Box(
-            Modifier.fillMaxWidth()
-                .background(Brush.horizontalGradient(colors = listOf(CatOrange, BrandPurple)))
-                .padding(20.dp).padding(top = 24.dp)
-        ) {
-            Text("Pawsome 🐱", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Color.White)
-        }
-        
         LazyRow(
-            Modifier.fillMaxWidth().padding(vertical = 12.dp),
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp),
         ) {
             item {
                 FilterChip(
