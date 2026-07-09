@@ -22,7 +22,7 @@ android {
         buildConfigField("String", "GOOGLE_SERVER_CLIENT_ID", "\"${env("ANDROID_GOOGLE_WEB_CLIENT_ID")}\"")
         buildConfigField("String", "TWITTER_CONSUMER_KEY", "\"${env("TWITTER_CONSUMER_KEY")}\"")
         buildConfigField("String", "TWITTER_CONSUMER_SECRET", "\"${env("TWITTER_CONSUMER_SECRET")}\"")
-        buildConfigField("String", "GITHUB_TOKEN", "\"${env("PAWSOME_GITHUB_TOKEN")}\"")
+        buildConfigField("String", "GITHUB_TOKEN", "\"${env("PAWSOME_IMAGE_UPLOAD_TOKEN")}\"")
     }
 
     buildFeatures {
