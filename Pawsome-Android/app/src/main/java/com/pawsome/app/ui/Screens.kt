@@ -6,8 +6,6 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.*
@@ -16,7 +14,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -145,73 +142,78 @@ fun LoginScreen(vm: AppViewModel) {
 fun ImageViewer(imageUrl: String, onDismiss: () -> Unit) {
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
-    val animatedScale by animateFloatAsState(targetValue = scale, animationSpec = spring(dampingRatio = 0.6f, stiffness = 300f), label = "scale")
     
     Dialog(
         onDismissRequest = { if (scale <= 1f) onDismiss() },
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Box(
-            Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.95f)),
+            Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.98f)),
             contentAlignment = Alignment.Center,
         ) {
+            // Close button (outside image, so clicks don't affect zoom)
             IconButton(
                 onClick = onDismiss,
                 modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)
             ) {
-                Icon(Icons.Default.Close, "Close", tint = Color.White, modifier = Modifier.size(32.dp))
+                Icon(Icons.Default.Close, "Close", tint = Color.White, modifier = Modifier.size(28.dp))
             }
             
+            // Zoomable image with gesture detection
             Box(
-                Modifier.fillMaxSize()
-                    .pointerInput(Unit) {
-                        detectTapGestures(
-                            onDoubleTap = { tapOffset ->
-                                if (scale > 1f) {
-                                    scale = 1f
-                                    offset = Offset.Zero
-                                } else {
-                                    // Calculate zoom to the tap position
-                                    val targetScale = 3f
-                                    val centerX = size.width / 2f
-                                    val centerY = size.height / 2f
-                                    // Zoom towards the tap point
-                                    val newOffset = Offset(
-                                        x = (centerX - tapOffset.x) * (targetScale - 1),
-                                        y = (centerY - tapOffset.y) * (targetScale - 1),
-                                    )
-                                    scale = targetScale
-                                    offset = newOffset
-                                }
-                            }
-                        )
-                    }
-                    .pointerInput(Unit) {
-                        detectTransformGestures { _, pan, zoom, _ ->
-                            val newScale = (scale * zoom).coerceIn(1f, 5f)
-                            
-                            if (newScale <= 1f) {
-                                scale = 1f
-                                offset = Offset.Zero
-                            } else {
-                                scale = newScale
-                                // Pan with limits
-                                val maxX = (size.width * (scale - 1)) / 2
-                                val maxY = (size.height * (scale - 1)) / 2
-                                offset = Offset(
-                                    x = (offset.x + pan.x).coerceIn(-maxX, maxX),
-                                    y = (offset.y + pan.y).coerceIn(-maxY, maxY),
-                                )
-                            }
-                        }
-                    }
+                Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
             ) {
                 AsyncImage(
                     imageUrl, null,
-                    Modifier.fillMaxSize()
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onDoubleTap = { tapOffset ->
+                                    if (scale > 1f) {
+                                        // Zoom out with snap animation
+                                        scale = 1f
+                                        offset = Offset.Zero
+                                    } else {
+                                        // Zoom in to 2.5x at tap point
+                                        val centerX = size.width / 2f
+                                        val centerY = size.height / 2f
+                                        offset = Offset(
+                                            x = (centerX - tapOffset.x) * 2f,
+                                            y = (centerY - tapOffset.y) * 2f,
+                                        )
+                                        scale = 2.5f
+                                    }
+                                },
+                                onTap = {
+                                    if (scale > 1f) {
+                                        scale = 1f
+                                        offset = Offset.Zero
+                                    }
+                                }
+                            )
+                        }
+                        .pointerInput(Unit) {
+                            detectTransformGestures { pan, zoom, _ ->
+                                val newScale = (scale * zoom).coerceIn(1f, 5f)
+                                if (newScale <= 1f) {
+                                    scale = 1f
+                                    offset = Offset.Zero
+                                } else {
+                                    scale = newScale
+                                    val maxX = (size.width * (scale - 1)) / 2
+                                    val maxY = (size.height * (scale - 1)) / 2
+                                    offset = Offset(
+                                        x = (offset.x + pan.x).coerceIn(-maxX, maxX),
+                                        y = (offset.y + pan.y).coerceIn(-maxY, maxY),
+                                    )
+                                }
+                            }
+                        }
                         .graphicsLayer(
-                            scaleX = animatedScale,
-                            scaleY = animatedScale,
+                            scaleX = scale,
+                            scaleY = scale,
                             translationX = offset.x,
                             translationY = offset.y,
                         ),
@@ -227,16 +229,9 @@ fun ImageViewer(imageUrl: String, onDismiss: () -> Unit) {
 @Composable
 fun FeedScreen(vm: AppViewModel, onCreate: () -> Unit) {
     var selectedFilter by remember { mutableStateOf<PostStatus?>(null) }
-    val listState = rememberLazyListState()
     var imageToView by remember { mutableStateOf<String?>(null) }
     val filteredPosts = remember(vm.posts, selectedFilter) {
         if (selectedFilter == null) vm.posts else vm.posts.filter { it.status == selectedFilter }
-    }
-
-    LaunchedEffect(vm.posts.size) {
-        if (vm.posts.isNotEmpty()) {
-            listState.animateScrollToItem(0)
-        }
     }
 
     Column(Modifier.fillMaxSize()) {
@@ -277,7 +272,11 @@ fun FeedScreen(vm: AppViewModel, onCreate: () -> Unit) {
         
         Spacer(Modifier.height(8.dp))
         
-        if (filteredPosts.isEmpty()) {
+        if (vm.posts.isEmpty() && vm.loading) {
+            Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        } else if (filteredPosts.isEmpty()) {
             Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("😿", fontSize = 64.sp)
@@ -288,7 +287,6 @@ fun FeedScreen(vm: AppViewModel, onCreate: () -> Unit) {
             }
         } else {
             LazyColumn(
-                state = listState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -478,9 +476,7 @@ fun CreatePostScreen(vm: AppViewModel, onBack: () -> Unit) {
 
 @Composable
 fun ProfileScreen(vm: AppViewModel, onAboutClick: () -> Unit, onHelpClick: () -> Unit) {
-    val context = LocalContext.current
-    
-    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).verticalScroll(rememberScrollState()).padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Spacer(Modifier.height(24.dp))
         
         Box(contentAlignment = Alignment.Center) {
@@ -524,18 +520,18 @@ fun ProfileScreen(vm: AppViewModel, onAboutClick: () -> Unit, onHelpClick: () ->
             }
         }
         
-        Spacer(Modifier.weight(1f))
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(32.dp))
         
+        // Logout Button - Red and visible
         Button(
             onClick = { vm.signOut() },
             modifier = Modifier.fillMaxWidth().height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+            colors = ButtonDefaults.buttonColors(containerColor = LostRed),
             shape = RoundedCornerShape(16.dp),
         ) {
-            Icon(Icons.Default.Logout, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onErrorContainer)
+            Icon(Icons.Default.Logout, null, Modifier.size(20.dp), tint = Color.White)
             Spacer(Modifier.width(8.dp))
-            Text("Log Out", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onErrorContainer)
+            Text("Log Out", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = Color.White)
         }
         
         Spacer(Modifier.height(24.dp))
