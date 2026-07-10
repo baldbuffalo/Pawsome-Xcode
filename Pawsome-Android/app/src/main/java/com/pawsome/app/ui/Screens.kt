@@ -9,8 +9,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.DampingRatio
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.*
@@ -147,7 +145,7 @@ fun LoginScreen(vm: AppViewModel) {
 fun ImageViewer(imageUrl: String, onDismiss: () -> Unit) {
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
-    val animatedScale by animateFloatAsState(targetValue = scale, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow), label = "scale")
+    val animatedScale by animateFloatAsState(targetValue = scale, animationSpec = spring(dampingRatio = 0.6f, stiffness = 300f), label = "scale")
     
     Dialog(
         onDismissRequest = { if (scale <= 1f) onDismiss() },
