@@ -144,14 +144,13 @@ fun ImageViewer(imageUrl: String, onDismiss: () -> Unit) {
     var offset by remember { mutableStateOf(Offset.Zero) }
     
     Dialog(
-        onDismissRequest = { if (scale <= 1f) onDismiss() },
+        onDismissRequest = { onDismiss() },
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Box(
-            Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.98f)),
+            Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.95f)).clickable { onDismiss() },
             contentAlignment = Alignment.Center,
         ) {
-            // Close button (outside image, so clicks don't affect zoom)
             IconButton(
                 onClick = onDismiss,
                 modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)
@@ -159,24 +158,22 @@ fun ImageViewer(imageUrl: String, onDismiss: () -> Unit) {
                 Icon(Icons.Default.Close, "Close", tint = Color.White, modifier = Modifier.size(28.dp))
             }
             
-            // Zoomable image with gesture detection
+            // Image container that matches image aspect ratio - gestures ONLY on this
             Box(
-                Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxWidth().wrapContentHeight(),
                 contentAlignment = Alignment.Center,
             ) {
                 AsyncImage(
                     imageUrl, null,
                     modifier = Modifier
-                        .fillMaxSize()
+                        .fillMaxWidth()
                         .pointerInput(Unit) {
                             detectTapGestures(
                                 onDoubleTap = { tapOffset ->
                                     if (scale > 1f) {
-                                        // Zoom out with snap animation
                                         scale = 1f
                                         offset = Offset.Zero
                                     } else {
-                                        // Zoom in to 2.5x at tap point
                                         val centerX = size.width / 2f
                                         val centerY = size.height / 2f
                                         offset = Offset(
@@ -230,6 +227,7 @@ fun ImageViewer(imageUrl: String, onDismiss: () -> Unit) {
 fun FeedScreen(vm: AppViewModel, onCreate: () -> Unit) {
     var selectedFilter by remember { mutableStateOf<PostStatus?>(null) }
     var imageToView by remember { mutableStateOf<String?>(null) }
+    
     val filteredPosts = remember(vm.posts, selectedFilter) {
         if (selectedFilter == null) vm.posts else vm.posts.filter { it.status == selectedFilter }
     }
@@ -272,8 +270,9 @@ fun FeedScreen(vm: AppViewModel, onCreate: () -> Unit) {
         
         Spacer(Modifier.height(8.dp))
         
-        if (vm.posts.isEmpty() && vm.loading) {
-            Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
+        // Show posts immediately when available, loading indicator only on first load
+        if (vm.loading && vm.posts.isEmpty()) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
         } else if (filteredPosts.isEmpty()) {
