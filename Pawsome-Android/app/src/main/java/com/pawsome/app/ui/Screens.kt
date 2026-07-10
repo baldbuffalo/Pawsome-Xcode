@@ -195,7 +195,7 @@ fun ImageViewer(imageUrl: String, onDismiss: () -> Unit) {
                             )
                         }
                         .pointerInput(Unit) {
-                            detectTransformGestures { pan, zoom, _ ->
+                            detectTransformGestures { _, pan, zoom, _ ->
                                 val newScale = (scale * zoom).coerceIn(1f, 5f)
                                 if (newScale <= 1f) {
                                     scale = 1f
