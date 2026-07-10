@@ -37,7 +37,7 @@ jobs:
         with:
           dotnet-version: '8.0.x'
       - name: Publish Pawsome.exe (single self-contained file)
-        run: dotnet publish Pawsome.App/Pawsome.App.csproj -c Release -r win-x64 --self-contained -p:WindowsPackageType=None -p:WindowsAppSDKSelfContained=true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:IncludeAllContentForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=embedded -p:GoogleClientId=${{ secrets.WINDOWS_GOOGLE_CLIENT_ID }} -p:GoogleClientSecret=${{ secrets.WINDOWS_GOOGLE_CLIENT_SECRET }} -p:TwitterConsumerKey=${{ secrets.TWITTER_CONSUMER_KEY }} -p:TwitterConsumerSecret=${{ secrets.TWITTER_CONSUMER_SECRET }}
+        run: dotnet publish Pawsome.App/Pawsome.App.csproj -c Release -r win-x64 --self-contained -p:WindowsPackageType=None -p:WindowsAppSDKSelfContained=true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:IncludeAllContentForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=embedded -p:EnableWindowsTargeting=true -p:GoogleClientId=${{ secrets.WINDOWS_GOOGLE_CLIENT_ID }} -p:GoogleClientSecret=${{ secrets.WINDOWS_GOOGLE_CLIENT_SECRET }} -p:TwitterConsumerKey=${{ secrets.TWITTER_CONSUMER_KEY }} -p:TwitterConsumerSecret=${{ secrets.TWITTER_CONSUMER_SECRET }}
       - name: Upload Windows build
         uses: actions/upload-artifact@v7.0.1
         with:
