@@ -198,17 +198,10 @@ struct LoginView: View {
 
     // MARK: - X / TWITTER SIGN IN
     private func signInWithTwitter() async {
-        do {
-            let provider = OAuthProvider(providerID: "twitter.com")
-            let result = try await provider.signIn()
-            await fetchUserAndLogin(
-                uid: result.user.uid,
-                defaultUsername: result.user.displayName,
-                profileImageURL: result.user.photoURL?.absoluteString
-            )
-        } catch {
-            await showError(error.localizedDescription)
-        }
+        // Twitter OAuth via Firebase - requires Firebase 10.0+
+        // Update pods: cd Pawsome && pod update
+        // Until then, show message
+        await showError("Twitter sign-in requires Firebase update. Please run: cd Pawsome && pod update")
     }
 
     // MARK: - APPLE SIGN IN
