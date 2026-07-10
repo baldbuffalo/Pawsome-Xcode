@@ -198,9 +198,30 @@ struct LoginView: View {
 
     // MARK: - X / TWITTER SIGN IN
     private func signInWithTwitter() async {
+        guard let windowScene = await UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let window = windowScene.windows.first,
+              let rootVC = window.rootViewController else {
+            await showError("Unable to present sign in")
+            return
+        }
+        
+        let provider = OAuthProvider(providerID: "twitter.com")
+        let clientID = FirebaseApp.app()?.options.clientID ?? ""
+        
+        // Use continuation to bridge completion handler
         do {
-            let provider = OAuthProvider(providerID: "twitter.com")
-            let result = try await Auth.auth().signInWithOAuth(providerID: "twitter.com")
+            let result = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<AuthDataResult, Error>) in
+                provider.authenticateWithRedirectScheme(providerUIDelegate: rootVC, clientId: clientID, preferEphemeralSession: true) { result, error in
+                    if let error = error {
+                        continuation.resume(throwing: error)
+                    } else if let result = result {
+                        continuation.resume(returning: result)
+                    } else {
+                        continuation.resume(throwing: NSError(domain: "Twitter", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unknown error"]))
+                    }
+                }
+            }
+            
             await fetchUserAndLogin(
                 uid: result.user.uid,
                 defaultUsername: result.user.displayName,
