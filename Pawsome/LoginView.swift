@@ -198,10 +198,32 @@ struct LoginView: View {
 
     // MARK: - X / TWITTER SIGN IN
     private func signInWithTwitter() async {
-        // Twitter/X sign-in requires manual OAuth implementation with Firebase
-        // Firebase's built-in Twitter OAuth has been deprecated
-        // Use Google Sign-In for now or implement custom OAuth flow
-        await showError("Twitter/X sign-in coming soon. Please use Google Sign-In.")
+        // Use TwitterAuthProvider for older Firebase versions
+        guard let windowScene = await UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let window = windowScene.windows.first,
+              let rootVC = window.rootViewController else {
+            await showError("Unable to present sign in")
+            return
+        }
+        
+        TwitterAuthProvider.provider().authenticate(withPresenting: rootVC) { [weak self] result, error in
+            guard let self = self else { return }
+            if let error = error {
+                Task { await self.showError(error.localizedDescription) }
+                return
+            }
+            guard let user = result?.user else {
+                Task { await self.showError("Sign in failed") }
+                return
+            }
+            Task {
+                await self.fetchUserAndLogin(
+                    uid: user.uid,
+                    defaultUsername: user.displayName,
+                    profileImageURL: user.photoURL?.absoluteString
+                )
+            }
+        }
     }
 
     // MARK: - APPLE SIGN IN
