@@ -199,12 +199,11 @@ struct LoginView: View {
     // MARK: - X / TWITTER SIGN IN
     private func signInWithTwitter() async {
         do {
-            let provider = OAuthProvider(providerID: "twitter.com")
-            let authResult = try await Auth.auth().signIn(with: provider, uiDelegate: nil)
+            let result = try await Auth.auth().signInWithOAuth(providerID: "twitter.com")
             await fetchUserAndLogin(
-                uid: authResult.user.uid,
-                defaultUsername: authResult.user.displayName,
-                profileImageURL: authResult.user.photoURL?.absoluteString
+                uid: result.user.uid,
+                defaultUsername: result.user.displayName,
+                profileImageURL: result.user.photoURL?.absoluteString
             )
         } catch {
             await showError(error.localizedDescription)
