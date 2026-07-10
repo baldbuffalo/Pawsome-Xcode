@@ -199,7 +199,17 @@ struct LoginView: View {
     // MARK: - X / TWITTER SIGN IN
     private func signInWithTwitter() async {
         do {
-            let result = try await Auth.auth().signInWithOAuth(providerID: "twitter.com")
+            let provider = OAuthProvider(providerID: "twitter.com")
+            provider.customParameters = ["prompts": "login"]
+            
+            guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                  let rootVC = windowScene.windows.first?.rootViewController else {
+                await showError("Unable to get root view controller")
+                return
+            }
+            
+            let result = try await provider.signIn(providerUIDelegate: rootVC)
+            
             await fetchUserAndLogin(
                 uid: result.user.uid,
                 defaultUsername: result.user.displayName,
