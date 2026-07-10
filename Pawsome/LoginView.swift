@@ -198,26 +198,40 @@ struct LoginView: View {
 
     // MARK: - X / TWITTER SIGN IN
     private func signInWithTwitter() async {
-        await MainActor.run {
-            let provider = OAuthProvider(providerID: "twitter.com")
-            provider.customParameters = ["prompts": "login"]
+        let provider = OAuthProvider(providerID: "twitter.com")
+        
+        // Get root view controller for OAuth UI
+        guard let windowScene = await UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let window = windowScene.windows.first,
+              let rootVC = window.rootViewController else {
+            await showError("Unable to present sign in")
+            return
+        }
+        
+        provider.getCredentialsWith(providerUIDelegate: rootVC) { [weak self] creds, error in
+            guard let self = self else { return }
             
-            Auth.auth().signIn(with: provider) { [weak self] result, error in
-                guard let self = self else { return }
-                if let error = error {
-                    Task { await self.showError(error.localizedDescription) }
-                    return
-                }
-                guard let user = result?.user else {
-                    Task { await self.showError("Sign in failed") }
-                    return
-                }
-                Task {
-                    await self.fetchUserAndLogin(
-                        uid: user.uid,
-                        defaultUsername: user.displayName,
-                        profileImageURL: user.photoURL?.absoluteString
-                    )
+            if let error = error {
+                Task { await self.showError(error.localizedDescription) }
+                return
+            }
+            
+            guard let credential = creds else {
+                Task { await self.showError("Failed to get credentials") }
+                return
+            }
+            
+            Auth.auth().signIn(with: credential) { result, error in
+                if let user = result?.user {
+                    Task {
+                        await self.fetchUserAndLogin(
+                            uid: user.uid,
+                            defaultUsername: user.displayName,
+                            profileImageURL: user.photoURL?.absoluteString
+                        )
+                    }
+                } else {
+                    Task { await self.showError(error?.localizedDescription ?? "Sign in failed") }
                 }
             }
         }
