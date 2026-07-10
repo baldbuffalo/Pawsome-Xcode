@@ -224,9 +224,8 @@ fun ImageViewer(imageUrl: String, onDismiss: () -> Unit) {
 // ============== FEED SCREEN ==============
 
 @Composable
-fun FeedScreen(vm: AppViewModel, onCreate: () -> Unit) {
+fun FeedScreen(vm: AppViewModel, onCreate: () -> Unit, onImageClick: (String) -> Unit) {
     var selectedFilter by remember { mutableStateOf<PostStatus?>(null) }
-    var imageToView by remember { mutableStateOf<String?>(null) }
     
     val filteredPosts = remember(vm.posts, selectedFilter) {
         if (selectedFilter == null) vm.posts else vm.posts.filter { it.status == selectedFilter }
@@ -290,13 +289,9 @@ fun FeedScreen(vm: AppViewModel, onCreate: () -> Unit) {
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                items(filteredPosts, key = { it.id }) { p -> PostCard(p, vm.uid, { vm.toggleLike(p) }, { vm.deletePost(p) }, { imageToView = p.imageUrl }) }
+                items(filteredPosts, key = { it.id }) { p -> PostCard(p, vm.uid, { vm.toggleLike(p) }, { vm.deletePost(p) }, { onImageClick(p.imageUrl) }) }
             }
         }
-    }
-    
-    imageToView?.let { url ->
-        ImageViewer(url) { imageToView = null }
     }
 }
 
