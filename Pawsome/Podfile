@@ -5,13 +5,13 @@ target 'Pawsome' do
   # Comment the next line if you don't want to use dynamic frameworks
   use_frameworks!
 
-  # Firebase
-  pod 'Firebase/Auth'
-  pod 'Firebase/Firestore'
-  pod 'Firebase/Core'
+  # Firebase - Using latest versions for Twitter OAuth support
+  pod 'Firebase/Auth', '~> 11.0'
+  pod 'Firebase/Firestore', '~> 11.0'
+  pod 'Firebase/Core', '~> 11.0'
 
   # Google Sign-In
-  pod 'GoogleSignIn'
+  pod 'GoogleSignIn', '~> 8.0'
 
   # CocoaPods Gem dependencies
 end

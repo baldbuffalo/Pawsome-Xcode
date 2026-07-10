@@ -198,35 +198,16 @@ struct LoginView: View {
 
     // MARK: - X / TWITTER SIGN IN
     private func signInWithTwitter() async {
-        guard let windowScene = await UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let window = windowScene.windows.first,
-              let rootVC = window.rootViewController else {
-            await showError("Unable to present sign in")
-            return
-        }
-        
-        let provider = OAuthProvider(providerID: "twitter.com")
-        
-        // Use async-compatible completion handler
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            provider.signIn(providerUIDelegate: rootVC) { [weak self] result, error in
-                guard let self = self else { return }
-                
-                if let error = error {
-                    Task { await self.showError(error.localizedDescription) }
-                } else if let user = result?.user {
-                    Task {
-                        await self.fetchUserAndLogin(
-                            uid: user.uid,
-                            defaultUsername: user.displayName,
-                            profileImageURL: user.photoURL?.absoluteString
-                        )
-                    }
-                } else {
-                    Task { await self.showError("Sign in failed") }
-                }
-                continuation.resume()
-            }
+        do {
+            let provider = OAuthProvider(providerID: "twitter.com")
+            let result = try await provider.signIn()
+            await fetchUserAndLogin(
+                uid: result.user.uid,
+                defaultUsername: result.user.displayName,
+                profileImageURL: result.user.photoURL?.absoluteString
+            )
+        } catch {
+            await showError(error.localizedDescription)
         }
     }
 
