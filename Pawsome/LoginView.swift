@@ -198,31 +198,16 @@ struct LoginView: View {
 
     // MARK: - X / TWITTER SIGN IN
     private func signInWithTwitter() async {
-        // Use TwitterAuthProvider for older Firebase versions
-        guard let windowScene = await UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let window = windowScene.windows.first,
-              let rootVC = window.rootViewController else {
-            await showError("Unable to present sign in")
-            return
-        }
-        
-        TwitterAuthProvider.provider().authenticate(withPresenting: rootVC) { [weak self] result, error in
-            guard let self = self else { return }
-            if let error = error {
-                Task { await self.showError(error.localizedDescription) }
-                return
-            }
-            guard let user = result?.user else {
-                Task { await self.showError("Sign in failed") }
-                return
-            }
-            Task {
-                await self.fetchUserAndLogin(
-                    uid: user.uid,
-                    defaultUsername: user.displayName,
-                    profileImageURL: user.photoURL?.absoluteString
-                )
-            }
+        do {
+            let provider = OAuthProvider(providerID: "twitter.com")
+            let result = try await Auth.auth().signInWithOAuth(providerID: "twitter.com")
+            await fetchUserAndLogin(
+                uid: result.user.uid,
+                defaultUsername: result.user.displayName,
+                profileImageURL: result.user.photoURL?.absoluteString
+            )
+        } catch {
+            await showError(error.localizedDescription)
         }
     }
 
