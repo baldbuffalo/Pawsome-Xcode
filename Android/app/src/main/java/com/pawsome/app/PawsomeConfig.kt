@@ -1,8 +1,9 @@
 package com.example.pawsome
 
 object PawsomeConfig {
-    const val projectId = "pawsome--signin-ios"
-    const val apiKey = "AIzaSyBl9nk70Vocx5nTtG4ctF5HeKazSrSSfHA"
+    // New Firebase/Google Cloud credentials will be added here later.
+    const val projectId = ""
+    const val apiKey = ""
     const val githubRepo = "baldbuffalo/Pawsome-assets"
 
     val googleServerClientId: String get() = BuildConfig.GOOGLE_SERVER_CLIENT_ID
