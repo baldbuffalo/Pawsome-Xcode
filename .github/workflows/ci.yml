@@ -62,10 +62,14 @@ jobs:
       - name: Setup Secrets
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GOOGLE_SIGN_IN_IOS_CLIENT_ID: ${{ secrets.GOOGLE_SIGN_IN_IOS_CLIENT_ID }}
         run: |
           mkdir -p Pawsome.xcodeproj/xcshareddata/xcschemes
+          GOOGLE_SIGN_IN_IOS_REVERSED_CLIENT_ID="com.googleusercontent.apps.${GOOGLE_SIGN_IN_IOS_CLIENT_ID%.apps.googleusercontent.com}"
           cat > Pawsome/Secrets.xcconfig << EOF
           GITHUB_TOKEN = $GITHUB_TOKEN
+          GOOGLE_SIGN_IN_IOS_CLIENT_ID = $GOOGLE_SIGN_IN_IOS_CLIENT_ID
+          GOOGLE_SIGN_IN_IOS_REVERSED_CLIENT_ID = $GOOGLE_SIGN_IN_IOS_REVERSED_CLIENT_ID
           EOF
       - name: Build iOS app (Simulator)
         run: |
