@@ -1,8 +1,12 @@
 # Pawsome
 
-Pawsome is organized by platform:
+Pawsome is organized by platform and backend:
 
-- `iOS/` — Apple/Xcode app
-- `Android/` — Android app
+- `iOS/` — Apple/iOS app code
+- `Android/` — Android app code
+- `Firebase/` — all Firebase configuration and backend files
 - `Pawsome-Windows/` — Windows app
-- `firebase/` — shared Firebase/backend configuration
+
+## Firebase
+
+The `Firebase/` directory contains the Firebase configuration for the platforms as well as shared backend configuration such as Firestore rules, indexes, and Cloud Functions.
