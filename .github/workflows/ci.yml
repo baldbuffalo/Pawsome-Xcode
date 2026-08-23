@@ -73,8 +73,9 @@ jobs:
           GOOGLE_SIGN_IN_IOS_REVERSED_CLIENT_ID = $GOOGLE_SIGN_IN_IOS_REVERSED_CLIENT_ID
           EOF
       - name: Build iOS app (Physical Device)
+        working-directory: iOS
         run: |
-          xcodebuild -project iOS/Pawsome.xcodeproj \
+          xcodebuild -project Pawsome.xcodeproj \
             -scheme Pawsome \
             -configuration Release \
             -destination 'generic/platform=iOS' \
