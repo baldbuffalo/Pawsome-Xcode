@@ -56,6 +56,10 @@ jobs:
         run: xcodebuild -version
       - name: Show available simulators
         run: xcrun simctl list devices available | grep -E "iPhone|iPad" | head -10
+      - name: Update Swift packages to latest eligible releases
+        run: |
+          rm -f iOS/Pawsome.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+          xcodebuild -resolvePackageDependencies -project iOS/Pawsome.xcodeproj
       - name: Setup Secrets
         working-directory: iOS/Pawsome
         env:
@@ -140,7 +144,7 @@ jobs:
         with:
           name: Pawsome-Android
           path: android
-      - name: Create release with both artifacts
+      - name: Create release with both builds
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
