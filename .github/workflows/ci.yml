@@ -55,9 +55,10 @@ jobs:
       - name: Show Xcode version
         run: xcodebuild -version
       - name: Update Swift packages to latest eligible releases
+        working-directory: iOS
         run: |
-          rm -f iOS/Pawsome.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
-          xcodebuild -resolvePackageDependencies -project iOS/Pawsome.xcodeproj
+          rm -f Pawsome.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+          xcodebuild -resolvePackageDependencies -project Pawsome.xcodeproj
       - name: Setup Secrets
         working-directory: iOS/Pawsome
         env:
