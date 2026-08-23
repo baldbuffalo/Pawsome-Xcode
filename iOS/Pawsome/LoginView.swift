@@ -27,7 +27,6 @@ struct LoginView: View {
 
     var body: some View {
         ZStack {
-            // 🌈 BACKGROUND
             LinearGradient(
                 colors: [Color.purple.opacity(0.06), Color.blue.opacity(0.06)],
                 startPoint: .top, endPoint: .bottom
@@ -35,7 +34,6 @@ struct LoginView: View {
             .ignoresSafeArea()
 
             VStack(spacing: 28) {
-
                 VStack(spacing: 10) {
                     Text("🐾 Pawsome")
                         .font(.largeTitle.bold())
@@ -45,7 +43,6 @@ struct LoginView: View {
                         .foregroundColor(.secondary)
                 }
 
-                // 🔴 GOOGLE SIGN IN
                 Button {
                     Task {
                         isLoadingGoogle = true
@@ -71,7 +68,6 @@ struct LoginView: View {
                 }
                 .disabled(isLoadingGoogle || isLoadingApple || isLoadingTwitter)
 
-                // 🍎 APPLE SIGN IN
                 #if canImport(AuthenticationServices)
                 SignInWithAppleButton(.signIn) { request in
                     let nonce = randomNonceString()
@@ -92,7 +88,6 @@ struct LoginView: View {
                 .disabled(isLoadingApple || isLoadingGoogle || isLoadingTwitter)
                 #endif
 
-                // 𝕏 SIGN IN
                 Button {
                     Task {
                         isLoadingTwitter = true
@@ -130,9 +125,7 @@ struct LoginView: View {
         }
     }
 
-    // MARK: - GOOGLE SIGN IN
     private func signInWithGoogle() async {
-
         guard
             let clientID = Bundle.main.object(forInfoDictionaryKey: "GIDClientID") as? String,
             !clientID.isEmpty
@@ -200,7 +193,8 @@ struct LoginView: View {
     private func signInWithTwitter() async {
         do {
             let provider = OAuthProvider(providerID: "twitter.com")
-            let result = try await provider.signIn()
+            let credential = try await provider.credential(with: nil)
+            let result = try await Auth.auth().signIn(with: credential)
             await fetchUserAndLogin(
                 uid: result.user.uid,
                 defaultUsername: result.user.displayName,
@@ -211,12 +205,10 @@ struct LoginView: View {
         }
     }
 
-    // MARK: - APPLE SIGN IN
     #if canImport(AuthenticationServices)
     private func handleAppleSignIn(
         _ result: Result<ASAuthorization, Error>
     ) async {
-
         do {
             guard
                 case .success(let auth) = result,
@@ -256,13 +248,11 @@ struct LoginView: View {
     }
     #endif
 
-    // MARK: - FIRESTORE USER SETUP (🔥 FIXED)
     private func fetchUserAndLogin(
         uid: String,
         defaultUsername: String?,
         profileImageURL: String?
     ) async {
-
         let db = Firestore.firestore()
         let userRef = db.collection("users").document(uid)
         let counterRef = db.collection("counter").document("users")
@@ -270,7 +260,6 @@ struct LoginView: View {
         do {
             let snap = try await userRef.getDocument()
 
-            // ✅ EXISTING USER
             if snap.exists {
                 let data = snap.data() ?? [:]
                 await MainActor.run {
@@ -283,10 +272,8 @@ struct LoginView: View {
                 return
             }
 
-            // 🔥 NEW USER (TRANSACTION FIX)
             let nextUserNumber = try await db.runTransaction {
                 transaction, errorPointer in
-
                 do {
                     let counterSnap =
                         try transaction.getDocument(counterRef)
@@ -333,7 +320,6 @@ struct LoginView: View {
         }
     }
 
-    // MARK: - HELPERS
     private func showError(_ message: String) async {
         await MainActor.run {
             errorMessage = message
