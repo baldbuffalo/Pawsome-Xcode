@@ -1,4 +1,4 @@
-name: CI 
+name: CI
 
 on:
   push:
@@ -48,9 +48,6 @@ jobs:
   ios-app:
     name: iOS app build (SwiftUI)
     runs-on: macos-latest
-    defaults:
-      run:
-        working-directory: Pawsome
     steps:
       - uses: actions/checkout@v7.0.0
       - name: Select Xcode
@@ -60,20 +57,21 @@ jobs:
       - name: Show available simulators
         run: xcrun simctl list devices available | grep -E "iPhone|iPad" | head -10
       - name: Setup Secrets
+        working-directory: iOS/Pawsome
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GOOGLE_SIGN_IN_IOS_CLIENT_ID: ${{ secrets.GOOGLE_SIGN_IN_IOS_CLIENT_ID }}
         run: |
-          mkdir -p Pawsome.xcodeproj/xcshareddata/xcschemes
+          mkdir -p ../Pawsome.xcodeproj/xcshareddata/xcschemes
           GOOGLE_SIGN_IN_IOS_REVERSED_CLIENT_ID="com.googleusercontent.apps.${GOOGLE_SIGN_IN_IOS_CLIENT_ID%.apps.googleusercontent.com}"
-          cat > Pawsome/Secrets.xcconfig << EOF
+          cat > Secrets.xcconfig << EOF
           GITHUB_TOKEN = $GITHUB_TOKEN
           GOOGLE_SIGN_IN_IOS_CLIENT_ID = $GOOGLE_SIGN_IN_IOS_CLIENT_ID
           GOOGLE_SIGN_IN_IOS_REVERSED_CLIENT_ID = $GOOGLE_SIGN_IN_IOS_REVERSED_CLIENT_ID
           EOF
       - name: Build iOS app (Simulator)
         run: |
-          xcodebuild -project Pawsome.xcodeproj \
+          xcodebuild -project iOS/Pawsome.xcodeproj \
             -scheme Pawsome \
             -configuration Debug \
             -destination 'platform=iOS Simulator,name=iPhone 15' \
@@ -112,7 +110,6 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          # Add GitHub token to gradle.properties for image uploads
           echo "GITHUB_TOKEN=$PAWSOME_IMAGE_UPLOAD_TOKEN" >> gradle.properties
           if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
             echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
@@ -139,7 +136,7 @@ jobs:
           name: Pawsome-Windows-x64
           path: windows
       - name: Download Android build
-        uses: actions/download-artifact@v8.0.1
+        uses: actions/download-artifact@v8.0.0
         with:
           name: Pawsome-Android
           path: android
