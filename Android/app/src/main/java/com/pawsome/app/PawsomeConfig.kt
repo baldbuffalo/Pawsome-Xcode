@@ -1,12 +1,11 @@
 package com.example.pawsome
 
 object PawsomeConfig {
-    // New Firebase/Google Cloud credentials will be added here later.
+    // Firebase credentials are supplied by google-services.json.
     const val projectId = ""
     const val apiKey = ""
     const val githubRepo = "baldbuffalo/Pawsome-assets"
 
-    val googleServerClientId: String get() = BuildConfig.GOOGLE_SERVER_CLIENT_ID
     val twitterConsumerKey: String get() = BuildConfig.TWITTER_CONSUMER_KEY
     val twitterConsumerSecret: String get() = BuildConfig.TWITTER_CONSUMER_SECRET
     val githubToken: String get() = BuildConfig.GITHUB_TOKEN
