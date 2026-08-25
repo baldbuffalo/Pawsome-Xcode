@@ -6,13 +6,13 @@ import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
-import com.example.pawsome.PawsomeConfig
+import com.pawsome.app.R
 import com.example.pawsome.net.AuthException
 
 /** Native Android Google sign-in via Credential Manager. Returns a Google ID token. */
 class GoogleAuth {
     suspend fun signIn(context: Context): String {
-        val serverClientId = PawsomeConfig.googleServerClientId
+        val serverClientId = context.getString(R.string.default_web_client_id)
         if (serverClientId.isBlank())
             throw AuthException("No Google web client ID configured in this build.")
 
