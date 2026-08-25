@@ -4,6 +4,19 @@ plugins {
     id("com.google.gms.google-services")
 }
 
+val firebaseGoogleServicesFile = rootProject.file("../Firebase/Android/google-services.json")
+val copyFirebaseGoogleServices = tasks.register<Copy>("copyFirebaseGoogleServices") {
+    from(firebaseGoogleServicesFile)
+    into(project.projectDir)
+    rename { "google-services.json" }
+}
+
+tasks.configureEach {
+    if (name.matches(Regex("process.*GoogleServices"))) {
+        dependsOn(copyFirebaseGoogleServices)
+    }
+}
+
 android {
     namespace = "com.pawsome.app"
     compileSdk = 35
