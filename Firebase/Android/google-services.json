@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "798924982333",
+    "project_id": "pawsome-90cb3",
+    "storage_bucket": "pawsome-90cb3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:798924982333:android:8483f7c5edea8cc9f54254",
+        "android_client_info": {
+          "package_name": "Com.GameBuster.Pawsome"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "798924982333-eqm2fuls22rqlrgso1vap7dqo69gkp15.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "Com.GameBuster.Pawsome",
+            "certificate_hash": "5822ac02ca3f986c46967d04bf10aee7ce56fc7b"
+          }
+        },
+        {
+          "client_id": "798924982333-8dho1rc7e6u6ku7kifefdaa0b1kmn3vd.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCdlMeVSGsPUeGT9L6rKFYO3ZHGqYmyIQw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "798924982333-8dho1rc7e6u6ku7kifefdaa0b1kmn3vd.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "798924982333-ukt3ica1d9i93dufb0nlso7u030vsmah.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "Com.GameBuster.Pawsome"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
