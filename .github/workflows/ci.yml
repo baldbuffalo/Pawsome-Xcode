@@ -103,6 +103,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6.2.0
         with:
           gradle-version: '9.7.1'
+      - name: Setup Firebase configuration
+        run: cp ../Firebase/Android/google-services.json app/google-services.json
       - name: Build APK
         env:
           ANDROID_GOOGLE_WEB_CLIENT_ID: ${{ secrets.ANDROID_GOOGLE_WEB_CLIENT_ID }}
