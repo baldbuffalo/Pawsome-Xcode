@@ -6,7 +6,7 @@ import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
-import com.pawsome.app.R
+import com.example.pawsome.R
 import com.example.pawsome.net.AuthException
 
 /** Native Android Google sign-in via Credential Manager. Returns a Google ID token. */
