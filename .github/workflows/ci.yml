@@ -117,6 +117,8 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           echo "GITHUB_TOKEN=$PAWSOME_IMAGE_UPLOAD_TOKEN" >> gradle.properties
+          echo "TWITTER_CONSUMER_KEY=$TWITTER_CONSUMER_KEY" >> gradle.properties
+          echo "TWITTER_CONSUMER_SECRET=$TWITTER_CONSUMER_SECRET" >> gradle.properties
           if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
             echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
             export ANDROID_KEYSTORE_FILE="$RUNNER_TEMP/release.jks"
