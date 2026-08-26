@@ -111,24 +111,16 @@ jobs:
           TWITTER_CONSUMER_KEY: ${{ secrets.TWITTER_CONSUMER_KEY }}
           TWITTER_CONSUMER_SECRET: ${{ secrets.TWITTER_CONSUMER_SECRET }}
           PAWSOME_IMAGE_UPLOAD_TOKEN: ${{ secrets.PAWSOME_IMAGE_UPLOAD_TOKEN }}
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           echo "GITHUB_TOKEN=$PAWSOME_IMAGE_UPLOAD_TOKEN" >> gradle.properties
           echo "TWITTER_CONSUMER_KEY=$TWITTER_CONSUMER_KEY" >> gradle.properties
           echo "TWITTER_CONSUMER_SECRET=$TWITTER_CONSUMER_SECRET" >> gradle.properties
-          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
-            echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
-            export ANDROID_KEYSTORE_FILE="$RUNNER_TEMP/release.jks"
-          fi
           gradle assembleRelease
       - name: Upload APK artifact
         uses: actions/upload-artifact@v7.0.1
         with:
           name: Pawsome-Android
-          path: Android/app/build/outputs/apk/release/*.apk
+          path: app/build/outputs/apk/release/*.apk
           if-no-files-found: error
 
   release:
@@ -146,6 +138,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          APK_FILE=$(ls android/*.apk | head -n1)
-          cp "$APK_FILE" Pawsome.apk
-          gh release upload latest Pawsome.apk --clobber
+          APK_FILE=$(find android -type f -name '*.apk' -print -quit)
+          test -n "$APK_FILE"
+          gh release upload latest "$APK_FILE" --clobber
