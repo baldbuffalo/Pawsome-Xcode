@@ -14,9 +14,9 @@ android {
         versionCode = 1
         versionName = "1.0"
 
-        buildConfigField("String", "TWITTER_CONSUMER_KEY", "\"${providers.gradleProperty("TWITTER_CONSUMER_KEY").orNull ?: ""}\"")
-        buildConfigField("String", "TWITTER_CONSUMER_SECRET", "\"${providers.gradleProperty("TWITTER_CONSUMER_SECRET").orNull ?: ""}\"")
-        buildConfigField("String", "GITHUB_TOKEN", "\"${providers.gradleProperty("GITHUB_TOKEN").orNull ?: ""}\"")
+        buildConfigField("String", "TWITTER_CONSUMER_KEY", "\"${project.findProperty("TWITTER_CONSUMER_KEY") ?: ""}\"")
+        buildConfigField("String", "TWITTER_CONSUMER_SECRET", "\"${project.findProperty("TWITTER_CONSUMER_SECRET") ?: ""}\"")
+        buildConfigField("String", "GITHUB_TOKEN", "\"${project.findProperty("GITHUB_TOKEN") ?: ""}\"")
     }
 
     buildFeatures {
