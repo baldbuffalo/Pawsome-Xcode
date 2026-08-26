@@ -14,6 +14,9 @@ tasks.configureEach {
     if (name.matches(Regex("process.*GoogleServices"))) {
         dependsOn(copyFirebaseGoogleServices)
     }
+    if (name.matches(Regex("process.*NavigationResources"))) {
+        dependsOn(copyFirebaseGoogleServices)
+    }
 }
 
 android {
