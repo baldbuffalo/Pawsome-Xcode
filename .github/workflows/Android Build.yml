@@ -39,11 +39,14 @@ jobs:
           echo "TWITTER_CONSUMER_KEY=$TWITTER_CONSUMER_KEY" >> gradle.properties
           echo "TWITTER_CONSUMER_SECRET=$TWITTER_CONSUMER_SECRET" >> gradle.properties
           gradle assembleRelease
+          APK_FILE=$(find app/build/outputs/apk/release -type f -name '*.apk' -print -quit)
+          test -n "$APK_FILE"
+          echo "Built APK: $APK_FILE"
       - name: Upload APK artifact
         uses: actions/upload-artifact@v7.0.1
         with:
           name: Pawsome-Android
-          path: app/build/outputs/apk/release/*.apk
+          path: ${{ github.workspace }}/Android/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
 
   release:
