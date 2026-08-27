@@ -28,25 +28,59 @@ jobs:
           gradle-version: '9.7.1'
       - name: Setup Firebase configuration
         run: cp ../Firebase/Android/google-services.json app/google-services.json
-      - name: Build APK
+      - name: Build signed APK
         env:
           ANDROID_GOOGLE_WEB_CLIENT_ID: ${{ secrets.ANDROID_GOOGLE_WEB_CLIENT_ID }}
           TWITTER_CONSUMER_KEY: ${{ secrets.TWITTER_CONSUMER_KEY }}
           TWITTER_CONSUMER_SECRET: ${{ secrets.TWITTER_CONSUMER_SECRET }}
           PAWSOME_IMAGE_UPLOAD_TOKEN: ${{ secrets.PAWSOME_IMAGE_UPLOAD_TOKEN }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          PAWSOME_KEYSTORE_BASE64: ${{ secrets.PAWSOME_KEYSTORE_BASE64 }}
+          PAWSOME_KEYSTORE_PASSWORD: ${{ secrets.PAWSOME_KEYSTORE_PASSWORD }}
+          PAWSOME_KEY_ALIAS: ${{ secrets.PAWSOME_KEY_ALIAS }}
+          PAWSOME_KEY_PASSWORD: ${{ secrets.PAWSOME_KEY_PASSWORD }}
         run: |
+          set -euo pipefail
+
           echo "GITHUB_TOKEN=$PAWSOME_IMAGE_UPLOAD_TOKEN" >> gradle.properties
           echo "TWITTER_CONSUMER_KEY=$TWITTER_CONSUMER_KEY" >> gradle.properties
           echo "TWITTER_CONSUMER_SECRET=$TWITTER_CONSUMER_SECRET" >> gradle.properties
-          gradle assembleRelease
-          APK_FILE=$(find app/build/outputs/apk/release -type f -name '*.apk' -print -quit)
+
+          KEYSTORE_B64="${ANDROID_KEYSTORE_BASE64:-${PAWSOME_KEYSTORE_BASE64:-}}"
+          KEYSTORE_PASSWORD="${ANDROID_KEYSTORE_PASSWORD:-${PAWSOME_KEYSTORE_PASSWORD:-}}"
+          KEY_ALIAS="${ANDROID_KEY_ALIAS:-${PAWSOME_KEY_ALIAS:-}}"
+          KEY_PASSWORD="${ANDROID_KEY_PASSWORD:-${PAWSOME_KEY_PASSWORD:-}}"
+
+          if [ -z "$KEYSTORE_B64" ] || [ -z "$KEYSTORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
+            echo "Release signing credentials are missing. Refusing to build or publish an unsigned APK."
+            exit 1
+          fi
+
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > pawsome-release.jks
+          export ANDROID_KEYSTORE_FILE="$PWD/pawsome-release.jks"
+          export ANDROID_KEYSTORE_PASSWORD="$KEYSTORE_PASSWORD"
+          export ANDROID_KEY_ALIAS="$KEY_ALIAS"
+          export ANDROID_KEY_PASSWORD="$KEY_PASSWORD"
+
+          gradle clean assembleRelease
+
+          APK_FILE=$(find app/build/outputs/apk/release -type f -name '*-release.apk' ! -name '*-unsigned.apk' -print -quit)
           test -n "$APK_FILE"
-          echo "Built APK: $APK_FILE"
+
+          "$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n1)/apksigner" verify "$APK_FILE"
+
+          mkdir -p build/release-apk
+          cp "$APK_FILE" build/release-apk/Pawsome.apk
+          rm -f "$PWD/pawsome-release.jks"
+          echo "Built and verified signed APK: build/release-apk/Pawsome.apk"
       - name: Upload APK artifact
         uses: actions/upload-artifact@v7.0.1
         with:
           name: Pawsome-Android
-          path: ${{ github.workspace }}/Android/app/build/outputs/apk/release/*.apk
+          path: ${{ github.workspace }}/Android/build/release-apk/Pawsome.apk
           if-no-files-found: error
 
   release:
@@ -66,39 +100,55 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          APK_FILE=$(find android -type f -name '*.apk' -print -quit)
-          test -n "$APK_FILE"
+          APK_FILE="android/Pawsome.apk"
+          test -f "$APK_FILE"
 
           mkdir -p existing
-          if gh release download latest --repo "$GH_REPO" --pattern '*.apk' --dir existing --clobber; then
-            EXISTING_APK=$(find existing -type f -name '*.apk' -print -quit || true)
+          if gh release download latest --repo "$GH_REPO" --pattern 'Pawsome.apk' --dir existing --clobber; then
+            EXISTING_APK="existing/Pawsome.apk"
           else
             EXISTING_APK=""
           fi
 
           NEW_SHA=$(sha256sum "$APK_FILE" | cut -d' ' -f1)
-          if [ -n "$EXISTING_APK" ]; then
+          if [ -n "$EXISTING_APK" ] && [ -f "$EXISTING_APK" ]; then
             OLD_SHA=$(sha256sum "$EXISTING_APK" | cut -d' ' -f1)
           else
             OLD_SHA=""
           fi
 
           if [ "$NEW_SHA" = "$OLD_SHA" ]; then
-            echo "APK is identical to the latest release APK. No replacement needed."
+            echo "Signed APK is identical to the latest release APK."
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
-            echo "APK differs from the latest release APK. Release asset will be replaced."
+            echo "Signed APK differs from the latest release APK."
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
+      - name: Remove legacy/duplicate APK assets
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh release view latest --repo "$GH_REPO" --json assets --jq '.assets[].name' | while IFS= read -r asset; do
+            case "$asset" in
+              *.apk)
+                if [ "$asset" != "Pawsome.apk" ]; then
+                  echo "Removing legacy APK release asset: $asset"
+                  gh release delete-asset latest "$asset" --repo "$GH_REPO" --yes
+                fi
+                ;;
+            esac
+          done
       - name: Replace APK in latest release
         if: steps.apk-check.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          APK_FILE=$(find android -type f -name '*.apk' -print -quit)
-          test -n "$APK_FILE"
-          gh release upload latest "$APK_FILE" --repo "$GH_REPO" --clobber
+          set -euo pipefail
+          gh release upload latest android/Pawsome.apk --repo "$GH_REPO" --clobber
       - name: Keep existing release APK
         if: steps.apk-check.outputs.changed == 'false'
-        run: echo "Latest release APK is already identical; leaving release untouched."
+        run: echo "Latest release APK is already identical; leaving Pawsome.apk untouched."
