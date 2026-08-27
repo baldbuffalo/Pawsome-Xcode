@@ -3,16 +3,8 @@ name: Android Build
 on:
   push:
     branches: [ main ]
-    paths:
-      - 'Android/**'
-      - 'Firebase/Android/**'
-      - '.github/workflows/Android Build.yml'
   pull_request:
     branches: [ main ]
-    paths:
-      - 'Android/**'
-      - 'Firebase/Android/**'
-      - '.github/workflows/Android Build.yml'
   workflow_dispatch:
 
 permissions:
@@ -27,6 +19,8 @@ jobs:
         working-directory: Android
     steps:
       - uses: actions/checkout@v7.0.0
+        with:
+          fetch-depth: 0
       - uses: actions/setup-java@v5.3.0
         with:
           distribution: temurin
@@ -55,16 +49,32 @@ jobs:
           if-no-files-found: error
 
   release:
-    name: Update latest release APK
+    name: Update latest release APK when Android changed
     runs-on: ubuntu-latest
     needs: android-app
     if: github.ref == 'refs/heads/main'
     steps:
-      - uses: actions/download-artifact@v8.0.0
+      - uses: actions/checkout@v7.0.0
+        with:
+          fetch-depth: 0
+      - name: Check whether Android code changed
+        id: android_changed
+        run: |
+          if git diff-tree --no-commit-id --name-only -r HEAD | grep -qE '^(Android/|Firebase/Android/)'; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Android-related files changed; the release APK will be replaced."
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No Android-related files changed; keeping the existing release APK."
+          fi
+      - name: Download APK artifact
+        if: steps.android_changed.outputs.changed == 'true'
+        uses: actions/download-artifact@v8.0.0
         with:
           name: Pawsome-Android
           path: android
       - name: Replace APK in latest release
+        if: steps.android_changed.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
