@@ -6,10 +6,14 @@ object PawsomeConfig {
     // Firebase credentials are supplied by google-services.json.
     // Read them from the initialized Firebase app instead of duplicating them here.
     val projectId: String
-        get() = FirebaseApp.getInstance().options.projectId
+        get() = requireNotNull(FirebaseApp.getInstance().options.projectId) {
+            "Firebase projectId is missing from google-services.json"
+        }
 
     val apiKey: String
-        get() = FirebaseApp.getInstance().options.apiKey
+        get() = requireNotNull(FirebaseApp.getInstance().options.apiKey) {
+            "Firebase apiKey is missing from google-services.json"
+        }
 
     // Main source repository. Pawsome-assets is used separately only for image storage.
     const val githubRepo = "baldbuffalo/Pawsome-Xcode"
