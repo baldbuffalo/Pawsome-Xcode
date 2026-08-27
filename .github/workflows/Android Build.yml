@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   android-app:
-    name: Android app build (Jetpack Compose)
+    name: Android Release Build (Jetpack Compose)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -28,7 +28,7 @@ jobs:
           gradle-version: '9.7.1'
       - name: Setup Firebase configuration
         run: cp ../Firebase/Android/google-services.json app/google-services.json
-      - name: Build signed APK
+      - name: Build signed release APK
         env:
           ANDROID_GOOGLE_WEB_CLIENT_ID: ${{ secrets.ANDROID_GOOGLE_WEB_CLIENT_ID }}
           TWITTER_CONSUMER_KEY: ${{ secrets.TWITTER_CONSUMER_KEY }}
@@ -65,21 +65,23 @@ jobs:
           export ANDROID_KEY_ALIAS="$KEY_ALIAS"
           export ANDROID_KEY_PASSWORD="$KEY_PASSWORD"
 
+          # Explicitly build the RELEASE variant. Never assembleDebug here.
           gradle clean assembleRelease
 
           APK_FILE=$(find app/build/outputs/apk/release -type f -name '*-release.apk' ! -name '*-unsigned.apk' -print -quit)
           test -n "$APK_FILE"
 
+          # Refuse an unsigned APK even if Gradle produced one unexpectedly.
           "$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n1)/apksigner" verify "$APK_FILE"
 
           mkdir -p build/release-apk
           cp "$APK_FILE" build/release-apk/Pawsome.apk
           rm -f "$PWD/pawsome-release.jks"
-          echo "Built and verified signed APK: build/release-apk/Pawsome.apk"
+          echo "Built and verified signed RELEASE APK: build/release-apk/Pawsome.apk"
       - name: Upload APK artifact
         uses: actions/upload-artifact@v7.0.1
         with:
-          name: Pawsome-Android
+          name: Pawsome-Android-Release
           path: ${{ github.workspace }}/Android/build/release-apk/Pawsome.apk
           if-no-files-found: error
 
@@ -91,7 +93,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v8.0.0
         with:
-          name: Pawsome-Android
+          name: Pawsome-Android-Release
           path: android
       - name: Check APK against latest release
         id: apk-check
@@ -118,10 +120,10 @@ jobs:
           fi
 
           if [ "$NEW_SHA" = "$OLD_SHA" ]; then
-            echo "Signed APK is identical to the latest release APK."
+            echo "Signed RELEASE APK is identical to the latest release APK."
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
-            echo "Signed APK differs from the latest release APK."
+            echo "Signed RELEASE APK differs from the latest release APK."
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
       - name: Remove legacy/duplicate APK assets
