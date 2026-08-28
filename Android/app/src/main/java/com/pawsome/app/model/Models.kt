@@ -4,12 +4,13 @@ import com.example.pawsome.net.long
 import com.example.pawsome.net.millis
 import com.example.pawsome.net.str
 import com.example.pawsome.net.strList
+import com.google.firebase.firestore.DocumentSnapshot
 
 enum class PostStatus(val displayName: String, val emoji: String) {
     LOST("Lost", "🆘"),
     FOUND("Found", "🎉"),
     REUNITED("Reunited", "🏠");
-    
+
     companion object {
         fun fromString(s: String?): PostStatus = entries.find { it.name.equals(s, true) } ?: LOST
     }
@@ -36,18 +37,24 @@ data class Post(
     val imageFileName: String? get() = imageUrl.substringAfterLast('/', "").substringBefore('?').ifBlank { null }
 
     companion object {
-        fun fromFields(id: String, d: Map<String, Any?>): Post? {
-            val catName = d.str("catName") ?: return null
-            val imageUrl = d.str("imageURL") ?: return null
-            val ownerUid = d.str("ownerUID") ?: return null
+        fun fromDocument(document: DocumentSnapshot): Post? {
+            val catName = document.getString("catName") ?: return null
+            val imageUrl = document.getString("imageURL") ?: return null
+            val ownerUid = document.getString("ownerUID") ?: return null
             return Post(
-                id, catName,
-                d.str("description") ?: "", d.str("age") ?: "",
-                imageUrl, ownerUid,
-                d.str("ownerUsername") ?: "User", d.str("ownerProfilePic") ?: "",
-                d.millis("timestamp"), d.strList("likes"), d.long("commentCount").toInt(),
-                PostStatus.fromString(d.str("status")),
-                d.str("location") ?: ""
+                id = document.id,
+                catName = catName,
+                description = document.getString("description") ?: "",
+                age = document.getString("age") ?: "",
+                imageUrl = imageUrl,
+                ownerUid = ownerUid,
+                ownerUsername = document.getString("ownerUsername") ?: "User",
+                ownerProfilePic = document.getString("ownerProfilePic") ?: "",
+                timestampMillis = document.getTimestamp("timestamp")?.toDate()?.time ?: 0L,
+                likes = document.get("likes") as? List<*> ?: emptyList<String>(),
+                commentCount = (document.getLong("commentCount") ?: 0L).toInt(),
+                status = PostStatus.fromString(document.getString("status")),
+                location = document.getString("location") ?: "",
             )
         }
     }
@@ -60,8 +67,11 @@ data class AppUser(
     val userNumber: Int,
 ) {
     companion object {
-        fun fromFields(uid: String, d: Map<String, Any?>) = AppUser(
-            uid, d.str("username") ?: "User", d.str("profilePic"), d.long("userNumber").toInt()
+        fun fromDocument(document: DocumentSnapshot) = AppUser(
+            uid = document.id,
+            username = document.getString("username") ?: "User",
+            profilePic = document.getString("profilePic"),
+            userNumber = (document.getLong("userNumber") ?: 0L).toInt(),
         )
     }
 }
