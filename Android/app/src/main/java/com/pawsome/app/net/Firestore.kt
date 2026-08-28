@@ -2,10 +2,12 @@ package com.example.pawsome.net
 
 import com.example.pawsome.model.AppUser
 import com.example.pawsome.model.Post
-import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.Timestamp
+import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
@@ -29,7 +31,7 @@ class Firestore {
 
     suspend fun createPost(fields: Map<String, Any?>): String = withContext(Dispatchers.IO) {
         val ref = db.collection("posts").document()
-        ref.set(fieldsWithFirestoreValues(fields)).await()
+        ref.set(prepareFields(fields)).await()
         ref.id
     }
 
@@ -39,7 +41,8 @@ class Firestore {
 
     suspend fun toggleLike(postId: String, uid: String, like: Boolean) = withContext(Dispatchers.IO) {
         val ref = db.collection("posts").document(postId)
-        ref.update("likes", if (like) FieldValue.arrayUnion(uid) else FieldValue.arrayRemove(uid)).await()
+        val value = if (like) FieldValue.arrayUnion(uid) else FieldValue.arrayRemove(uid)
+        ref.update("likes", value).await()
     }
 
     suspend fun getUser(uid: String): AppUser? = withContext(Dispatchers.IO) {
@@ -48,7 +51,9 @@ class Firestore {
     }
 
     suspend fun updateUser(uid: String, fields: Map<String, Any?>) = withContext(Dispatchers.IO) {
-        db.collection("users").document(uid).set(fieldsWithFirestoreValues(fields), com.google.firebase.firestore.SetOptions.merge()).await()
+        db.collection("users").document(uid)
+            .set(prepareFields(fields), SetOptions.merge())
+            .await()
     }
 
     suspend fun fetchOrCreateUser(uid: String, name: String?, image: String?): AppUser =
@@ -66,21 +71,16 @@ class Firestore {
             AppUser(uid, username, image, 0)
         }
 
-    private fun fieldsWithFirestoreValues(fields: Map<String, Any?>): Map<String, Any?> =
-        fields.mapValues { (_, value) ->
-            when (value) {
-                is Instant -> com.google.firebase.Timestamp(value.epochSecond, value.nano)
-                else -> value
-            }
+    private fun prepareFields(fields: Map<String, Any?>): Map<String, Any?> =
+        fields.mapValues { (_, value) -> toFirestoreValue(value) }
+
+    private fun toFirestoreValue(value: Any?): Any? = when (value) {
+        is Instant -> Timestamp(value.epochSecond, value.nano)
+        is DocumentReference -> value
+        is List<*> -> value.map(::toFirestoreValue)
+        is Map<*, *> -> value.entries.associate { (key, nested) ->
+            key.toString() to toFirestoreValue(nested)
         }
-
-    private fun Any?.asFirestoreMap(): Any? = when (this) {
-        is Instant -> com.google.firebase.Timestamp(this.epochSecond, this.nano)
-        is List<*> -> map { it.asFirestoreMap() }
-        is Map<*, *> -> entries.associate { it.key.toString() to it.value.asFirestoreMap() }
-        else -> this
+        else -> value
     }
-
-    private fun fieldsWithFirestoreValuesCompat(fields: Map<String, Any?>): Map<String, Any?> =
-        fields.mapValues { (_, value) -> value.asFirestoreMap() }
 }
