@@ -1,9 +1,5 @@
 package com.example.pawsome.model
 
-import com.example.pawsome.net.long
-import com.example.pawsome.net.millis
-import com.example.pawsome.net.str
-import com.example.pawsome.net.strList
 import com.google.firebase.firestore.DocumentSnapshot
 
 enum class PostStatus(val displayName: String, val emoji: String) {
@@ -41,6 +37,8 @@ data class Post(
             val catName = document.getString("catName") ?: return null
             val imageUrl = document.getString("imageURL") ?: return null
             val ownerUid = document.getString("ownerUID") ?: return null
+            val likes = document.get("likes")
+                .let { value -> (value as? List<*>)?.filterIsInstance<String>() ?: emptyList() }
             return Post(
                 id = document.id,
                 catName = catName,
@@ -51,7 +49,7 @@ data class Post(
                 ownerUsername = document.getString("ownerUsername") ?: "User",
                 ownerProfilePic = document.getString("ownerProfilePic") ?: "",
                 timestampMillis = document.getTimestamp("timestamp")?.toDate()?.time ?: 0L,
-                likes = document.get("likes") as? List<*> ?: emptyList<String>(),
+                likes = likes,
                 commentCount = (document.getLong("commentCount") ?: 0L).toInt(),
                 status = PostStatus.fromString(document.getString("status")),
                 location = document.getString("location") ?: "",
