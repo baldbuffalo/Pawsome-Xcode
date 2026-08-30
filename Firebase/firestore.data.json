@@ -4,135 +4,45 @@
     "users": {
       "documentId": "<firebaseAuthUid>",
       "fields": {
-        "username": {
-          "type": "string",
-          "required": false,
-          "default": "User"
-        },
-        "profilePic": {
-          "type": "string",
-          "required": false,
-          "default": ""
-        },
-        "userNumber": {
-          "type": "integer",
-          "required": true,
-          "default": 0
-        },
-        "joinedOn": {
-          "type": "timestamp",
-          "required": true,
-          "value": "serverTimestamp"
-        }
+        "username": {"type": "string", "required": false, "default": "User"},
+        "profilePic": {"type": "string", "required": false, "default": ""},
+        "userNumber": {"type": "integer", "required": true, "default": 0},
+        "joinedOn": {"type": "timestamp", "required": true, "value": "serverTimestamp"}
       }
     },
     "counter": {
       "documents": {
         "users": {
           "documentId": "users",
-          "fields": {
-            "lastUserNumber": {
-              "type": "integer",
-              "required": true,
-              "default": 0
-            }
-          }
+          "fields": {"lastUserNumber": {"type": "integer", "required": true, "default": 0}}
         }
       }
     },
     "posts": {
       "documentId": "<firestoreGeneratedId>",
       "fields": {
-        "catName": {
-          "type": "string",
-          "required": true
-        },
-        "description": {
-          "type": "string",
-          "required": false,
-          "default": ""
-        },
-        "age": {
-          "type": "string",
-          "required": false,
-          "default": ""
-        },
-        "imageURL": {
-          "type": "string",
-          "required": true
-        },
-        "ownerUID": {
-          "type": "string",
-          "required": true
-        },
-        "ownerUsername": {
-          "type": "string",
-          "required": false,
-          "default": "User"
-        },
-        "ownerProfilePic": {
-          "type": "string",
-          "required": false,
-          "default": ""
-        },
-        "timestamp": {
-          "type": "timestamp",
-          "required": true,
-          "value": "serverTimestamp"
-        },
-        "likes": {
-          "type": "array<string>",
-          "required": true,
-          "default": []
-        },
-        "commentCount": {
-          "type": "integer",
-          "required": true,
-          "default": 0
-        },
-        "status": {
-          "type": "string",
-          "required": true,
-          "allowedValues": [
-            "LOST",
-            "FOUND",
-            "REUNITED"
-          ],
-          "default": "LOST"
-        },
-        "location": {
-          "type": "string",
-          "required": false,
-          "default": ""
-        }
+        "catName": {"type": "string", "required": true},
+        "description": {"type": "string", "required": false, "default": ""},
+        "age": {"type": "string", "required": false, "default": ""},
+        "imageURL": {"type": "string", "required": true},
+        "UserId": {"type": "integer", "required": true},
+        "ownerUsername": {"type": "string", "required": false, "default": "User"},
+        "ownerProfilePic": {"type": "string", "required": false, "default": ""},
+        "timestamp": {"type": "timestamp", "required": true, "value": "serverTimestamp"},
+        "likes": {"type": "array<string>", "required": true, "default": []},
+        "commentCount": {"type": "integer", "required": true, "default": 0},
+        "status": {"type": "string", "required": true, "allowedValues": ["LOST", "FOUND", "REUNITED"], "default": "LOST"},
+        "location": {"type": "string", "required": false, "default": ""}
       },
       "subcollections": {
         "comments": {
           "documentId": "<firestoreGeneratedId>",
           "fields": {
-            "text": {
-              "type": "string",
-              "required": true
-            },
-            "ownerUID": {
-              "type": "string",
-              "required": true
-            },
-            "ownerUsername": {
-              "type": "string",
-              "required": false,
-              "default": "User"
-            },
-            "ownerProfilePic": {
-              "type": "string",
-              "required": false,
-              "default": ""
-            },
-            "timestamp": {
-              "type": "timestamp",
-              "required": true,
-              "value": "serverTimestamp"
-            }
+            "text": {"type": "string", "required": true},
+            "ownerUID": {"type": "string", "required": true},
+            "ownerUsername": {"type": "string", "required": false, "default": "User"},
+            "ownerProfilePic": {"type": "string", "required": false, "default": ""},
+            "timestamp": {"type": "timestamp", "required": true, "value": "serverTimestamp"}
           }
         }
       }
