@@ -56,13 +56,32 @@ class Firestore {
         getUser(uid)?.let { return it }
 
         val username = name ?: "User"
-        val fields = mapOf(
-            "username" to username,
-            "profilePic" to (image ?: ""),
-            "userNumber" to 0L,
-            "createdAt" to FieldValue.serverTimestamp(),
-        )
-        db.collection("users").document(uid).set(fields).await()
-        return AppUser(uid, username, image, 0)
+        val userRef = db.collection("users").document(uid)
+        val counterRef = db.collection("counter").document("users")
+
+        val userNumber = db.runTransaction { transaction ->
+            val counterSnapshot = transaction.get(counterRef)
+            val lastUserNumber = counterSnapshot.getLong("lastUserNumber") ?: 0L
+            val nextUserNumber = lastUserNumber + 1L
+
+            transaction.set(
+                counterRef,
+                mapOf("lastUserNumber" to nextUserNumber),
+                SetOptions.merge()
+            )
+            transaction.set(
+                userRef,
+                mapOf(
+                    "username" to username,
+                    "profilePic" to (image ?: ""),
+                    "userNumber" to nextUserNumber,
+                    "createdAt" to FieldValue.serverTimestamp(),
+                )
+            )
+
+            nextUserNumber
+        }.await()
+
+        return AppUser(uid, username, image, userNumber.toInt())
     }
 }
