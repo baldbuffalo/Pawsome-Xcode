@@ -28,7 +28,7 @@
         "UserId": {"type": "integer", "required": true},
         "Username": {"type": "string", "required": true},
         "ProfilePic": {"type": "string", "required": false, "default": ""},
-        "timestamp": {"type": "timestamp", "required": true, "value": "serverTimestamp"},
+        "PostedAt": {"type": "timestamp", "required": true, "value": "serverTimestamp"},
         "likes": {"type": "array<string>", "required": true, "default": []},
         "commentCount": {"type": "integer", "required": true, "default": 0},
         "status": {"type": "string", "required": true, "allowedValues": ["LOST", "FOUND", "REUNITED"], "default": "LOST"},
