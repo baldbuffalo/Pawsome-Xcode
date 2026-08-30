@@ -158,6 +158,7 @@ fun ImageViewer(imageUrl: String, onDismiss: () -> Unit) {
                 Icon(Icons.Default.Close, "Close", tint = Color.White, modifier = Modifier.size(28.dp))
             }
             
+            // Image container that matches image aspect ratio - gestures ONLY on this
             Box(
                 modifier = Modifier.fillMaxWidth().wrapContentHeight(),
                 contentAlignment = Alignment.Center,
@@ -268,6 +269,7 @@ fun FeedScreen(vm: AppViewModel, onCreate: () -> Unit, onImageClick: (String) ->
         
         Spacer(Modifier.height(8.dp))
         
+        // Show posts immediately when available, loading indicator only on first load
         if (vm.loading && vm.posts.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
@@ -329,6 +331,7 @@ private fun PostCard(post: Post, uid: String?, onLike: () -> Unit, onDelete: () 
                 if (post.ownerUid == uid) IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, "Delete", tint = MaterialTheme.colorScheme.error) }
             }
             
+            // Clickable image
             Box {
                 AsyncImage(post.imageUrl, null, Modifier.fillMaxWidth().height(280.dp).clickable { onImageClick() }, contentScale = ContentScale.Crop)
                 Surface(modifier = Modifier.padding(12.dp).align(Alignment.TopEnd), shape = RoundedCornerShape(10.dp), color = statusColor) {
@@ -383,42 +386,328 @@ fun CreatePostScreen(vm: AppViewModel, onBack: () -> Unit) {
     var desc by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
     var uri by remember { mutableStateOf<android.net.Uri?>(null) }
-    var status by remember { mutableStateOf(PostStatus.LOST) }
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
+    var selectedStatus by remember { mutableStateOf(PostStatus.LOST) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri = it }
 
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
-            Text("Create Post", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).verticalScroll(rememberScrollState())) {
+        Row(Modifier.fillMaxWidth().background(Brush.horizontalGradient(listOf(CatOrange, BrandPurple))).padding(16.dp).padding(top = 24.dp), verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = Color.White) }
+            Spacer(Modifier.width(8.dp))
+            Text("Create Post", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White)
         }
-        Spacer(Modifier.height(16.dp))
-        OutlinedTextField(name, { name = it }, label = { Text("Cat name") }, modifier = Modifier.fillMaxWidth())
-        Spacer(Modifier.height(12.dp))
-        OutlinedTextField(age, { age = it }, label = { Text("Age") }, modifier = Modifier.fillMaxWidth())
-        Spacer(Modifier.height(12.dp))
-        OutlinedTextField(desc, { desc = it }, label = { Text("Description") }, modifier = Modifier.fillMaxWidth().height(120.dp))
-        Spacer(Modifier.height(12.dp))
-        OutlinedTextField(location, { location = it }, label = { Text("Location") }, modifier = Modifier.fillMaxWidth())
-        Spacer(Modifier.height(12.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            PostStatus.entries.forEach { s ->
-                FilterChip(selected = status == s, onClick = { status = s }, label = { Text(s.displayName) })
+        
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+            Text("What's the status?", fontWeight = FontWeight.SemiBold)
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                PostStatus.entries.filter { it != PostStatus.REUNITED }.forEach { status ->
+                    val isSelected = selectedStatus == status
+                    val color = if (status == PostStatus.LOST) LostRed else FoundGreen
+                    Card(
+                        onClick = { selectedStatus = status },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = if (isSelected) color else MaterialTheme.colorScheme.surfaceVariant),
+                        border = if (isSelected) null else BorderStroke(2.dp, color.copy(alpha = 0.3f)),
+                    ) {
+                        Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(status.emoji, fontSize = 32.sp)
+                            Spacer(Modifier.height(4.dp))
+                            Text(status.displayName, fontWeight = FontWeight.SemiBold, color = if (isSelected) Color.White else color)
+                        }
+                    }
+                }
+            }
+            
+            if (uri != null) {
+                Box {
+                    AsyncImage(uri, null, Modifier.fillMaxWidth().height(220.dp), contentScale = ContentScale.Fit)
+                    IconButton(onClick = { uri = null }, modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)) {
+                        Surface(shape = CircleShape, color = Color.Black.copy(alpha = 0.6f)) {
+                            Icon(Icons.Default.Close, "Remove", tint = Color.White, modifier = Modifier.padding(8.dp))
+                        }
+                    }
+                }
+            } else {
+                OutlinedCard(onClick = { picker.launch("image/*") }, modifier = Modifier.fillMaxWidth().height(180.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(2.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))) {
+                    Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                        Icon(Icons.Default.AddAPhoto, null, Modifier.size(48.dp), tint = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.height(8.dp))
+                        Text("Add a photo of the cat", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+            OutlinedButton(onClick = { picker.launch("image/*") }, modifier = Modifier.fillMaxWidth()) {
+                Icon(if (uri == null) Icons.Default.AddAPhoto else Icons.Default.Refresh, null)
+                Spacer(Modifier.width(8.dp))
+                Text(if (uri == null) "Choose Image" else "Change Image")
+            }
+            
+            OutlinedTextField(name, { name = it }, label = { Text("Cat Name") }, modifier = Modifier.fillMaxWidth(), singleLine = true, leadingIcon = { Icon(Icons.Default.Pets, null) })
+            OutlinedTextField(age, { age = it }, label = { Text("Age (years)") }, modifier = Modifier.fillMaxWidth(), singleLine = true, leadingIcon = { Icon(Icons.Default.Cake, null) })
+            OutlinedTextField(location, { location = it }, label = { Text("Location (optional)") }, modifier = Modifier.fillMaxWidth(), singleLine = true, leadingIcon = { Icon(Icons.Default.LocationOn, null) })
+            OutlinedTextField(desc, { desc = it }, label = { Text("Description") }, modifier = Modifier.fillMaxWidth(), minLines = 3, leadingIcon = { Icon(Icons.Default.Description, null) })
+            
+            vm.error?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 13.sp) }
+            
+            Spacer(Modifier.height(8.dp))
+            
+            Button(
+                onClick = { uri?.let { vm.createPost(it, name, age, desc, location, selectedStatus, onBack) } },
+                enabled = !vm.busyPost && uri != null && name.isNotBlank() && age.isNotBlank() && desc.isNotBlank(),
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(16.dp),
+            ) {
+                if (vm.busyPost) { CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp) }
+                else { Icon(Icons.Default.Send, null); Spacer(Modifier.width(8.dp)); Text("Post ${selectedStatus.emoji}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
+            }
+            
+            Spacer(Modifier.height(32.dp))
+        }
+    }
+}
+
+// ============== PROFILE SCREEN ==============
+
+@Composable
+fun ProfileScreen(vm: AppViewModel, onAboutClick: () -> Unit, onHelpClick: () -> Unit) {
+    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).verticalScroll(rememberScrollState()).padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Spacer(Modifier.height(24.dp))
+        
+        Box(contentAlignment = Alignment.Center) {
+            Box(Modifier.size(120.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer), contentAlignment = Alignment.Center) {
+                AsyncImage(vm.user?.profilePic?.ifBlank { null }, null, Modifier.size(112.dp).clip(CircleShape), contentScale = ContentScale.Crop)
+                if (vm.user?.profilePic.isNullOrBlank()) Icon(Icons.Default.Person, null, Modifier.size(56.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
             }
         }
-        Spacer(Modifier.height(12.dp))
-        Button(onClick = { picker.launch("image/*") }, modifier = Modifier.fillMaxWidth()) { Text(if (uri == null) "Choose image" else "Image selected") }
+        
         Spacer(Modifier.height(16.dp))
+        Text(vm.user?.username ?: "User", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Text("@${vm.user?.username ?: "user"}", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        
+        Spacer(Modifier.height(32.dp))
+        
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+            StatItem(count = vm.posts.size.toString(), label = "Posts")
+            StatItem(count = vm.posts.sumOf { it.likeCount }.toString(), label = "Likes")
+            StatItem(count = vm.user?.userNumber?.toString() ?: "?", label = "Member #")
+        }
+        
+        Spacer(Modifier.height(24.dp))
+        
+        Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp)) {
+            Column(modifier = Modifier.padding(4.dp)) {
+                SettingsItem(icon = Icons.Default.Notifications, title = "Notifications", subtitle = "Manage your notification preferences", onClick = { })
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                SettingsItem(icon = Icons.Default.Pets, title = "My Posts", subtitle = "${vm.posts.count { it.ownerUid == vm.uid }} posts", onClick = { })
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                SettingsItem(icon = Icons.Default.Favorite, title = "Liked Posts", subtitle = "Posts you've liked", onClick = { })
+            }
+        }
+        
+        Spacer(Modifier.height(16.dp))
+        
+        Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp)) {
+            Column(modifier = Modifier.padding(4.dp)) {
+                SettingsItem(icon = Icons.Default.Info, title = "About Pawsome", subtitle = "Version 1.0.0", onClick = onAboutClick)
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                SettingsItem(icon = Icons.Default.Help, title = "Help & Support", subtitle = "Get help or report issues", onClick = onHelpClick)
+            }
+        }
+        
+        Spacer(Modifier.height(32.dp))
+        
+        // Logout Button - Red and visible
+        Button(
+            onClick = { vm.signOut() },
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = LostRed),
+            shape = RoundedCornerShape(16.dp),
+        ) {
+            Icon(Icons.Default.Logout, null, Modifier.size(20.dp), tint = Color.White)
+            Spacer(Modifier.width(8.dp))
+            Text("Log Out", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = Color.White)
+        }
+        
+        Spacer(Modifier.height(24.dp))
+    }
+}
+
+@Composable
+private fun StatItem(count: String, label: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(count, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun SettingsItem(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, subtitle: String, onClick: () -> Unit) {
+    Surface(onClick = onClick, color = Color.Transparent, modifier = Modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, null, Modifier.size(24.dp), tint = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Icon(Icons.AutoMirrored.Filled.ArrowForwardIos, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+// ============== ABOUT SCREEN ==============
+
+@Composable
+fun AboutScreen(onBack: () -> Unit) {
+    var checking by remember { mutableStateOf(false) }
+    var updateStatus by remember { mutableStateOf<String?>(null) }
+    var isUpdateAvailable by remember { mutableStateOf(false) }
+    val currentHash = "fe0fe56"
+    val scope = rememberCoroutineScope()
+
+    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(20.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
+            Spacer(Modifier.width(8.dp))
+            Text("About Pawsome", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        }
+
+        Spacer(Modifier.height(32.dp))
+
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+            Box(Modifier.size(100.dp).clip(RoundedCornerShape(24.dp)).background(Brush.linearGradient(listOf(CatOrange, BrandPurple))), contentAlignment = Alignment.Center) {
+                Icon(Icons.Default.Pets, null, Modifier.size(50.dp), tint = Color.White)
+            }
+        }
+
+        Spacer(Modifier.height(20.dp))
+        Text("Pawsome", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+        Text("Find. Help. Reunite. 🐱", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+
+        Spacer(Modifier.height(32.dp))
+
+        Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp)) {
+            Row(Modifier.fillMaxWidth().padding(20.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column {
+                    Text("Current Version", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("1.0.0", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                }
+                Icon(Icons.Default.CheckCircle, null, Modifier.size(32.dp), tint = FoundGreen)
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
         Button(
             onClick = {
+                checking = true
+                updateStatus = null
                 scope.launch {
-                    vm.createPost(name, age, desc, location, status, uri)
-                    onBack()
+                    try {
+                        val url = java.net.URL("https://api.github.com/repos/baldbuffalo/Pawsome-Xcode/commits/main")
+                        val connection = url.openConnection() as java.net.HttpURLConnection
+                        connection.requestMethod = "GET"
+                        connection.setRequestProperty("Accept", "application/json")
+                        if (connection.responseCode == 200) {
+                            val response = connection.inputStream.bufferedReader().readText()
+                            val latestHash = extractHashFromJson(response)
+                            isUpdateAvailable = latestHash != currentHash
+                            updateStatus = if (isUpdateAvailable) "Update available! Pull latest from GitHub." else "You're up to date! ✓"
+                        } else { updateStatus = "Unable to check for updates" }
+                    } catch (e: Exception) { updateStatus = "You're up to date! ✓" }
+                    checking = false
                 }
             },
-            enabled = name.isNotBlank() && uri != null && !vm.isBusy,
-            modifier = Modifier.fillMaxWidth().height(52.dp),
-        ) { Text("Post") }
+            enabled = !checking,
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            shape = RoundedCornerShape(16.dp),
+        ) {
+            if (checking) { CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp) }
+            else { Icon(Icons.Default.Refresh, null, Modifier.size(20.dp)); Spacer(Modifier.width(8.dp)); Text("Check for Updates") }
+        }
+
+        updateStatus?.let { status ->
+            Spacer(Modifier.height(16.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = if (isUpdateAvailable) LostRedLight else FoundGreenLight),
+                shape = RoundedCornerShape(12.dp),
+            ) {
+                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(if (isUpdateAvailable) Icons.Default.Warning else Icons.Default.CheckCircle, null, Modifier.size(24.dp), tint = if (isUpdateAvailable) LostRed else FoundGreen)
+                    Spacer(Modifier.width(12.dp))
+                    Text(status, style = MaterialTheme.typography.bodyLarge)
+                }
+            }
+        }
+
+        Spacer(Modifier.weight(1f))
+        Text("Made with ❤️ for cats everywhere", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+        Spacer(Modifier.height(24.dp))
     }
+}
+
+// ============== HELP SCREEN ==============
+
+@Composable
+fun HelpScreen(onBack: () -> Unit) {
+    val context = LocalContext.current
+    
+    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(20.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
+            Spacer(Modifier.width(8.dp))
+            Text("Help & Support", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        }
+
+        Spacer(Modifier.height(24.dp))
+
+        Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp)) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text("Need help with Pawsome?", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(8.dp))
+                Text("If you're experiencing issues or have questions, please report them on GitHub.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        Button(
+            onClick = {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/baldbuffalo/Pawsome-Xcode/issues"))
+                context.startActivity(intent)
+            },
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            shape = RoundedCornerShape(16.dp),
+        ) {
+            Icon(Icons.Default.BugReport, null)
+            Spacer(Modifier.width(8.dp))
+            Text("Report an Issue on GitHub")
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        OutlinedButton(
+            onClick = {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/baldbuffalo/Pawsome-Xcode"))
+                context.startActivity(intent)
+            },
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            shape = RoundedCornerShape(16.dp),
+        ) {
+            Icon(Icons.Default.Code, null)
+            Spacer(Modifier.width(8.dp))
+            Text("View Source Code")
+        }
+
+        Spacer(Modifier.weight(1f))
+        
+        Text("Pawsome v1.0.0", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+        Spacer(Modifier.height(24.dp))
+    }
+}
+
+private fun extractHashFromJson(json: String): String? {
+    val regex = """"sha"\s*:\s*"([^"]+)"""".toRegex()
+    return regex.find(json)?.groupValues?.get(1)?.take(7)
 }
