@@ -35,7 +35,7 @@ class GitHubUploader {
         val req = Request.Builder().url(contentsUrl(path))
             .put(body.toString().toRequestBody(JSON)).headers(headers()).build()
         Http.client.newCall(req).execute().use { resp ->
-            val text = resp.body?.string() ?: ""
+            val text = resp.body.string()
             if (!resp.isSuccessful) throw GitHubException(msgOf(text, resp.code))
             return JSONObject(text).getJSONObject("content").getString("download_url")
         }
@@ -45,7 +45,7 @@ class GitHubUploader {
         val req = Request.Builder().url(contentsUrl(path)).get().headers(headers()).build()
         Http.client.newCall(req).execute().use { resp ->
             if (!resp.isSuccessful) return null
-            return runCatching { JSONObject(resp.body?.string() ?: "").optString("sha").ifBlank { null } }
+            return runCatching { JSONObject(resp.body.string()).optString("sha").ifBlank { null } }
                 .getOrNull()
         }
     }
