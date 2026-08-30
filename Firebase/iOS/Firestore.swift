@@ -36,7 +36,7 @@ public final class PawsomeFirestore {
     }
 
     public func getPosts(limit: Int = 50) async throws -> [[String: Any]] {
-        let snapshot = try await db.collection("posts").order(by: "timestamp", descending: true).limit(to: limit).getDocuments()
+        let snapshot = try await db.collection("posts").order(by: "PostedAt", descending: true).limit(to: limit).getDocuments()
         return snapshot.documents.map { document in var data = document.data(); data["id"] = document.documentID; return data }
     }
 
@@ -44,6 +44,9 @@ public final class PawsomeFirestore {
         var fields = fields
         if fields["UserId"] == nil {
             throw NSError(domain: "PawsomeFirestore", code: 1, userInfo: [NSLocalizedDescriptionKey: "UserId is required when creating a post"])
+        }
+        if fields["PostedAt"] == nil {
+            fields["PostedAt"] = FieldValue.serverTimestamp()
         }
         let ref = try await db.collection("posts").addDocument(data: fields)
         return ref.documentID
