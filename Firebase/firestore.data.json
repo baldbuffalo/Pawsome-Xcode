@@ -25,7 +25,7 @@
         "description": {"type": "string", "required": false, "default": ""},
         "CatAge": {"type": "string", "required": false, "default": ""},
         "imageURL": {"type": "string", "required": true},
-        "UserId": {"type": "integer", "required": true},
+        "UserID": {"type": "integer", "required": true},
         "Username": {"type": "string", "required": true},
         "ProfilePic": {"type": "string", "required": false, "default": ""},
         "PostedAt": {"type": "timestamp", "required": true, "value": "serverTimestamp"},
