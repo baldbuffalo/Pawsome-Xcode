@@ -24,6 +24,18 @@ class Firestore {
         return ref.id
     }
 
+    suspend fun createPostForUser(uid: String, fields: Map<String, Any?>): String {
+        val user = getUser(uid) ?: throw FirestoreException("User profile does not exist")
+        val postFields = fields.toMutableMap().apply {
+            put("UserId", user.userNumber)
+            put("Username", user.username)
+            put("ProfilePic", user.profilePic ?: "")
+        }
+        val ref = db.collection("posts").document()
+        ref.set(postFields).await()
+        return ref.id
+    }
+
     suspend fun deletePost(id: String) { db.collection("posts").document(id).delete().await() }
 
     suspend fun toggleLike(postId: String, uid: String, like: Boolean) {
