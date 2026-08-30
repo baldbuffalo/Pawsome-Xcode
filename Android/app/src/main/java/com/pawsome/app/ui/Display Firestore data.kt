@@ -309,11 +309,11 @@ private fun PostCard(post: Post, uid: String?, onLike: () -> Unit, onDelete: () 
     ) {
         Column {
             Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                AsyncImage(post.ownerProfilePic.ifBlank { null }, null, Modifier.size(44.dp).clip(CircleShape), contentScale = ContentScale.Crop)
+               AsyncImage(post.profilePic.ifBlank { null }, null, Modifier.size(44.dp).clip(CircleShape), contentScale = ContentScale.Crop)
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(post.ownerUsername, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                        Text(post.username, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
                         Spacer(Modifier.width(8.dp))
                         Surface(shape = RoundedCornerShape(8.dp), color = statusColor.copy(alpha = 0.15f)) {
                             Text("${post.status.emoji} ${post.status.displayName}", modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = statusColor)
@@ -328,7 +328,15 @@ private fun PostCard(post: Post, uid: String?, onLike: () -> Unit, onDelete: () 
                         }
                     }
                 }
-                if (post.ownerUid == uid) IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, "Delete", tint = MaterialTheme.colorScheme.error) }
+                if (post.userId.toString() == uid) {
+    IconButton(onClick = onDelete) {
+        Icon(
+            Icons.Default.Delete,
+            "Delete",
+            tint = MaterialTheme.colorScheme.error
+        )
+    }
+}
             }
             
             // Clickable image
@@ -498,7 +506,12 @@ fun ProfileScreen(vm: AppViewModel, onAboutClick: () -> Unit, onHelpClick: () ->
             Column(modifier = Modifier.padding(4.dp)) {
                 SettingsItem(icon = Icons.Default.Notifications, title = "Notifications", subtitle = "Manage your notification preferences", onClick = { })
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
-                SettingsItem(icon = Icons.Default.Pets, title = "My Posts", subtitle = "${vm.posts.count { it.ownerUid == vm.uid }} posts", onClick = { })
+                SettingsItem(
+    icon = Icons.Default.Pets,
+    title = "My Posts",
+    subtitle = "${vm.posts.count { it.userId.toString() == vm.uid }} posts",
+    onClick = { }
+)
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
                 SettingsItem(icon = Icons.Default.Favorite, title = "Liked Posts", subtitle = "Posts you've liked", onClick = { })
             }
