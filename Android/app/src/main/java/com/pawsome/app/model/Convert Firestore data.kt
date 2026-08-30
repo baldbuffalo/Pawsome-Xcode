@@ -34,16 +34,16 @@ data class Post(
 
     companion object {
         fun fromDocument(document: DocumentSnapshot): Post? {
-            val catName = document.getString("catName") ?: return null
+            val catName = document.getString("CatName") ?: return null
             val imageUrl = document.getString("imageURL") ?: return null
-            val userId = (document.getLong("UserId") ?: return null).toInt()
+            val userId = (document.getLong("UserID") ?: return null).toInt()
             val likes = document.get("likes")
                 .let { value -> (value as? List<*>)?.filterIsInstance<String>() ?: emptyList() }
             return Post(
                 id = document.id,
                 catName = catName,
                 description = document.getString("description") ?: "",
-                age = document.getString("age") ?: "",
+                age = document.getString("CatAge") ?: "",
                 imageUrl = imageUrl,
                 userId = userId,
                 username = document.getString("Username") ?: "User",
@@ -67,9 +67,9 @@ data class AppUser(
     companion object {
         fun fromDocument(document: DocumentSnapshot) = AppUser(
             uid = document.id,
-            username = document.getString("username") ?: "User",
-            profilePic = document.getString("profilePic"),
-            userNumber = (document.getLong("userNumber") ?: 0L).toInt(),
+            username = document.getString("Usename") ?: "User",
+            profilePic = document.getString("ProfilePic"),
+            userNumber = (document.getLong("UserID") ?: 0L).toInt(),
         )
     }
 }
