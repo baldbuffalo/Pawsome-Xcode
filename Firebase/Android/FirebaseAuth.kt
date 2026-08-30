@@ -34,7 +34,7 @@ class FirebaseAuth {
 
     suspend fun refreshToken(): String {
         val user = auth.currentUser ?: error("Not signed in")
-        return user.getIdToken(true).await()?.token
+        return user.getIdToken(true).await().token
             ?: error("Firebase returned no ID token.")
     }
 
