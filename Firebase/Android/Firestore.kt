@@ -14,7 +14,7 @@ class Firestore {
 
     suspend fun getPosts(limit: Int = 50): List<Post> =
         db.collection("posts")
-            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .orderBy("PostedAt", Query.Direction.DESCENDING)
             .limit(limit.toLong())
             .get().await().documents.mapNotNull { Post.fromDocument(it) }
 
@@ -30,6 +30,7 @@ class Firestore {
             put("UserId", user.userNumber)
             put("Username", user.username)
             put("ProfilePic", user.profilePic ?: "")
+            put("PostedAt", FieldValue.serverTimestamp())
         }
         val ref = db.collection("posts").document()
         ref.set(postFields).await()
