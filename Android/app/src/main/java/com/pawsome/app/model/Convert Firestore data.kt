@@ -73,39 +73,10 @@ data class Post(
                 commentCount =
                     (document.getLong("commentCount") ?: 0L).toInt(),
                 status =
-                    PostStatus.fromString(
-                        document.getString("status")
-                    ),
+                    PostStatus.fromString(document.getString("status")),
                 location = document.getString("location") ?: "",
             )
         }
-    }
-}
-
-data class AppUser(
-    val uid: String,
-    var username: String,
-    var profilePic: String?,
-    val userNumber: Int,
-    val loginMethod: String,
-    val joinedOnMillis: Long,
-) {
-    companion object {
-        fun fromDocument(document: DocumentSnapshot): AppUser =
-            AppUser(
-                uid = document.id,
-                username = document.getString("Usename") ?: "User",
-                profilePic = document.getString("ProfilePic"),
-                userNumber =
-                    (document.getLong("UserID") ?: 0L).toInt(),
-                loginMethod =
-                    document.getString("LoginMethod") ?: "Unknown",
-                joinedOnMillis =
-                    document.getTimestamp("JoinedOn")
-                        ?.toDate()
-                        ?.time
-                        ?: 0L,
-            )
     }
 }
 
