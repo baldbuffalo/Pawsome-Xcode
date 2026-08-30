@@ -8,7 +8,8 @@ enum class PostStatus(val displayName: String, val emoji: String) {
     REUNITED("Reunited", "🏠");
 
     companion object {
-        fun fromString(s: String?): PostStatus = entries.find { it.name.equals(s, true) } ?: LOST
+        fun fromString(s: String?): PostStatus =
+            entries.find { it.name.equals(s, true) } ?: LOST
     }
 }
 
@@ -27,18 +28,33 @@ data class Post(
     val status: PostStatus = PostStatus.LOST,
     val location: String = "",
 ) {
-    val likeCount get() = likes.size
-    val timeAgo get() = timeAgoFrom(postedAtMillis)
-    fun isLikedBy(uid: String?) = uid != null && likes.contains(uid)
-    val imageFileName: String? get() = imageUrl.substringAfterLast('/', "").substringBefore('?').ifBlank { null }
+    val likeCount: Int
+        get() = likes.size
+
+    val timeAgo: String
+        get() = timeAgoFrom(postedAtMillis)
+
+    fun isLikedBy(uid: String?): Boolean =
+        uid != null && likes.contains(uid)
+
+    val imageFileName: String?
+        get() = imageUrl
+            .substringAfterLast('/', "")
+            .substringBefore('?')
+            .ifBlank { null }
 
     companion object {
         fun fromDocument(document: DocumentSnapshot): Post? {
             val catName = document.getString("CatName") ?: return null
             val imageUrl = document.getString("imageURL") ?: return null
             val userId = (document.getLong("UserID") ?: return null).toInt()
+
             val likes = document.get("likes")
-                .let { value -> (value as? List<*>)?.filterIsInstance<String>() ?: emptyList() }
+                .let { value ->
+                    (value as? List<*>)?.filterIsInstance<String>()
+                        ?: emptyList()
+                }
+
             return Post(
                 id = document.id,
                 catName = catName,
@@ -48,10 +64,18 @@ data class Post(
                 userId = userId,
                 username = document.getString("Username") ?: "User",
                 profilePic = document.getString("ProfilePic") ?: "",
-                postedAtMillis = document.getTimestamp("PostedAt")?.toDate()?.time ?: 0L,
+                postedAtMillis =
+                    document.getTimestamp("PostedAt")
+                        ?.toDate()
+                        ?.time
+                        ?: 0L,
                 likes = likes,
-                commentCount = (document.getLong("commentCount") ?: 0L).toInt(),
-                status = PostStatus.fromString(document.getString("status")),
+                commentCount =
+                    (document.getLong("commentCount") ?: 0L).toInt(),
+                status =
+                    PostStatus.fromString(
+                        document.getString("status")
+                    ),
                 location = document.getString("location") ?: "",
             )
         }
@@ -63,19 +87,34 @@ data class AppUser(
     var username: String,
     var profilePic: String?,
     val userNumber: Int,
+    val loginMethod: String,
+    val joinedOnMillis: Long,
 ) {
     companion object {
-        fun fromDocument(document: DocumentSnapshot) = AppUser(
-            uid = document.id,
-            username = document.getString("Usename") ?: "User",
-            profilePic = document.getString("ProfilePic"),
-            userNumber = (document.getLong("UserID") ?: 0L).toInt(),
-        )
+        fun fromDocument(document: DocumentSnapshot): AppUser =
+            AppUser(
+                uid = document.id,
+                username = document.getString("Usename") ?: "User",
+                profilePic = document.getString("ProfilePic"),
+                userNumber =
+                    (document.getLong("UserID") ?: 0L).toInt(),
+                loginMethod =
+                    document.getString("LoginMethod") ?: "Unknown",
+                joinedOnMillis =
+                    document.getTimestamp("JoinedOn")
+                        ?.toDate()
+                        ?.time
+                        ?: 0L,
+            )
     }
 }
 
 fun timeAgoFrom(millis: Long): String {
-    val s = (System.currentTimeMillis() - millis).coerceAtLeast(0) / 1000
+    val s =
+        (System.currentTimeMillis() - millis)
+            .coerceAtLeast(0)
+            / 1000
+
     return when {
         s >= 31_536_000 -> "${s / 31_536_000}y ago"
         s >= 2_592_000 -> "${s / 2_592_000}mo ago"
