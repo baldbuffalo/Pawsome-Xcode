@@ -21,7 +21,7 @@ class Firestore {
 
     suspend fun getPosts(limit: Int = 50): List<Post> = withContext(Dispatchers.IO) {
         db.collection("posts")
-            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .orderBy("PostedAt", Query.Direction.DESCENDING)
             .limit(limit.toLong())
             .get()
             .await()
@@ -34,6 +34,22 @@ class Firestore {
         ref.set(prepareFields(fields)).await()
         ref.id
     }
+
+    suspend fun createPostForUser(uid: String, fields: Map<String, Any?>): String =
+        withContext(Dispatchers.IO) {
+            val user = getUser(uid) ?: throw FirestoreException("User profile does not exist")
+
+            val postFields = fields.toMutableMap().apply {
+                put("UserID", user.userNumber)
+                put("Username", user.username)
+                put("ProfilePic", user.profilePic ?: "")
+                put("PostedAt", FieldValue.serverTimestamp())
+            }
+
+            val ref = db.collection("posts").document()
+            ref.set(prepareFields(postFields)).await()
+            ref.id
+        }
 
     suspend fun deletePost(id: String) = withContext(Dispatchers.IO) {
         db.collection("posts").document(id).delete().await()
@@ -56,20 +72,52 @@ class Firestore {
             .await()
     }
 
-    suspend fun fetchOrCreateUser(uid: String, name: String?, image: String?): AppUser =
-        withContext(Dispatchers.IO) {
-            getUser(uid)?.let { return@withContext it }
+    suspend fun fetchOrCreateUser(
+        uid: String,
+        name: String?,
+        image: String?,
+        loginMethod: String = "Unknown",
+    ): AppUser = withContext(Dispatchers.IO) {
+        getUser(uid)?.let { return@withContext it }
 
-            val username = name ?: "User"
-            val fields = mapOf(
-                "username" to username,
-                "profilePic" to (image ?: ""),
-                "userNumber" to 0L,
-                "createdAt" to FieldValue.serverTimestamp(),
+        val username = name ?: "User"
+        val userRef = db.collection("users").document(uid)
+        val counterRef = db.collection("counter").document("users")
+
+        val userNumber = db.runTransaction { transaction ->
+            val counterSnapshot = transaction.get(counterRef)
+            val nextUserNumber =
+                (counterSnapshot.getLong("lastUserID") ?: 0L) + 1L
+
+            transaction.set(
+                counterRef,
+                mapOf("lastUserID" to nextUserNumber),
+                SetOptions.merge(),
             )
-            db.collection("users").document(uid).set(fields).await()
-            AppUser(uid, username, image, 0)
-        }
+
+            transaction.set(
+                userRef,
+                mapOf(
+                    "Usename" to username,
+                    "ProfilePic" to (image ?: ""),
+                    "UserID" to nextUserNumber,
+                    "LoginMethod" to loginMethod,
+                    "JoinedOn" to FieldValue.serverTimestamp(),
+                ),
+            )
+
+            nextUserNumber
+        }.await()
+
+        AppUser(
+            uid = uid,
+            username = username,
+            profilePic = image,
+            userNumber = userNumber.toInt(),
+            loginMethod = loginMethod,
+            joinedOnMillis = System.currentTimeMillis(),
+        )
+    }
 
     private fun prepareFields(fields: Map<String, Any?>): Map<String, Any?> =
         fields.mapValues { (_, value) -> toFirestoreValue(value) }
