@@ -6,7 +6,7 @@
       "fields": {
         "username": {"type": "string", "required": false, "default": "User"},
         "profilePic": {"type": "string", "required": false, "default": ""},
-        "userNumber": {"type": "integer", "required": true, "default": 0},
+        "UserID": {"type": "integer", "required": true, "default": 0},
         "joinedOn": {"type": "timestamp", "required": true, "value": "serverTimestamp"}
       }
     },
