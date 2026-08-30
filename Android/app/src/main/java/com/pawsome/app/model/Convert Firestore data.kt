@@ -2,14 +2,20 @@ package com.example.pawsome.model
 
 import com.google.firebase.firestore.DocumentSnapshot
 
-enum class PostStatus(val displayName: String, val emoji: String) {
+enum class PostStatus(
+    val displayName: String,
+    val emoji: String
+) {
     LOST("Lost", "🆘"),
     FOUND("Found", "🎉"),
     REUNITED("Reunited", "🏠");
 
     companion object {
-        fun fromString(s: String?): PostStatus =
-            entries.find { it.name.equals(s, true) } ?: LOST
+        fun fromString(value: String?): PostStatus {
+            return entries.firstOrNull {
+                it.name.equals(value, ignoreCase = true)
+            } ?: LOST
+        }
     }
 }
 
@@ -26,7 +32,7 @@ data class Post(
     val likes: List<String>,
     val commentCount: Int,
     val status: PostStatus = PostStatus.LOST,
-    val location: String = "",
+    val location: String = ""
 ) {
     val likeCount: Int
         get() = likes.size
@@ -34,26 +40,47 @@ data class Post(
     val timeAgo: String
         get() = timeAgoFrom(postedAtMillis)
 
-    fun isLikedBy(uid: String?): Boolean =
-        uid != null && likes.contains(uid)
+    fun isLikedBy(uid: String?): Boolean {
+        return uid != null && likes.contains(uid)
+    }
 
     val imageFileName: String?
-        get() = imageUrl
-            .substringAfterLast('/', "")
-            .substringBefore('?')
-            .ifBlank { null }
+        get() {
+            return imageUrl
+                .substringAfterLast('/', "")
+                .substringBefore('?')
+                .ifBlank { null }
+        }
 
     companion object {
         fun fromDocument(document: DocumentSnapshot): Post? {
-            val catName = document.getString("CatName") ?: return null
-            val imageUrl = document.getString("imageURL") ?: return null
-            val userId = (document.getLong("UserID") ?: return null).toInt()
+            val catName = document.getString("CatName")
+            if (catName == null) {
+                return null
+            }
 
-            val likes = document.get("likes")
-                .let { value ->
-                    (value as? List<*>)?.filterIsInstance<String>()
-                        ?: emptyList()
-                }
+            val imageUrl = document.getString("imageURL")
+            if (imageUrl == null) {
+                return null
+            }
+
+            val userIdValue = document.getLong("UserID")
+            if (userIdValue == null) {
+                return null
+            }
+
+            val likesValue = document.get("likes")
+            val likes = if (likesValue is List<*>) {
+                likesValue.filterIsInstance<String>()
+            } else {
+                emptyList()
+            }
+
+            val postedAtMillis =
+                document.getTimestamp("PostedAt")
+                    ?.toDate()
+                    ?.time
+                    ?: 0L
 
             return Post(
                 id = document.id,
@@ -61,39 +88,51 @@ data class Post(
                 description = document.getString("description") ?: "",
                 age = document.getString("CatAge") ?: "",
                 imageUrl = imageUrl,
-                userId = userId,
+                userId = userIdValue.toInt(),
                 username = document.getString("Username") ?: "User",
                 profilePic = document.getString("ProfilePic") ?: "",
-                postedAtMillis =
-                    document.getTimestamp("PostedAt")
-                        ?.toDate()
-                        ?.time
-                        ?: 0L,
+                postedAtMillis = postedAtMillis,
                 likes = likes,
                 commentCount =
                     (document.getLong("commentCount") ?: 0L).toInt(),
                 status =
-                    PostStatus.fromString(document.getString("status")),
-                location = document.getString("location") ?: "",
+                    PostStatus.fromString(
+                        document.getString("status")
+                    ),
+                location = document.getString("location") ?: ""
             )
         }
     }
 }
 
 fun timeAgoFrom(millis: Long): String {
-    val s =
+    val seconds =
         (System.currentTimeMillis() - millis)
-            .coerceAtLeast(0)
-            / 1000
+            .coerceAtLeast(0L) / 1000L
 
     return when {
-        s >= 31_536_000 -> "${s / 31_536_000}y ago"
-        s >= 2_592_000 -> "${s / 2_592_000}mo ago"
-        s >= 604_800 -> "${s / 604_800}w ago"
-        s >= 86_400 -> "${s / 86_400}d ago"
-        s >= 3_600 -> "${s / 3_600}h ago"
-        s >= 60 -> "${s / 60}m ago"
-        s >= 1 -> "${s}s ago"
-        else -> "just now"
+        seconds >= 31_536_000L ->
+            "${seconds / 31_536_000L}y ago"
+
+        seconds >= 2_592_000L ->
+            "${seconds / 2_592_000L}mo ago"
+
+        seconds >= 604_800L ->
+            "${seconds / 604_800L}w ago"
+
+        seconds >= 86_400L ->
+            "${seconds / 86_400L}d ago"
+
+        seconds >= 3_600L ->
+            "${seconds / 3_600L}h ago"
+
+        seconds >= 60L ->
+            "${seconds / 60L}m ago"
+
+        seconds >= 1L ->
+            "${seconds}s ago"
+
+        else ->
+            "just now"
     }
 }
