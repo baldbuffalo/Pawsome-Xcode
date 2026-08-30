@@ -21,14 +21,14 @@ data class Post(
     val userId: Int,
     val username: String,
     val profilePic: String,
-    val timestampMillis: Long,
+    val postedAtMillis: Long,
     val likes: List<String>,
     val commentCount: Int,
     val status: PostStatus = PostStatus.LOST,
     val location: String = "",
 ) {
     val likeCount get() = likes.size
-    val timeAgo get() = timeAgoFrom(timestampMillis)
+    val timeAgo get() = timeAgoFrom(postedAtMillis)
     fun isLikedBy(uid: String?) = uid != null && likes.contains(uid)
     val imageFileName: String? get() = imageUrl.substringAfterLast('/', "").substringBefore('?').ifBlank { null }
 
@@ -48,7 +48,7 @@ data class Post(
                 userId = userId,
                 username = document.getString("Username") ?: "User",
                 profilePic = document.getString("ProfilePic") ?: "",
-                timestampMillis = document.getTimestamp("timestamp")?.toDate()?.time ?: 0L,
+                postedAtMillis = document.getTimestamp("PostedAt")?.toDate()?.time ?: 0L,
                 likes = likes,
                 commentCount = (document.getLong("commentCount") ?: 0L).toInt(),
                 status = PostStatus.fromString(document.getString("status")),
