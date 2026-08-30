@@ -4,10 +4,10 @@
     "users": {
       "documentId": "<firebaseAuthUid>",
       "fields": {
-        "username": {"type": "string", "required": false, "default": "User"},
-        "profilePic": {"type": "string", "required": false, "default": ""},
+        "Usename": {"type": "string", "required": false, "default": "User"},
+        "ProfilePic": {"type": "string", "required": false, "default": ""},
         "UserID": {"type": "integer", "required": true, "default": 0},
-        "joinedOn": {"type": "timestamp", "required": true, "value": "serverTimestamp"}
+        "JoinedOn": {"type": "timestamp", "required": true, "value": "serverTimestamp"}
       }
     },
     "counter": {
