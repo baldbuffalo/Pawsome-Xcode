@@ -7,6 +7,7 @@
         "Usename": {"type": "string", "required": false, "default": "User"},
         "ProfilePic": {"type": "string", "required": false, "default": ""},
         "UserID": {"type": "integer", "required": true, "default": 0},
+        "LoginMethod": {"type": "string", "required": true, "allowedValues": ["Google", "Twitter", "Email/Password"]},
         "JoinedOn": {"type": "timestamp", "required": true, "value": "serverTimestamp"}
       }
     },
