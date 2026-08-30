@@ -8,12 +8,7 @@ import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.tasks.await
 
-/**
- * Android-native Firestore adapter.
- *
- * The Firestore document/field contract is defined once in ../firestore.data.json.
- * This file only maps that shared contract to the Firebase Android SDK.
- */
+/** Android-native Firestore adapter. */
 class Firestore {
     private val db = FirebaseFirestore.getInstance()
 
@@ -21,10 +16,7 @@ class Firestore {
         db.collection("posts")
             .orderBy("timestamp", Query.Direction.DESCENDING)
             .limit(limit.toLong())
-            .get()
-            .await()
-            .documents
-            .mapNotNull { Post.fromDocument(it) }
+            .get().await().documents.mapNotNull { Post.fromDocument(it) }
 
     suspend fun createPost(fields: Map<String, Any?>): String {
         val ref = db.collection("posts").document()
@@ -32,9 +24,7 @@ class Firestore {
         return ref.id
     }
 
-    suspend fun deletePost(id: String) {
-        db.collection("posts").document(id).delete().await()
-    }
+    suspend fun deletePost(id: String) { db.collection("posts").document(id).delete().await() }
 
     suspend fun toggleLike(postId: String, uid: String, like: Boolean) {
         val value = if (like) FieldValue.arrayUnion(uid) else FieldValue.arrayRemove(uid)
@@ -47,38 +37,25 @@ class Firestore {
     }
 
     suspend fun updateUser(uid: String, fields: Map<String, Any?>) {
-        db.collection("users").document(uid)
-            .set(fields, SetOptions.merge())
-            .await()
+        db.collection("users").document(uid).set(fields, SetOptions.merge()).await()
     }
 
     suspend fun fetchOrCreateUser(uid: String, name: String?, image: String?): AppUser {
         getUser(uid)?.let { return it }
-
         val username = name ?: "User"
         val userRef = db.collection("users").document(uid)
         val counterRef = db.collection("counter").document("users")
 
         val userNumber = db.runTransaction { transaction ->
             val counterSnapshot = transaction.get(counterRef)
-            val lastUserNumber = counterSnapshot.getLong("lastUserNumber") ?: 0L
-            val nextUserNumber = lastUserNumber + 1L
-
-            transaction.set(
-                counterRef,
-                mapOf("lastUserNumber" to nextUserNumber),
-                SetOptions.merge()
-            )
-            transaction.set(
-                userRef,
-                mapOf(
-                    "username" to username,
-                    "profilePic" to (image ?: ""),
-                    "userNumber" to nextUserNumber,
-                    "createdAt" to FieldValue.serverTimestamp(),
-                )
-            )
-
+            val nextUserNumber = (counterSnapshot.getLong("lastUserNumber") ?: 0L) + 1L
+            transaction.set(counterRef, mapOf("lastUserNumber" to nextUserNumber), SetOptions.merge())
+            transaction.set(userRef, mapOf(
+                "username" to username,
+                "profilePic" to (image ?: ""),
+                "userNumber" to nextUserNumber,
+                "joinedOn" to FieldValue.serverTimestamp(),
+            ))
             nextUserNumber
         }.await()
 
