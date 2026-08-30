@@ -18,9 +18,9 @@ data class Post(
     val description: String,
     val age: String,
     val imageUrl: String,
-    val ownerUid: String,
-    val ownerUsername: String,
-    val ownerProfilePic: String,
+    val userId: Int,
+    val username: String,
+    val profilePic: String,
     val timestampMillis: Long,
     val likes: List<String>,
     val commentCount: Int,
@@ -36,7 +36,7 @@ data class Post(
         fun fromDocument(document: DocumentSnapshot): Post? {
             val catName = document.getString("catName") ?: return null
             val imageUrl = document.getString("imageURL") ?: return null
-            val ownerUid = document.getString("ownerUID") ?: return null
+            val userId = (document.getLong("UserId") ?: return null).toInt()
             val likes = document.get("likes")
                 .let { value -> (value as? List<*>)?.filterIsInstance<String>() ?: emptyList() }
             return Post(
@@ -45,9 +45,9 @@ data class Post(
                 description = document.getString("description") ?: "",
                 age = document.getString("age") ?: "",
                 imageUrl = imageUrl,
-                ownerUid = ownerUid,
-                ownerUsername = document.getString("ownerUsername") ?: "User",
-                ownerProfilePic = document.getString("ownerProfilePic") ?: "",
+                userId = userId,
+                username = document.getString("Username") ?: "User",
+                profilePic = document.getString("ProfilePic") ?: "",
                 timestampMillis = document.getTimestamp("timestamp")?.toDate()?.time ?: 0L,
                 likes = likes,
                 commentCount = (document.getLong("commentCount") ?: 0L).toInt(),
