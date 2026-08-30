@@ -21,9 +21,9 @@
     "posts": {
       "documentId": "<firestoreGeneratedId>",
       "fields": {
-        "catName": {"type": "string", "required": true},
+        "CatName": {"type": "string", "required": true},
         "description": {"type": "string", "required": false, "default": ""},
-        "age": {"type": "string", "required": false, "default": ""},
+        "CatAge": {"type": "string", "required": false, "default": ""},
         "imageURL": {"type": "string", "required": true},
         "UserId": {"type": "integer", "required": true},
         "Username": {"type": "string", "required": true},
