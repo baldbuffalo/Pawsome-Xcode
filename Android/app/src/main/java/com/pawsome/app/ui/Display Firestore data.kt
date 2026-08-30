@@ -466,7 +466,7 @@ fun CreatePostScreen(vm: AppViewModel, onBack: () -> Unit) {
                 shape = RoundedCornerShape(16.dp),
             ) {
                 if (vm.busyPost) { CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp) }
-                else { Icon(Icons.Default.Send, null); Spacer(Modifier.width(8.dp)); Text("Post ${selectedStatus.emoji}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
+                else { Icon(Icons.AutoMirrored.Filled.Send, null); Spacer(Modifier.width(8.dp)); Text("Post ${selectedStatus.emoji}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
             }
             
             Spacer(Modifier.height(32.dp))
@@ -523,7 +523,7 @@ fun ProfileScreen(vm: AppViewModel, onAboutClick: () -> Unit, onHelpClick: () ->
             Column(modifier = Modifier.padding(4.dp)) {
                 SettingsItem(icon = Icons.Default.Info, title = "About Pawsome", subtitle = "Version 1.0.0", onClick = onAboutClick)
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
-                SettingsItem(icon = Icons.Default.Help, title = "Help & Support", subtitle = "Get help or report issues", onClick = onHelpClick)
+                SettingsItem(icon = Icons.AutoMirrored.Filled.Help, title = "Help & Support", subtitle = "Get help or report issues", onClick = onHelpClick)
             }
         }
         
@@ -536,7 +536,7 @@ fun ProfileScreen(vm: AppViewModel, onAboutClick: () -> Unit, onHelpClick: () ->
             colors = ButtonDefaults.buttonColors(containerColor = LostRed),
             shape = RoundedCornerShape(16.dp),
         ) {
-            Icon(Icons.Default.Logout, null, Modifier.size(20.dp), tint = Color.White)
+            Icon(Icons.AutoMirrored.Filled.Logout, null, Modifier.size(20.dp), tint = Color.White)
             Spacer(Modifier.width(8.dp))
             Text("Log Out", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = Color.White)
         }
