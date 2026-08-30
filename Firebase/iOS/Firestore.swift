@@ -21,13 +21,35 @@ public final class PawsomeFirestore {
         username: String?,
         profilePic: String?
     ) async throws {
-        let data: [String: Any] = [
-            "username": username ?? "User",
-            "profilePic": profilePic ?? "",
-            "userNumber": 0,
-            "createdAt": FieldValue.serverTimestamp()
-        ]
-        try await db.collection("users").document(uid).setData(data, merge: true)
+        let userRef = db.collection("users").document(uid)
+        let counterRef = db.collection("counter").document("users")
+
+        try await db.runTransaction { transaction, errorPointer in
+            do {
+                let counterSnapshot = try transaction.getDocument(counterRef)
+                let lastUserNumber = counterSnapshot.data()?["lastUserNumber"] as? Int ?? 0
+                let nextUserNumber = lastUserNumber + 1
+
+                transaction.setData(
+                    ["lastUserNumber": nextUserNumber],
+                    forDocument: counterRef,
+                    merge: true
+                )
+                transaction.setData(
+                    [
+                        "username": username ?? "User",
+                        "profilePic": profilePic ?? "",
+                        "userNumber": nextUserNumber,
+                        "createdAt": FieldValue.serverTimestamp()
+                    ],
+                    forDocument: userRef,
+                    merge: false
+                )
+            } catch {
+                errorPointer?.pointee = error
+            }
+            return nil
+        }
     }
 
     public func updateUser(uid: String, fields: [String: Any]) async throws {
