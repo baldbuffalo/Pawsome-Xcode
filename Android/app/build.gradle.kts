@@ -22,7 +22,7 @@ android {
     // Keep Android Firebase implementations in the top-level Firebase folder.
     sourceSets {
         getByName("main") {
-            directories.add("../../Firebase/Android")
+            directories.add(file("../../Firebase/Android"))
         }
     }
 
