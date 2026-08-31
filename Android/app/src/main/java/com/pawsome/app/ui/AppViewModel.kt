@@ -16,6 +16,7 @@ import com.example.pawsome.model.Post
 import com.example.pawsome.net.Firestore
 import com.example.pawsome.net.GitHubUploader
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.OAuthProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -49,15 +50,7 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
         if (currentUser != null) {
             signedIn = true
             loading = false
-            viewModelScope.launch {
-                user = firestore.fetchOrCreateUser(
-                    currentUser.uid,
-                    currentUser.displayName,
-                    currentUser.photoUrl?.toString(),
-                    loginMethod(currentUser),
-                )
-                loadFeed()
-            }
+            restoreSignedInUser(currentUser)
         } else {
             loading = false
         }
@@ -68,20 +61,50 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
 
             val current = auth.currentUser
             if (current != null) {
-                viewModelScope.launch {
-                    user = firestore.fetchOrCreateUser(
-                        current.uid,
-                        current.displayName,
-                        current.photoUrl?.toString(),
-                        loginMethod(current),
-                    )
-                    signedIn = true
-                    loadFeed()
-                }
+                restoreSignedInUser(current)
             } else {
                 signedIn = false
                 user = null
+                posts = emptyList()
+                loading = false
             }
+        }
+    }
+
+    /**
+     * Restores the Firebase session without allowing a failed token refresh or
+     * Firestore request to escape from viewModelScope and crash MainActivity.
+     * A stale/invalid Firebase session is cleared and the user is returned to
+     * the login screen instead.
+     */
+    private fun restoreSignedInUser(current: FirebaseUser) = viewModelScope.launch {
+        loading = true
+        error = null
+        try {
+            // Force Firebase to validate/refresh the cached session before
+            // making authenticated Firestore requests. BAD_AUTHENTICATION can
+            // otherwise surface asynchronously and kill this coroutine.
+            current.getIdToken(true).await()
+
+            user = firestore.fetchOrCreateUser(
+                current.uid,
+                current.displayName,
+                current.photoUrl?.toString(),
+                loginMethod(current),
+            )
+            signedIn = true
+            loadFeed()
+        } catch (e: Exception) {
+            // Do not let an authentication/Firestore failure escape the
+            // lifecycle coroutine. Clear the broken session so the app can
+            // recover normally through the login screen.
+            firebaseAuth.signOut()
+            signedIn = false
+            user = null
+            posts = emptyList()
+            error = "Your sign-in session expired. Please sign in again."
+        } finally {
+            loading = false
         }
     }
 
@@ -203,7 +226,7 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
         }
     }
 
-    private fun loginMethod(user: com.google.firebase.auth.FirebaseUser): String {
+    private fun loginMethod(user: FirebaseUser): String {
         val providerId = user.providerData
             .firstOrNull { it.providerId != "firebase" }
             ?.providerId
