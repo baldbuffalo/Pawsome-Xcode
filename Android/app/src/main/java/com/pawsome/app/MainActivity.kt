@@ -1,5 +1,6 @@
 package com.example.pawsome
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -14,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.pawsome.ui.AboutScreen
 import com.example.pawsome.ui.AppViewModel
@@ -24,7 +26,9 @@ import com.example.pawsome.ui.ImageViewer
 import com.example.pawsome.ui.LoginScreen
 import com.example.pawsome.ui.ProfileScreen
 import com.example.pawsome.ui.theme.PawsomeTheme
+import com.example.pawsome.auth.GoogleAuth
 
+@Suppress("DEPRECATION")
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,6 +38,15 @@ class MainActivity : ComponentActivity() {
                     Root()
                 }
             }
+        }
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == GoogleAuth.REQUEST_CODE) {
+            val vm = ViewModelProvider(this)[AppViewModel::class.java]
+            vm.handleGoogleSignInResult(resultCode, data)
         }
     }
 }
