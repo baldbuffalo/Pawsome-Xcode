@@ -19,6 +19,13 @@ android {
         buildConfigField("String", "GITHUB_TOKEN", "\"${project.findProperty("GITHUB_TOKEN") ?: ""}\"")
     }
 
+    // Keep Android Firebase implementations in the top-level Firebase folder.
+    sourceSets {
+        getByName("main") {
+            java.srcDir("../../Firebase/Android")
+        }
+    }
+
     buildFeatures {
         buildConfig = true
     }
