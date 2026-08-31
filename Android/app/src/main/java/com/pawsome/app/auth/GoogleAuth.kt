@@ -1,46 +1,51 @@
 package com.example.pawsome.auth
 
+import android.app.Activity
 import android.content.Context
-import androidx.credentials.CredentialManager
-import androidx.credentials.CustomCredential
-import androidx.credentials.GetCredentialRequest
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
-import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import android.content.Intent
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
 
-/** Native Android Google sign-in via Credential Manager. Returns a Google ID token. */
+@Suppress("DEPRECATION")
 class GoogleAuth {
-    suspend fun signIn(context: Context): String {
+    companion object {
+        const val REQUEST_CODE = 9001
+    }
+
+    private fun serverClientId(context: Context): String {
         val resourceId = context.resources.getIdentifier(
             "default_web_client_id",
             "string",
-            context.packageName
+            context.packageName,
         )
         if (resourceId == 0) {
             throw IllegalStateException("No Google web client ID configured in this build.")
         }
+        return context.getString(resourceId).takeIf { it.isNotBlank() }
+            ?: throw IllegalStateException("No Google web client ID configured in this build.")
+    }
 
-        val serverClientId = context.getString(resourceId)
-        if (serverClientId.isBlank()) {
-            throw IllegalStateException("No Google web client ID configured in this build.")
-        }
-
-        val option = GetGoogleIdOption.Builder()
-            .setServerClientId(serverClientId)
-            .setFilterByAuthorizedAccounts(false)
-            .setAutoSelectEnabled(false)
+    fun startSignIn(context: Context) {
+        val activity = context as? Activity
+            ?: throw IllegalStateException("Google sign-in requires an Activity context.")
+        val options = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestEmail()
+            .requestIdToken(serverClientId(context))
             .build()
-        val request = GetCredentialRequest.Builder()
-            .addCredentialOption(option)
-            .build()
+        val client = GoogleSignIn.getClient(activity, options)
+        activity.startActivityForResult(client.signInIntent, REQUEST_CODE)
+    }
 
-        val response = CredentialManager.create(context).getCredential(context, request)
-        val cred = response.credential
-        if (cred is CustomCredential &&
-            cred.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
-        ) {
-            return GoogleIdTokenCredential.createFrom(cred.data).idToken
+    fun getAccountFromResult(data: Intent?): GoogleSignInAccount {
+        if (data == null) {
+            throw IllegalStateException("Google sign-in returned no result.")
         }
-
-        throw IllegalStateException("Unexpected credential type from Google")
+        return try {
+            GoogleSignIn.getSignedInAccountFromIntent(data).getResult(ApiException::class.java)
+        } catch (e: ApiException) {
+            throw IllegalStateException("Google sign-in failed (status ${e.statusCode}).", e)
+        }
     }
 }
