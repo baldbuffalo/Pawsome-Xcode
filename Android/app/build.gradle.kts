@@ -22,7 +22,7 @@ android {
     // Keep Android Firebase implementations in the top-level Firebase folder.
     sourceSets {
         getByName("main") {
-            kotlin.setSrcDirs(listOf("src/main/java", "../../Firebase/Android"))
+            kotlin.srcDir("../../Firebase/Android")
         }
     }
 
