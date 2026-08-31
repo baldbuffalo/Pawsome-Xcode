@@ -30,12 +30,20 @@ class GoogleAuth {
     fun startSignIn(context: Context) {
         val activity = context as? Activity
             ?: throw IllegalStateException("Google sign-in requires an Activity context.")
+
         val options = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestEmail()
             .requestIdToken(serverClientId(context))
             .build()
+
         val client = GoogleSignIn.getClient(activity, options)
-        activity.startActivityForResult(client.signInIntent, REQUEST_CODE)
+
+        // Clear any previously selected Google account before starting a new
+        // interactive sign-in. This prevents a stale/rejected Google auth
+        // session from being reused and producing BAD_AUTHENTICATION.
+        client.signOut().addOnCompleteListener {
+            activity.startActivityForResult(client.signInIntent, REQUEST_CODE)
+        }
     }
 
     fun getAccountFromResult(data: Intent?): GoogleSignInAccount {
