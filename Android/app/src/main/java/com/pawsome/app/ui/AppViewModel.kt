@@ -1,7 +1,9 @@
 package com.example.pawsome.ui
 
+import android.app.Activity
 import android.app.Application
 import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -17,6 +19,7 @@ import com.example.pawsome.net.Firestore
 import com.example.pawsome.net.GitHubUploader
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.OAuthProvider
+import com.google.firebase.auth.GoogleAuthProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -85,13 +88,28 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun signIn(context: android.content.Context) = viewModelScope.launch {
+    fun signIn(context: android.content.Context) {
         busyGoogle = true
         error = null
         try {
-            val idToken = google.signIn(context)
-            val credential =
-                com.google.firebase.auth.GoogleAuthProvider.getCredential(idToken, null)
+            google.startSignIn(context)
+        } catch (e: Exception) {
+            busyGoogle = false
+            error = e.message ?: "Sign-in failed"
+        }
+    }
+
+    fun handleGoogleSignInResult(resultCode: Int, data: Intent?) = viewModelScope.launch {
+        if (resultCode != Activity.RESULT_OK) {
+            busyGoogle = false
+            return@launch
+        }
+
+        try {
+            val account = google.getAccountFromResult(data)
+            val idToken = account.idToken
+                ?: throw IllegalStateException("Google did not return an ID token.")
+            val credential = GoogleAuthProvider.getCredential(idToken, null)
             firebaseAuth.signInWithCredential(credential).await()
         } catch (e: Exception) {
             error = e.message ?: "Sign-in failed"
