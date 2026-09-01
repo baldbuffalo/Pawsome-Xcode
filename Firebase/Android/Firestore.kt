@@ -6,6 +6,7 @@ import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.Dispatchers
@@ -60,9 +61,41 @@ class Firestore {
         ref.update("likes", value).await()
     }
 
+    /**
+     * Reads exactly users/{uid}. The caller must be authenticated as this uid
+     * and the Firestore rules must grant that user access to their own document.
+     */
     suspend fun getUser(uid: String): AppUser? = withContext(Dispatchers.IO) {
+        require(uid.isNotBlank()) { "Cannot read a user with an empty uid" }
+
         val snapshot = db.collection("users").document(uid).get().await()
-        if (!snapshot.exists()) null else AppUser.fromDocument(snapshot)
+        snapshot.takeIf { it.exists() }?.let(AppUser::fromDocument)
+    }
+
+    /**
+     * Keeps users/{uid} live while the signed-in user is active.
+     * The registration must be removed when the user signs out/ViewModel is cleared.
+     */
+    fun listenToUser(
+        uid: String,
+        onUserChanged: (AppUser?) -> Unit,
+        onError: (Exception) -> Unit,
+    ): ListenerRegistration {
+        require(uid.isNotBlank()) { "Cannot listen to a user with an empty uid" }
+
+        return db.collection("users").document(uid)
+            .addSnapshotListener { snapshot, exception ->
+                if (exception != null) {
+                    onError(exception)
+                    return@addSnapshotListener
+                }
+
+                onUserChanged(
+                    snapshot
+                        ?.takeIf { it.exists() }
+                        ?.let(AppUser::fromDocument)
+                )
+            }
     }
 
     suspend fun updateUser(uid: String, fields: Map<String, Any?>) = withContext(Dispatchers.IO) {
@@ -77,13 +110,22 @@ class Firestore {
         image: String?,
         loginMethod: String = "Unknown",
     ): AppUser = withContext(Dispatchers.IO) {
+        require(uid.isNotBlank()) { "Cannot create a user with an empty uid" }
+
         getUser(uid)?.let { return@withContext it }
 
-        val username = name ?: "User"
+        val username = name?.takeIf { it.isNotBlank() } ?: "User"
         val userRef = db.collection("users").document(uid)
         val counterRef = db.collection("counter").document("users")
 
+        // Re-check users/{uid} inside the transaction so two auth callbacks cannot
+        // create two profiles for the same Firebase UID.
         val userNumber = db.runTransaction { transaction ->
+            val existing = transaction.get(userRef)
+            if (existing.exists()) {
+                return@runTransaction null
+            }
+
             val counterSnapshot = transaction.get(counterRef)
             val nextUserNumber =
                 (counterSnapshot.getLong("lastUserID") ?: 0L) + 1L
@@ -108,14 +150,18 @@ class Firestore {
             nextUserNumber
         }.await()
 
-        AppUser(
-            uid = uid,
-            username = username,
-            profilePic = image,
-            userNumber = userNumber.toInt(),
-            loginMethod = loginMethod,
-            joinedOnMillis = System.currentTimeMillis(),
-        )
+        if (userNumber == null) {
+            getUser(uid) ?: throw FirestoreException("User profile disappeared during creation")
+        } else {
+            AppUser(
+                uid = uid,
+                username = username,
+                profilePic = image,
+                userNumber = userNumber.toInt(),
+                loginMethod = loginMethod,
+                joinedOnMillis = System.currentTimeMillis(),
+            )
+        }
     }
 
     private fun prepareFields(fields: Map<String, Any?>): Map<String, Any?> =
