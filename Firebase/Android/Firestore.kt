@@ -4,8 +4,9 @@ import com.example.pawsome.model.AppUser
 import com.example.pawsome.model.Post
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentReference
-import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.Dispatchers
@@ -62,7 +63,30 @@ class Firestore {
 
     suspend fun getUser(uid: String): AppUser? = withContext(Dispatchers.IO) {
         val snapshot = db.collection("users").document(uid).get().await()
-        if (!snapshot.exists()) null else AppUser.fromDocument(snapshot)
+        snapshot.takeIf { it.exists() }?.let(AppUser::fromDocument)
+    }
+
+    /**
+     * Keeps the in-memory user profile synchronized with users/{uid}.
+     * The caller owns the returned registration and must remove it when the
+     * authenticated user changes or the ViewModel is cleared.
+     */
+    fun observeUser(
+        uid: String,
+        onUserChanged: (AppUser?) -> Unit,
+        onError: (Exception) -> Unit,
+    ): ListenerRegistration {
+        return db.collection("users").document(uid)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    onError(error)
+                    return@addSnapshotListener
+                }
+
+                onUserChanged(
+                    snapshot?.takeIf { it.exists() }?.let(AppUser::fromDocument)
+                )
+            }
     }
 
     suspend fun updateUser(uid: String, fields: Map<String, Any?>) = withContext(Dispatchers.IO) {
@@ -84,6 +108,13 @@ class Firestore {
         val counterRef = db.collection("counter").document("users")
 
         val userNumber = db.runTransaction { transaction ->
+            // Re-check inside the transaction so two auth callbacks cannot
+            // create two profiles for the same UID.
+            val existingUser = transaction.get(userRef)
+            if (existingUser.exists()) {
+                return@runTransaction existingUser.getLong("UserID") ?: 0L
+            }
+
             val counterSnapshot = transaction.get(counterRef)
             val nextUserNumber =
                 (counterSnapshot.getLong("lastUserID") ?: 0L) + 1L
@@ -97,7 +128,7 @@ class Firestore {
             transaction.set(
                 userRef,
                 mapOf(
-                    "Usename" to username,
+                    "Username" to username,
                     "ProfilePic" to (image ?: ""),
                     "UserID" to nextUserNumber,
                     "LoginMethod" to loginMethod,
