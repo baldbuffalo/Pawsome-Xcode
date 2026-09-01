@@ -2,8 +2,74 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if false;
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // ── USERS ─────────────────────────────────────────────────────────────
+    // Each user's profile is readable/writable only by that same signed-in user.
+    // This fixes the users/{uid} read used during sign-in/session setup.
+    match /users/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow create, update: if signedIn() && request.auth.uid == uid;
+      allow delete: if false;
+    }
+
+    // ── USER NUMBER COUNTER ────────────────────────────────────────────────
+    // The clients use counter/users inside the user-creation transaction.
+    // Keep it readable to signed-in clients, but only allow the sequential
+    // increment that the app performs.
+    match /counter/users {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['lastUserNumber'])
+        && request.resource.data.lastUserNumber == 1;
+      allow update: if signedIn()
+        && request.resource.data.keys().hasOnly(['lastUserNumber'])
+        && request.resource.data.lastUserNumber == resource.data.lastUserNumber + 1;
+      allow delete: if false;
+    }
+
+    // ── POSTS ──────────────────────────────────────────────────────────────
+    // Signed-in users can view posts. A post must be owned by the user who
+    // creates it. Owners can edit/delete their posts.
+    match /posts/{postId} {
+      allow read: if signedIn();
+
+      allow create: if signedIn()
+        && request.resource.data.ownerUID == request.auth.uid;
+
+      allow update: if signedIn() && (
+        // The owner can edit the post, but cannot transfer ownership.
+        (
+          resource.data.ownerUID == request.auth.uid
+          && request.resource.data.ownerUID == resource.data.ownerUID
+        )
+        // Likes and commentCount are updated by normal signed-in users.
+        || request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['likes', 'commentCount'])
+      );
+
+      allow delete: if signedIn()
+        && resource.data.ownerUID == request.auth.uid;
+
+      // ── COMMENTS ─────────────────────────────────────────────────────────
+      match /comments/{commentId} {
+        allow read: if signedIn();
+
+        // Anyone signed in can add a comment, but the comment must identify
+        // the authenticated user as its owner.
+        allow create: if signedIn()
+          && request.resource.data.ownerUID == request.auth.uid;
+
+        // Only the comment author can edit/delete it. Ownership cannot change.
+        allow update: if signedIn()
+          && resource.data.ownerUID == request.auth.uid
+          && request.resource.data.ownerUID == resource.data.ownerUID;
+
+        allow delete: if signedIn()
+          && resource.data.ownerUID == request.auth.uid;
+      }
     }
   }
 }
