@@ -13,7 +13,11 @@ data class AppUser(
     companion object {
         fun fromDocument(document: DocumentSnapshot) = AppUser(
             uid = document.id,
-            username = document.getString("Usename") ?: "User",
+            // Read both spellings so existing profiles created by older builds
+            // continue to work after the field is corrected to "Username".
+            username = document.getString("Username")
+                ?: document.getString("Usename")
+                ?: "User",
             profilePic = document.getString("ProfilePic"),
             userNumber = (document.getLong("UserID") ?: 0L).toInt(),
             loginMethod = document.getString("LoginMethod") ?: "Unknown",
