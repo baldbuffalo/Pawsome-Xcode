@@ -18,8 +18,11 @@ import com.example.pawsome.model.Post
 import com.example.pawsome.net.Firestore
 import com.example.pawsome.net.GitHubUploader
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.OAuthProvider
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.firestore.FirebaseFirestoreException
+import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -47,44 +50,95 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
 
     val uid: String? get() = firebaseAuth.currentUser?.uid
 
+    private var userListener: ListenerRegistration? = null
+    private var creatingUserUid: String? = null
+
+    private val authStateListener = FirebaseAuth.AuthStateListener { auth ->
+        busyGoogle = false
+        busyTwitter = false
+        handleAuthState(auth.currentUser)
+    }
+
     init {
-        val currentUser = firebaseAuth.currentUser
-        if (currentUser != null) {
-            signedIn = true
+        // Firebase immediately invokes this listener with the current auth state,
+        // so there is no separate currentUser fetch here. This prevents the same
+        // users/{uid} document from being read twice on startup.
+        firebaseAuth.addAuthStateListener(authStateListener)
+    }
+
+    private fun handleAuthState(current: FirebaseUser?) {
+        userListener?.remove()
+        userListener = null
+        creatingUserUid = null
+
+        if (current == null) {
+            signedIn = false
             loading = false
-            viewModelScope.launch {
-                user = firestore.fetchOrCreateUser(
-                    currentUser.uid,
-                    currentUser.displayName,
-                    currentUser.photoUrl?.toString(),
-                    loginMethod(currentUser),
-                )
-                loadFeed()
-            }
-        } else {
-            loading = false
+            user = null
+            posts = emptyList()
+            return
         }
 
-        firebaseAuth.addAuthStateListener { auth ->
-            busyGoogle = false
-            busyTwitter = false
+        signedIn = true
+        loading = true
+        error = null
 
-            val current = auth.currentUser
-            if (current != null) {
-                viewModelScope.launch {
-                    user = firestore.fetchOrCreateUser(
-                        current.uid,
-                        current.displayName,
-                        current.photoUrl?.toString(),
-                        loginMethod(current),
-                    )
-                    signedIn = true
+        val currentUid = current.uid
+        userListener = firestore.listenToUser(
+            uid = currentUid,
+            onUserChanged = { firestoreUser ->
+                if (firestoreUser != null) {
+                    // A profile update is delivered here without creating another
+                    // one-shot read or another listener.
+                    user = firestoreUser
+                    loading = false
                     loadFeed()
+                    return@listenToUser
                 }
-            } else {
-                signedIn = false
-                user = null
-            }
+
+                // The document does not exist yet. Only one creation attempt is
+                // allowed for this UID; the snapshot listener will receive the new
+                // document once the transaction commits.
+                if (creatingUserUid == currentUid) return@listenToUser
+                creatingUserUid = currentUid
+
+                viewModelScope.launch {
+                    try {
+                        val created = firestore.fetchOrCreateUser(
+                            currentUid,
+                            current.displayName,
+                            current.photoUrl?.toString(),
+                            loginMethod(current),
+                        )
+                        user = created
+                        loading = false
+                        loadFeed()
+                    } catch (e: Exception) {
+                        loading = false
+                        error = firestoreErrorMessage(e)
+                    } finally {
+                        if (creatingUserUid == currentUid) {
+                            creatingUserUid = null
+                        }
+                    }
+                }
+            },
+            onError = { exception ->
+                // A Firestore listener stops after a terminal error such as
+                // PERMISSION_DENIED, so don't keep retrying the same read in a loop.
+                loading = false
+                error = firestoreErrorMessage(exception)
+            },
+        )
+    }
+
+    private fun firestoreErrorMessage(error: Exception): String {
+        return if (error is FirebaseFirestoreException &&
+            error.code == FirebaseFirestoreException.Code.PERMISSION_DENIED
+        ) {
+            "Firestore denied access to users/${uid ?: "<uid>"}. Check the Firestore rule for users/{uid}: the signed-in user's auth UID must match the document UID."
+        } else {
+            error.message ?: "Firestore operation failed"
         }
     }
 
@@ -138,17 +192,23 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
     }
 
     fun signOut() {
+        userListener?.remove()
+        userListener = null
+        creatingUserUid = null
         firebaseAuth.signOut()
         signedIn = false
         user = null
         posts = emptyList()
+        loading = false
     }
 
     fun loadFeed() = viewModelScope.launch {
+        if (firebaseAuth.currentUser == null) return@launch
+
         try {
             posts = firestore.getPosts()
         } catch (e: Exception) {
-            error = e.message
+            error = firestoreErrorMessage(e)
         }
     }
 
@@ -257,5 +317,12 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
         return ByteArrayOutputStream().apply {
             bmp.compress(Bitmap.CompressFormat.JPEG, 80, this)
         }.toByteArray()
+    }
+
+    override fun onCleared() {
+        userListener?.remove()
+        userListener = null
+        firebaseAuth.removeAuthStateListener(authStateListener)
+        super.onCleared()
     }
 }
