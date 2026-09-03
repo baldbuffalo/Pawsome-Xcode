@@ -2,10 +2,10 @@
 
 Shared Firebase backend definition and platform adapters for Pawsome.
 
-## Shared data contract
+## Firestore
 
-- `firestore.data.json` — single source of truth for Firestore collections, document IDs, fields, types, defaults, and allowed values.
 - `firestore.indexes.json` — Firestore index configuration.
+- Firestore itself is the live source of truth for application data.
 
 ## Platform configuration and adapters
 
