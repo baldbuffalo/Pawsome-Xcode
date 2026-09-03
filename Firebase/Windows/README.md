@@ -4,4 +4,4 @@ The Windows app in this repository is a C#/.NET application. Firebase does not p
 
 The current Windows implementation remains `Pawsome-Windows/Pawsome.Core/Firestore/FirestoreService.cs`, which uses the Firestore REST API with the signed-in user's Firebase ID token so Firestore Security Rules still apply.
 
-When an official supported Windows/.NET client SDK is available for this client architecture, this adapter can be replaced without changing `Firebase/firestore.data.json` or the Firestore document contract.
+The Windows adapter reads and writes the live Firestore data directly; there is no repository-side Firestore data schema JSON that needs to be kept in sync.
