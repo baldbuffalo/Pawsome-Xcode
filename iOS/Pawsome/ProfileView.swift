@@ -10,6 +10,7 @@ struct ProfileView: View {
     @State private var statusText    = ""
     @State private var isUploading   = false
     @State private var uploadError: String?
+    @State private var showAdminPanel = false
 
     @State private var selectedItem: PhotosPickerItem?
     @State private var isPickingFile = false
@@ -39,8 +40,8 @@ struct ProfileView: View {
                 }
 
                 if appState.isAdmin {
-                    NavigationLink {
-                        PawsomeApp.AdminView()
+                    Button {
+                        showAdminPanel = true
                     } label: {
                         Label("Admin", systemImage: "shield.lefthalf.filled")
                             .frame(maxWidth: .infinity, minHeight: 46)
@@ -48,6 +49,11 @@ struct ProfileView: View {
                     .buttonStyle(.borderedProminent)
                     .tint(.purple)
                     .padding(.horizontal)
+                    .sheet(isPresented: $showAdminPanel) {
+                        NavigationStack {
+                            PawsomeApp.AdminView()
+                        }
+                    }
                 }
 
                 Spacer(minLength: 30)
