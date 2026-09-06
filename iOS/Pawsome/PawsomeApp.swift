@@ -58,6 +58,7 @@ struct PawsomeApp: App {
 
         @Published var isLoggedIn = false
         @Published var isAuthChecked = false
+        @Published var isAdmin = false
         @Published var currentUsername = ""
         @Published var profileImageURL: String?
         @Published var selectedImage: PlatformImage? = nil
@@ -84,6 +85,7 @@ struct PawsomeApp: App {
             }
 
             isLoggedIn = false
+            isAdmin = false
             currentUsername = ""
             profileImageURL = nil
             selectedImage = nil
@@ -93,6 +95,7 @@ struct PawsomeApp: App {
             authListener = Auth.auth().addStateDidChangeListener { _, user in
                 if let user {
                     Task {
+                        await self.refreshAdminStatus(for: user)
                         await self.fetchOrCreateUser(
                             uid: user.uid,
                             defaultUsername: user.displayName,
@@ -102,7 +105,28 @@ struct PawsomeApp: App {
                     }
                 } else {
                     self.isLoggedIn = false
+                    self.isAdmin = false
                     self.isAuthChecked = true
+                }
+            }
+        }
+
+        /// Reads the trusted Firebase Auth custom claim before the main app UI is shown.
+        /// The Admin button is only rendered when the signed-in user's ID token has
+        /// the `admin: true` claim.
+        private func refreshAdminStatus(for user: User) async {
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                user.getIDTokenResult { result, error in
+                    let isAdmin = (result?.claims["admin"] as? NSNumber)?.boolValue ?? false
+
+                    if let error {
+                        print("❌ Admin claim check failed:", error.localizedDescription)
+                    }
+
+                    Task { @MainActor in
+                        self.isAdmin = isAdmin
+                        continuation.resume()
+                    }
                 }
             }
         }
@@ -243,6 +267,20 @@ struct PawsomeApp: App {
             case .form: return "Post"
             case .none: return "Home"
             }
+        }
+    }
+
+    // MARK: - ADMIN PANEL PLACEHOLDER
+    struct AdminView: View {
+        var body: some View {
+            List {
+                Section("Admin") {
+                    Text("Admin panel")
+                    Text("Admin tools will be added here.")
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .navigationTitle("Admin")
         }
     }
 
