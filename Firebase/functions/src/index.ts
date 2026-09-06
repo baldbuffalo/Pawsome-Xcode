@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
-import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { CallableRequest, HttpsError, onCall } from "firebase-functions/v2/https";
 import { setGlobalOptions } from "firebase-functions/v2";
 
 initializeApp();
@@ -12,7 +12,7 @@ setGlobalOptions({
 
 const db = getFirestore();
 
-function requireAdmin(request: Parameters<typeof onCall>[0] extends never ? never : any): void {
+function requireAdmin(request: CallableRequest<unknown>): void {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "You must be signed in.");
   }
@@ -56,9 +56,10 @@ function requireFields(value: unknown): Record<string, unknown> {
 export const adminSetDocument = onCall(async (request) => {
   requireAdmin(request);
 
-  const path = requireDocumentPath(request.data?.path);
-  const fields = requireFields(request.data?.fields);
-  const merge = request.data?.merge !== false;
+  const data = (request.data ?? {}) as Record<string, unknown>;
+  const path = requireDocumentPath(data.path);
+  const fields = requireFields(data.fields);
+  const merge = data.merge !== false;
 
   await db.doc(path).set(
     {
@@ -76,7 +77,8 @@ export const adminSetDocument = onCall(async (request) => {
 export const adminDeleteDocument = onCall(async (request) => {
   requireAdmin(request);
 
-  const path = requireDocumentPath(request.data?.path);
+  const data = (request.data ?? {}) as Record<string, unknown>;
+  const path = requireDocumentPath(data.path);
   await db.doc(path).delete();
 
   return { ok: true, path };
@@ -91,7 +93,8 @@ export const adminDeleteDocument = onCall(async (request) => {
 export const adminSetAppConfig = onCall(async (request) => {
   requireAdmin(request);
 
-  const fields = requireFields(request.data?.fields);
+  const data = (request.data ?? {}) as Record<string, unknown>;
+  const fields = requireFields(data.fields);
 
   await db.doc("config/app").set(
     {
