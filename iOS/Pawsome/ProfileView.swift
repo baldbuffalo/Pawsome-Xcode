@@ -38,6 +38,18 @@ struct ProfileView: View {
                     Text(err).font(.footnote).foregroundColor(.red).padding(.horizontal)
                 }
 
+                if appState.isAdmin {
+                    NavigationLink {
+                        PawsomeApp.AdminView()
+                    } label: {
+                        Label("Admin", systemImage: "shield.lefthalf.filled")
+                            .frame(maxWidth: .infinity, minHeight: 46)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.purple)
+                    .padding(.horizontal)
+                }
+
                 Spacer(minLength: 30)
 
                 Button(role: .destructive) {
