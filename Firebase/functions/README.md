@@ -28,7 +28,7 @@ firebase login
 firebase deploy --only functions
 ```
 
-The repository is configured for Firebase project `pawsome--signin-ios` and Node.js 22.
+The repository is configured for Firebase project `pawsome-90cb3` and Node.js 22.
 
 ## Admin authentication
 
