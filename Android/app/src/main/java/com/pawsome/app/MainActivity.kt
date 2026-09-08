@@ -1,6 +1,7 @@
 package com.example.pawsome
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -9,12 +10,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.pawsome.ui.AboutScreen
@@ -28,15 +31,15 @@ import com.example.pawsome.ui.ProfileScreen
 import com.example.pawsome.ui.theme.PawsomeTheme
 import com.example.pawsome.auth.GoogleAuth
 
+private const val ADMIN_URL = "https://baldbuffalo.github.io/Pawsome-Xcode/admin/"
+
 @Suppress("DEPRECATION")
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             PawsomeTheme {
-                Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    Root()
-                }
+                Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) { Root() }
             }
         }
     }
@@ -62,21 +65,21 @@ private fun Root(vm: AppViewModel = viewModel()) {
 
 @Composable
 private fun MainScaffold(vm: AppViewModel) {
+    val context = LocalContext.current
     var tab by remember { mutableStateOf(0) }
     var creating by remember { mutableStateOf(false) }
     var showAbout by remember { mutableStateOf(false) }
     var showHelp by remember { mutableStateOf(false) }
     var imageToView by remember { mutableStateOf<String?>(null) }
 
-    // Global back handler - handles all back navigation
     BackHandler {
         when {
             imageToView != null -> imageToView = null
             showHelp -> showHelp = false
             showAbout -> showAbout = false
             creating -> creating = false
-            tab == 1 -> { tab = 0 }
-            else -> { /* let system handle exit */ }
+            tab == 1 -> tab = 0
+            else -> Unit
         }
     }
 
@@ -99,6 +102,14 @@ private fun MainScaffold(vm: AppViewModel) {
                             icon = { Icon(Icons.Filled.Person, null) },
                             label = { Text("Profile") },
                         )
+                        NavigationBarItem(
+                            selected = false,
+                            onClick = {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(ADMIN_URL)))
+                            },
+                            icon = { Icon(Icons.Filled.AdminPanelSettings, null) },
+                            label = { Text("Admin") },
+                        )
                     }
                 }
             ) { paddingValues ->
@@ -113,8 +124,5 @@ private fun MainScaffold(vm: AppViewModel) {
         }
     }
 
-    // Image viewer as overlay
-    imageToView?.let { url ->
-        ImageViewer(url) { imageToView = null }
-    }
+    imageToView?.let { url -> ImageViewer(url) { imageToView = null } }
 }
