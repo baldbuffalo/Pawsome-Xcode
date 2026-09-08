@@ -84,8 +84,17 @@ export const adminCreateDocument = onCall(async (request) => {
 export const adminSetDocument = onCall(async (request) => {
   requireAdmin(request);
   const data = (request.data ?? {}) as Record<string, unknown>;
-  const path = requireDocumentPath(data.path);
   const fields = requireFields(data.fields);
+  const rawPath = typeof data.path === "string" ? data.path.trim() : "";
+
+  // The panel can create a new post without choosing an ID; Firestore generates it.
+  if (rawPath === "posts") {
+    const ref = db.collection("posts").doc();
+    await ref.set({ ...fields, updatedAt: FieldValue.serverTimestamp(), updatedBy: request.auth!.uid, createdAt: FieldValue.serverTimestamp() });
+    return { ok: true, path: ref.path };
+  }
+
+  const path = requireDocumentPath(rawPath);
   const merge = data.merge !== false;
   await db.doc(path).set({ ...fields, updatedAt: FieldValue.serverTimestamp(), updatedBy: request.auth!.uid }, { merge });
   return { ok: true, path };
@@ -125,9 +134,6 @@ export const adminSetUserAdmin = onCall(async (request) => {
   const claims = { ...(user.customClaims ?? {}) } as Record<string, unknown>;
   if (enabled) claims.admin = true; else delete claims.admin;
   await auth.setCustomUserClaims(uid, claims);
-
-  // Keep a non-security UI mirror in the shared profile document. The Auth claim
-  // remains the only value used for authorization by the admin functions.
   await db.doc(`users/${uid}`).set({ admin: enabled, updatedAt: FieldValue.serverTimestamp(), updatedBy: request.auth!.uid }, { merge: true });
   return { ok: true, uid, admin: enabled };
 });
