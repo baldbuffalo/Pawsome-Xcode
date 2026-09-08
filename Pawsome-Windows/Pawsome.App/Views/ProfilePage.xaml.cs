@@ -7,6 +7,8 @@ namespace Pawsome.App.Views;
 
 public sealed partial class ProfilePage : Page
 {
+    private const string AdminUrl = "https://baldbuffalo.github.io/Pawsome-Xcode/admin/";
+
     public ProfileViewModel ViewModel { get; }
 
     public ProfilePage()
@@ -24,6 +26,11 @@ public sealed partial class ProfilePage : Page
         if (file is null) return;
 
         await ViewModel.UploadProfilePictureAsync(file);
+    }
+
+    private async void OpenAdmin_Click(object sender, RoutedEventArgs e)
+    {
+        await Windows.System.Launcher.LaunchUriAsync(new Uri(AdminUrl));
     }
 
     private void SaveToken_Click(object sender, RoutedEventArgs e)
