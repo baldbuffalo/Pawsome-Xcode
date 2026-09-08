@@ -5,11 +5,7 @@ import { CallableRequest, HttpsError, onCall } from "firebase-functions/v2/https
 import { setGlobalOptions } from "firebase-functions/v2";
 
 initializeApp();
-
-setGlobalOptions({
-  region: "europe-west1",
-  maxInstances: 10,
-});
+setGlobalOptions({ region: "europe-west1", maxInstances: 10 });
 
 const db = getFirestore();
 const auth = getAuth();
@@ -17,47 +13,31 @@ const ALLOWED_ROOTS = new Set(["posts", "users", "config"]);
 
 function requireAdmin(request: CallableRequest<unknown>): void {
   if (!request.auth) throw new HttpsError("unauthenticated", "You must be signed in.");
-  if (request.auth.token.admin !== true) {
-    throw new HttpsError("permission-denied", "Administrator access is required.");
-  }
+  if (request.auth.token.admin !== true) throw new HttpsError("permission-denied", "Administrator access is required.");
 }
 
 function requireDocumentPath(path: unknown): string {
-  if (typeof path !== "string" || path.trim().length === 0) {
-    throw new HttpsError("invalid-argument", "A Firestore document path is required.");
-  }
+  if (typeof path !== "string" || path.trim().length === 0) throw new HttpsError("invalid-argument", "A Firestore document path is required.");
   const clean = path.trim().replace(/^\/+|\/+$/g, "");
   const parts = clean.split("/");
-  if (
-    parts.length % 2 !== 0 ||
-    parts.length > 12 ||
-    parts.some((part) => part === "" || part === "." || part === "..") ||
-    !ALLOWED_ROOTS.has(parts[0])
-  ) {
+  if (parts.length % 2 !== 0 || parts.length > 12 || parts.some((part) => part === "" || part === "." || part === "..") || !ALLOWED_ROOTS.has(parts[0])) {
     throw new HttpsError("invalid-argument", "Path is not an allowed Pawsome document path.");
   }
   return clean;
 }
 
 function requireCollectionPath(path: unknown): string {
-  if (typeof path !== "string" || path.trim().length === 0) {
-    throw new HttpsError("invalid-argument", "A Firestore collection path is required.");
-  }
+  if (typeof path !== "string" || path.trim().length === 0) throw new HttpsError("invalid-argument", "A Firestore collection path is required.");
   const clean = path.trim().replace(/^\/+|\/+$/g, "");
   const parts = clean.split("/");
-  if (parts.length % 2 === 0 || parts.length > 11 || parts.some((part) => part === "" || part === "." || part === "..")) {
-    throw new HttpsError("invalid-argument", "Invalid Firestore collection path.");
-  }
-  if (!ALLOWED_ROOTS.has(parts[0])) {
-    throw new HttpsError("permission-denied", "Collection is not available to the admin console.");
+  if (parts.length % 2 === 0 || parts.length > 11 || parts.some((part) => part === "" || part === "." || part === "..") || !ALLOWED_ROOTS.has(parts[0])) {
+    throw new HttpsError("invalid-argument", "Collection is not available to the admin console.");
   }
   return clean;
 }
 
 function requireFields(value: unknown): Record<string, unknown> {
-  if (value === null || typeof value !== "object" || Array.isArray(value)) {
-    throw new HttpsError("invalid-argument", "fields must be an object.");
-  }
+  if (value === null || typeof value !== "object" || Array.isArray(value)) throw new HttpsError("invalid-argument", "fields must be an object.");
   return value as Record<string, unknown>;
 }
 
@@ -79,9 +59,7 @@ export const adminListDocuments = onCall(async (request) => {
   const collectionPath = requireCollectionPath(data.collectionPath);
   const limit = Math.min(Math.max(Number(data.limit ?? 100), 1), 100);
   const snapshot = await db.collection(collectionPath).limit(limit).get();
-  return {
-    documents: snapshot.docs.map((doc) => ({ path: doc.ref.path, fields: serialise(doc.data()) })),
-  };
+  return { documents: snapshot.docs.map((doc) => ({ path: doc.ref.path, fields: serialise(doc.data()) })) };
 });
 
 export const adminGetDocument = onCall(async (request) => {
@@ -93,22 +71,23 @@ export const adminGetDocument = onCall(async (request) => {
   return { path, fields: serialise(doc.data() ?? {}) };
 });
 
+export const adminCreateDocument = onCall(async (request) => {
+  requireAdmin(request);
+  const data = (request.data ?? {}) as Record<string, unknown>;
+  const collectionPath = requireCollectionPath(data.collectionPath);
+  const fields = requireFields(data.fields);
+  const ref = db.collection(collectionPath).doc();
+  await ref.set({ ...fields, updatedAt: FieldValue.serverTimestamp(), updatedBy: request.auth!.uid, createdAt: FieldValue.serverTimestamp() });
+  return { ok: true, path: ref.path };
+});
+
 export const adminSetDocument = onCall(async (request) => {
   requireAdmin(request);
   const data = (request.data ?? {}) as Record<string, unknown>;
   const path = requireDocumentPath(data.path);
   const fields = requireFields(data.fields);
   const merge = data.merge !== false;
-
-  await db.doc(path).set(
-    {
-      ...fields,
-      updatedAt: FieldValue.serverTimestamp(),
-      updatedBy: request.auth!.uid,
-    },
-    { merge },
-  );
-
+  await db.doc(path).set({ ...fields, updatedAt: FieldValue.serverTimestamp(), updatedBy: request.auth!.uid }, { merge });
   return { ok: true, path };
 });
 
@@ -130,14 +109,7 @@ export const adminSetAppConfig = onCall(async (request) => {
   requireAdmin(request);
   const data = (request.data ?? {}) as Record<string, unknown>;
   const fields = requireFields(data.fields);
-  await db.doc("config/app").set(
-    {
-      ...fields,
-      updatedAt: FieldValue.serverTimestamp(),
-      updatedBy: request.auth!.uid,
-    },
-    { merge: true },
-  );
+  await db.doc("config/app").set({ ...fields, updatedAt: FieldValue.serverTimestamp(), updatedBy: request.auth!.uid }, { merge: true });
   return { ok: true };
 });
 
@@ -147,22 +119,21 @@ export const adminSetUserAdmin = onCall(async (request) => {
   const uid = typeof data.uid === "string" ? data.uid.trim() : "";
   const enabled = data.admin === true;
   if (!uid) throw new HttpsError("invalid-argument", "A user UID is required.");
-  if (uid === request.auth!.uid && !enabled) {
-    throw new HttpsError("failed-precondition", "You cannot remove your own administrator access.");
-  }
+  if (uid === request.auth!.uid && !enabled) throw new HttpsError("failed-precondition", "You cannot remove your own administrator access.");
 
   const user = await auth.getUser(uid);
-  const claims = { ...(user.customClaims ?? {}), admin: enabled };
-  if (!enabled) delete claims.admin;
+  const claims = { ...(user.customClaims ?? {}) } as Record<string, unknown>;
+  if (enabled) claims.admin = true; else delete claims.admin;
   await auth.setCustomUserClaims(uid, claims);
+
+  // Keep a non-security UI mirror in the shared profile document. The Auth claim
+  // remains the only value used for authorization by the admin functions.
+  await db.doc(`users/${uid}`).set({ admin: enabled, updatedAt: FieldValue.serverTimestamp(), updatedBy: request.auth!.uid }, { merge: true });
   return { ok: true, uid, admin: enabled };
 });
 
 export const adminGetStats = onCall(async (request) => {
   requireAdmin(request);
-  const [posts, users] = await Promise.all([
-    db.collection("posts").count().get(),
-    db.collection("users").count().get(),
-  ]);
+  const [posts, users] = await Promise.all([db.collection("posts").count().get(), db.collection("users").count().get()]);
   return { posts: posts.data().count, users: users.data().count };
 });
