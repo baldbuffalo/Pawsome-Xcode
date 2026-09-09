@@ -31,6 +31,12 @@ jobs:
           - language: javascript-typescript
             os: ubuntu-latest
             build-mode: none
+          - language: csharp
+            os: ubuntu-latest
+            build-mode: autobuild
+          - language: python
+            os: ubuntu-latest
+            build-mode: none
 
     steps:
       - name: Checkout repository
