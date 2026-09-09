@@ -22,14 +22,19 @@ jobs:
         include:
           - language: swift
             runner: macos-26
+            build-mode: autobuild
           - language: java-kotlin
             runner: ubuntu-latest
+            build-mode: autobuild
           - language: javascript-typescript
             runner: ubuntu-latest
+            build-mode: none
           - language: csharp
             runner: ubuntu-latest
+            build-mode: autobuild
           - language: python
             runner: ubuntu-latest
+            build-mode: autobuild
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout repository
@@ -39,9 +44,10 @@ jobs:
         uses: github/codeql-action/init@v4.37.9
         with:
           languages: ${{ matrix.language }}
-          build-mode: autobuild
+          build-mode: ${{ matrix.build-mode }}
 
       - name: Autobuild compiled languages
+        if: matrix.build-mode == 'autobuild'
         uses: github/codeql-action/autobuild@v4.37.9
 
       - name: Analyze with CodeQL
