@@ -1,7 +1,6 @@
 package com.example.pawsome
 
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -17,9 +16,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.pawsome.ui.AdminScreen
 import com.example.pawsome.ui.AboutScreen
 import com.example.pawsome.ui.AppViewModel
 import com.example.pawsome.ui.CreatePostScreen
@@ -31,26 +30,17 @@ import com.example.pawsome.ui.ProfileScreen
 import com.example.pawsome.ui.theme.PawsomeTheme
 import com.example.pawsome.auth.GoogleAuth
 
-private const val ADMIN_URL = "https://baldbuffalo.github.io/Pawsome-Xcode/admin/"
-
 @Suppress("DEPRECATION")
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            PawsomeTheme {
-                Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) { Root() }
-            }
-        }
+        setContent { PawsomeTheme { Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) { Root() } } }
     }
 
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == GoogleAuth.REQUEST_CODE) {
-            val vm = ViewModelProvider(this)[AppViewModel::class.java]
-            vm.handleGoogleSignInResult(resultCode, data)
-        }
+        if (requestCode == GoogleAuth.REQUEST_CODE) ViewModelProvider(this)[AppViewModel::class.java].handleGoogleSignInResult(resultCode, data)
     }
 }
 
@@ -65,16 +55,17 @@ private fun Root(vm: AppViewModel = viewModel()) {
 
 @Composable
 private fun MainScaffold(vm: AppViewModel) {
-    val context = LocalContext.current
     var tab by remember { mutableStateOf(0) }
     var creating by remember { mutableStateOf(false) }
     var showAbout by remember { mutableStateOf(false) }
     var showHelp by remember { mutableStateOf(false) }
+    var showAdmin by remember { mutableStateOf(false) }
     var imageToView by remember { mutableStateOf<String?>(null) }
 
     BackHandler {
         when {
             imageToView != null -> imageToView = null
+            showAdmin -> showAdmin = false
             showHelp -> showHelp = false
             showAbout -> showAbout = false
             creating -> creating = false
@@ -84,45 +75,24 @@ private fun MainScaffold(vm: AppViewModel) {
     }
 
     when {
+        showAdmin -> AdminScreen { showAdmin = false }
         showAbout -> AboutScreen { showAbout = false }
         showHelp -> HelpScreen { showHelp = false }
-        else -> {
-            Scaffold(
-                bottomBar = {
-                    NavigationBar {
-                        NavigationBarItem(
-                            selected = tab == 0 && !creating,
-                            onClick = { tab = 0; creating = false },
-                            icon = { Icon(Icons.Filled.Home, null) },
-                            label = { Text("Home") },
-                        )
-                        NavigationBarItem(
-                            selected = tab == 1,
-                            onClick = { tab = 1; creating = false },
-                            icon = { Icon(Icons.Filled.Person, null) },
-                            label = { Text("Profile") },
-                        )
-                        NavigationBarItem(
-                            selected = false,
-                            onClick = {
-                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(ADMIN_URL)))
-                            },
-                            icon = { Icon(Icons.Filled.AdminPanelSettings, null) },
-                            label = { Text("Admin") },
-                        )
-                    }
-                }
-            ) { paddingValues ->
-                Box(Modifier.fillMaxSize().padding(paddingValues)) {
-                    when {
-                        creating -> CreatePostScreen(vm) { creating = false }
-                        tab == 1 -> ProfileScreen(vm, { showAbout = true }, { showHelp = true })
-                        else -> FeedScreen(vm, { creating = true }, { imageToView = it })
-                    }
+        else -> Scaffold(bottomBar = {
+            NavigationBar {
+                NavigationBarItem(tab == 0 && !creating, { tab = 0; creating = false }, { Icon(Icons.Filled.Home, null) }, label = { Text("Home") })
+                NavigationBarItem(tab == 1, { tab = 1; creating = false }, { Icon(Icons.Filled.Person, null) }, label = { Text("Profile") })
+                if (vm.isAdmin) NavigationBarItem(false, { showAdmin = true }, { Icon(Icons.Filled.AdminPanelSettings, null) }, label = { Text("Admin") })
+            }
+        }) { paddingValues ->
+            Box(Modifier.fillMaxSize().padding(paddingValues)) {
+                when {
+                    creating -> CreatePostScreen(vm) { creating = false }
+                    tab == 1 -> ProfileScreen(vm, { showAbout = true }, { showHelp = true })
+                    else -> FeedScreen(vm, { creating = true }, { imageToView = it })
                 }
             }
         }
     }
-
     imageToView?.let { url -> ImageViewer(url) { imageToView = null } }
 }
