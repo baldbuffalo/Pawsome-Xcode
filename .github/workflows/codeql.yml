@@ -56,49 +56,42 @@ jobs:
         if: matrix.language == 'java-kotlin'
         run: cp Firebase/Android/google-services.json Android/app/google-services.json
 
-      - name: Install Oracle JDK 26.0.2.1
+      - name: Set up Eclipse Temurin JDK 26.0.2.1
         if: matrix.language == 'java-kotlin'
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl -fsSL https://download.oracle.com/java/26/latest/jdk-26_linux-x64_bin.tar.gz -o /tmp/jdk-26.0.2.1.tar.gz
-          sudo mkdir -p /opt/oracle
-          sudo tar -xzf /tmp/jdk-26.0.2.1.tar.gz -C /opt/oracle
-          JDK_DIR="$(find /opt/oracle -maxdepth 1 -type d -name 'jdk-26*' -print -quit)"
-          test -n "$JDK_DIR"
-          echo "JAVA_HOME=$JDK_DIR" >> "$GITHUB_ENV"
-          echo "JDK_DIR=$JDK_DIR" >> "$GITHUB_ENV"
-          echo "$JDK_DIR/bin" >> "$GITHUB_PATH"
-          "$JDK_DIR/bin/java" -version
+        uses: actions/setup-java@v6.0.1
+        with:
+          distribution: temurin
+          java-version: '26.0.2.1'
+          check-latest: true
 
-      - name: Register Oracle JDK 26.0.2.1 for CodeQL toolchain selection
+      - name: Verify Eclipse Temurin JDK 26.0.2.1
+        if: matrix.language == 'java-kotlin'
+        run: |
+          java -version 2>&1
+          echo "JAVA_HOME=$JAVA_HOME"
+          java -version 2>&1 | grep -q '26.0.2.1'
+
+      - name: Register Temurin JDK 26 for CodeQL toolchain selection
         if: matrix.language == 'java-kotlin'
         shell: bash
         run: |
           set -euo pipefail
-          sudo mkdir -p /home/runner/.m2
-          sudo tee /home/runner/.m2/toolchains.xml >/dev/null <<EOF
+          mkdir -p "$HOME/.m2"
+          cat > "$HOME/.m2/toolchains.xml" <<EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <toolchains>
             <toolchain>
               <type>jdk</type>
               <provides>
                 <version>26</version>
-                <vendor>Oracle</vendor>
+                <vendor>Temurin</vendor>
               </provides>
               <configuration>
-                <jdkHome>${JDK_DIR}</jdkHome>
+                <jdkHome>${JAVA_HOME}</jdkHome>
               </configuration>
             </toolchain>
           </toolchains>
           EOF
-
-      - name: Verify Oracle JDK 26.0.2.1
-        if: matrix.language == 'java-kotlin'
-        run: |
-          java -version 2>&1
-          echo "JAVA_HOME=$JAVA_HOME"
-          java -version 2>&1 | grep -q '26.0.2.1'
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4.37.9
