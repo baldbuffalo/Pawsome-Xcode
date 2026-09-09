@@ -56,6 +56,23 @@ jobs:
         if: matrix.language == 'java-kotlin'
         run: cp Firebase/Android/google-services.json Android/app/google-services.json
 
+      - name: Set up Java 26.0.2.1
+        if: matrix.language == 'java-kotlin'
+        id: setup-java
+        uses: actions/setup-java@v6.0.1
+        with:
+          distribution: temurin
+          java-version: '26.0.2.1'
+          check-latest: true
+
+      - name: Verify Java 26.0.2.1
+        if: matrix.language == 'java-kotlin'
+        run: |
+          java --version
+          echo "JAVA_HOME=$JAVA_HOME"
+          echo "JAVA_HOME_26_X64=$JAVA_HOME_26_X64"
+          test "$(java -version 2>&1 | awk -F'[\".]' '/version/ {print $2 "." $3 "." $4 "." $5}')" = "26.0.2.1"
+
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4.37.9
         with:
