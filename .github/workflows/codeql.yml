@@ -111,14 +111,28 @@ jobs:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
 
-      - name: Prepare Swift build environment
+      - name: Install Rosetta 2 for Swift CodeQL
         if: matrix.language == 'swift'
         shell: bash
         run: |
           set -euo pipefail
+          softwareupdate --install-rosetta --agree-to-license
+
+      - name: Verify Swift ARM64 and Rosetta
+        if: matrix.language == 'swift'
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Runner architecture: $(uname -m)"
+          echo "Swift (native ARM64):"
+          arch -arm64 swift --version
+          echo "Swift (x86_64 under Rosetta):"
+          arch -x86_64 swift --version
+          echo "Xcode:"
           xcodebuild -version
-          swift --version
+          echo "swiftc:"
           xcrun --find swiftc
+          echo "xcodebuild:"
           xcrun --find xcodebuild
 
       - name: Autobuild compiled languages
