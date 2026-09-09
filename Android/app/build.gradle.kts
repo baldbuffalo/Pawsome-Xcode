@@ -68,6 +68,17 @@ android {
     }
 }
 
+// google-services.json is intentionally not committed. When it is supplied by a
+// local/CI environment, the Google Services plugin processes it normally. Without
+// it, allow source compilation (for example CodeQL autobuild) to proceed.
+tasks.matching { task ->
+    task.name.startsWith("process") && task.name.endsWith("GoogleServices")
+}.configureEach {
+    onlyIf {
+        file("google-services.json").exists() || file("src/debug/google-services.json").exists()
+    }
+}
+
 dependencies {
     implementation("androidx.core:core-ktx:1.19.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.11.0")
