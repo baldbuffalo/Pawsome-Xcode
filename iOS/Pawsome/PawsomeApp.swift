@@ -5,16 +5,13 @@ import FirebaseFirestore
 
 @main
 struct PawsomeApp: App {
-
     #if os(iOS)
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
     #elseif os(macOS)
     @NSApplicationDelegateAdaptor(AppDelegate.self) var delegate
     #endif
 
-    init() {
-        FirebaseApp.configure()
-    }
+    init() { FirebaseApp.configure() }
 
     @StateObject private var appState = AppState()
     @StateObject private var adManager = AdManager.shared
@@ -26,8 +23,7 @@ struct PawsomeApp: App {
                 if !appState.isAuthChecked {
                     LoadingView()
                 } else if appState.isLoggedIn {
-                    MainTabView(appState: appState, activeHomeFlow: $activeHomeFlow)
-                        .environmentObject(appState)
+                    MainTabView(appState: appState, activeHomeFlow: $activeHomeFlow).environmentObject(appState)
                 } else {
                     LoginView(appState: appState)
                 }
@@ -52,23 +48,12 @@ struct PawsomeApp: App {
         private var authListener: AuthStateDidChangeListenerHandle?
         lazy var db: Firestore = Firestore.firestore()
 
-        func login(username: String, imageURL: String?) {
-            isLoggedIn = true
-            currentUsername = username
-            profileImageURL = imageURL
-        }
+        func login(username: String, imageURL: String?) { isLoggedIn = true; currentUsername = username; profileImageURL = imageURL }
 
         func logout() {
-            if let handle = authListener {
-                Auth.auth().removeStateDidChangeListener(handle)
-                authListener = nil
-            }
+            if let handle = authListener { Auth.auth().removeStateDidChangeListener(handle); authListener = nil }
             do { try Auth.auth().signOut() } catch { print("❌ Sign out failed:", error) }
-            isLoggedIn = false
-            isAdmin = false
-            currentUsername = ""
-            profileImageURL = nil
-            selectedImage = nil
+            isLoggedIn = false; isAdmin = false; currentUsername = ""; profileImageURL = nil; selectedImage = nil
         }
 
         func observeAuthState() {
@@ -80,9 +65,7 @@ struct PawsomeApp: App {
                         self.isAuthChecked = true
                     }
                 } else {
-                    self.isLoggedIn = false
-                    self.isAdmin = false
-                    self.isAuthChecked = true
+                    self.isLoggedIn = false; self.isAdmin = false; self.isAuthChecked = true
                 }
             }
         }
@@ -92,10 +75,7 @@ struct PawsomeApp: App {
                 user.getIDTokenResult { result, error in
                     let isAdmin = (result?.claims["admin"] as? NSNumber)?.boolValue ?? false
                     if let error { print("❌ Admin claim check failed:", error.localizedDescription) }
-                    Task { @MainActor in
-                        self.isAdmin = isAdmin
-                        continuation.resume()
-                    }
+                    Task { @MainActor in self.isAdmin = isAdmin; continuation.resume() }
                 }
             }
         }
@@ -113,15 +93,11 @@ struct PawsomeApp: App {
                 let newUserNumber = try await db.runTransaction { transaction, errorPointer in
                     do {
                         let counterSnap = try transaction.getDocument(counterRef)
-                        let last = counterSnap.data()?["lastUserNumber"] as? Int ?? 0
-                        let next = last + 1
+                        let next = (counterSnap.data()?["lastUserNumber"] as? Int ?? 0) + 1
                         transaction.updateData(["lastUserNumber": next], forDocument: counterRef)
                         transaction.setData(["userNumber": next, "username": defaultUsername ?? "User\(next)", "profilePic": defaultImage ?? "", "createdAt": Timestamp()], forDocument: userRef)
                         return next
-                    } catch {
-                        errorPointer?.pointee = error as NSError
-                        return nil
-                    }
+                    } catch { errorPointer?.pointee = error as NSError; return nil }
                 }
                 login(username: defaultUsername ?? "User\(newUserNumber ?? 0)", imageURL: defaultImage)
             } catch { print("❌ User fetch/create error:", error.localizedDescription) }
@@ -133,66 +109,27 @@ struct PawsomeApp: App {
         @EnvironmentObject var adManager: AdManager
         @Binding var activeHomeFlow: HomeFlow?
         @State private var selectedTab = 0
-
         var body: some View {
             TabView(selection: $selectedTab) {
                 ZStack {
                     switch activeHomeFlow {
-                    case .form:
-                        FormView(activeHomeFlow: $activeHomeFlow, onPostCreated: { appState.selectedImage = nil; activeHomeFlow = nil }).environmentObject(appState)
-                    case .scan, .none:
-                        HomeView(isLoggedIn: $appState.isLoggedIn, currentUsername: $appState.currentUsername, profileImageURL: $appState.profileImageURL, activeFlow: $activeHomeFlow)
+                    case .form: FormView(activeHomeFlow: $activeHomeFlow, onPostCreated: { appState.selectedImage = nil; activeHomeFlow = nil }).environmentObject(appState)
+                    case .scan, .none: HomeView(isLoggedIn: $appState.isLoggedIn, currentUsername: $appState.currentUsername, profileImageURL: $appState.profileImageURL, activeFlow: $activeHomeFlow)
                     }
                 }
-                .overlay {
-                    if activeHomeFlow == .scan {
-                        ScanView(activeHomeFlow: $activeHomeFlow, username: appState.currentUsername).environmentObject(appState)
-                    }
-                }
-                .tabItem { Label(tabTitle(for: activeHomeFlow), systemImage: "house") }
-                .tag(0)
-
-                ProfileView(appState: appState)
-                    .tabItem { Label("Profile", systemImage: "person.crop.circle") }
-                    .tag(1)
+                .overlay { if activeHomeFlow == .scan { ScanView(activeHomeFlow: $activeHomeFlow, username: appState.currentUsername).environmentObject(appState) } }
+                .tabItem { Label(tabTitle(for: activeHomeFlow), systemImage: "house") }.tag(0)
+                ProfileView(appState: appState).tabItem { Label("Profile", systemImage: "person.crop.circle") }.tag(1)
             }
             .onAppear { adManager.updateCurrentScreen(selectedTab: selectedTab, activeHomeFlow: activeHomeFlow) }
             .onChange(of: selectedTab) { _, newValue in activeHomeFlow = nil; adManager.updateCurrentScreen(selectedTab: newValue, activeHomeFlow: activeHomeFlow) }
             .onChange(of: activeHomeFlow) { _, newValue in adManager.updateCurrentScreen(selectedTab: selectedTab, activeHomeFlow: newValue) }
         }
-
-        private func tabTitle(for flow: HomeFlow?) -> String {
-            switch flow { case .scan: return "Scan"; case .form: return "Post"; case .none: return "Home" }
-        }
-    }
-
-    struct AdminView: View {
-        private let adminURL = URL(string: "https://baldbuffalo.github.io/Pawsome-Xcode/admin/")!
-        var body: some View {
-            List {
-                Section {
-                    Link(destination: adminURL) {
-                        Label("Open Admin Console", systemImage: "rectangle.and.pencil.and.ellipsis")
-                    }
-                } header: { Text("Pawsome Admin") }
-                Section {
-                    Text("The admin console manages the shared Firebase backend used by Pawsome clients on every supported platform.")
-                        .foregroundStyle(.secondary)
-                    Text("Changes made there are written to the same Firebase project as this app.")
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .navigationTitle("Admin")
-        }
+        private func tabTitle(for flow: HomeFlow?) -> String { switch flow { case .scan: return "Scan"; case .form: return "Post"; case .none: return "Home" } }
     }
 
     struct LoadingView: View {
         @State private var spin = false
-        var body: some View {
-            ZStack {
-                Color.black.opacity(0.05).ignoresSafeArea()
-                Circle().trim(from: 0.2, to: 1).stroke(Color(red: 0.49, green: 0.23, blue: 0.93), style: StrokeStyle(lineWidth: 6, lineCap: .round)).frame(width: 60, height: 60).rotationEffect(.degrees(spin ? 360 : 0)).animation(.linear(duration: 1).repeatForever(autoreverses: false), value: spin).onAppear { spin = true }
-            }
-        }
+        var body: some View { ZStack { Color.black.opacity(0.05).ignoresSafeArea(); Circle().trim(from: 0.2, to: 1).stroke(Color(red: 0.49, green: 0.23, blue: 0.93), style: StrokeStyle(lineWidth: 6, lineCap: .round)).frame(width: 60, height: 60).rotationEffect(.degrees(spin ? 360 : 0)).animation(.linear(duration: 1).repeatForever(autoreverses: false), value: spin).onAppear { spin = true } } }
     }
 }
