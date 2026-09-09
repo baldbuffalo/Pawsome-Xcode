@@ -17,7 +17,20 @@ permissions:
 jobs:
   analyze:
     name: Analyze (actions)
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - language: swift
+            runner: macos-latest
+          - language: java-kotlin
+            runner: ubuntu-latest
+          - language: javascript-typescript
+            runner: ubuntu-latest
+          - language: csharp
+            runner: ubuntu-latest
+          - language: python
+            runner: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7.0.1
@@ -25,7 +38,7 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4.37.9
         with:
-          languages: swift, java-kotlin, javascript-typescript, csharp, python
+          languages: ${{ matrix.language }}
           build-mode: autobuild
 
       - name: Autobuild compiled languages
@@ -34,4 +47,4 @@ jobs:
       - name: Analyze with CodeQL
         uses: github/codeql-action/analyze@v4.37.9
         with:
-          category: /language:all
+          category: /language:${{ matrix.language }}
