@@ -1,3 +1,5 @@
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Pawsome.App.Services;
@@ -7,12 +9,37 @@ namespace Pawsome.App.Views;
 
 public sealed partial class ProfilePage : Page
 {
+    private static readonly Uri FunctionsBase = new("https://europe-west1-pawsome-90cb3.cloudfunctions.net/");
     public ProfileViewModel ViewModel { get; }
 
     public ProfilePage()
     {
         ViewModel = new ProfileViewModel(App.Instance.Services);
         InitializeComponent();
+        Loaded += async (_, _) => await CheckAdminAccessAsync();
+    }
+
+    private async Task CheckAdminAccessAsync()
+    {
+        try
+        {
+            var token = await App.Instance.Services.Auth.GetValidIdTokenAsync();
+            using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(FunctionsBase, "adminGetStats"));
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            request.Content = JsonContent.Create(new { data = new { } });
+            using var response = await App.Instance.Services.Http.SendAsync(request);
+            AdminButton.Visibility = response.IsSuccessStatusCode ? Visibility.Visible : Visibility.Collapsed;
+        }
+        catch
+        {
+            AdminButton.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private void OpenAdmin_Click(object sender, RoutedEventArgs e)
+    {
+        if (App.Instance.MainWindow is not null)
+            App.Instance.MainWindow.RootFrame.Navigate(typeof(AdminPage));
     }
 
     private async void ChangePhoto_Click(object sender, RoutedEventArgs e)
