@@ -56,15 +56,28 @@ jobs:
         if: matrix.language == 'java-kotlin'
         run: cp Firebase/Android/google-services.json Android/app/google-services.json
 
-      - name: Set up Eclipse Temurin JDK 26.0.2.1
+      - name: Install Eclipse Temurin OpenJDK 26.0.2.1
         if: matrix.language == 'java-kotlin'
-        uses: actions/setup-java@v6.0.1
-        with:
-          distribution: temurin
-          java-version: '26.0.2.1'
-          check-latest: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          JDK_VERSION='26.0.2.1'
+          JDK_TAG='jdk-26.0.2.1+1'
+          JDK_ARCHIVE="OpenJDK26U-jdk_x64_linux_hotspot_${JDK_VERSION}_1.tar.gz"
+          JDK_URL="https://github.com/adoptium/temurin26-binaries/releases/download/${JDK_TAG//+/%2B}/${JDK_ARCHIVE}"
+          JDK_DIR="/opt/temurin-${JDK_VERSION}"
 
-      - name: Verify Eclipse Temurin JDK 26.0.2.1
+          curl -fL --retry 5 --retry-delay 2 "$JDK_URL" -o /tmp/temurin-jdk.tar.gz
+          sudo rm -rf "$JDK_DIR"
+          sudo mkdir -p "$JDK_DIR"
+          sudo tar -xzf /tmp/temurin-jdk.tar.gz --strip-components=1 -C "$JDK_DIR"
+
+          echo "JAVA_HOME=$JDK_DIR" >> "$GITHUB_ENV"
+          echo "$JDK_DIR/bin" >> "$GITHUB_PATH"
+
+          "$JDK_DIR/bin/java" -version
+
+      - name: Verify Eclipse Temurin OpenJDK 26.0.2.1
         if: matrix.language == 'java-kotlin'
         run: |
           java -version 2>&1
@@ -84,7 +97,6 @@ jobs:
               <type>jdk</type>
               <provides>
                 <version>26</version>
-                <vendor>Temurin</vendor>
               </provides>
               <configuration>
                 <jdkHome>${JAVA_HOME}</jdkHome>
