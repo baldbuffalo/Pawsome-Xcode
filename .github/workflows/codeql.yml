@@ -39,7 +39,7 @@ jobs:
             build-mode: none
 
           - language: csharp
-            runner: ubuntu-latest
+            runner: windows-latest
             build-mode: autobuild
 
           - language: python
