@@ -111,13 +111,15 @@ jobs:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
 
-      - name: Configure Swift CodeQL tracing
+      - name: Prepare Swift build environment
         if: matrix.language == 'swift'
         shell: bash
         run: |
           set -euo pipefail
-          echo "CODEQL_EXTRACTOR_SWIFT_TRACING=0" >> "$GITHUB_ENV"
-          echo "CODEQL_EXTRACTOR_SWIFT_BUILD_TRACING=0" >> "$GITHUB_ENV"
+          xcodebuild -version
+          swift --version
+          xcrun --find swiftc
+          xcrun --find xcodebuild
 
       - name: Autobuild compiled languages
         if: matrix.build-mode == 'autobuild'
