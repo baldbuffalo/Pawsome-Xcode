@@ -1,6 +1,5 @@
 plugins {
     id("com.android.application")
-    id("com.google.gms.google-services")
 }
 
 android {
@@ -68,15 +67,11 @@ android {
     }
 }
 
-// google-services.json is intentionally not committed. When it is supplied by a
-// local/CI environment, the Google Services plugin processes it normally. Without
-// it, allow source compilation (for example CodeQL autobuild) to proceed.
-tasks.matching { task ->
-    task.name.startsWith("process") && task.name.endsWith("GoogleServices")
-}.configureEach {
-    onlyIf {
-        file("google-services.json").exists() || file("src/debug/google-services.json").exists()
-    }
+// The Google Services plugin requires google-services.json, which is intentionally
+// not committed. Apply it for normal builds when the Firebase configuration exists,
+// but omit it for source-analysis builds such as CodeQL autobuild.
+if (file("google-services.json").exists() || file("src/debug/google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
 }
 
 dependencies {
@@ -99,7 +94,7 @@ dependencies {
     implementation("com.google.android.gms:play-services-auth:21.6.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.11.0")
     implementation("io.coil-kt.coil3:coil-compose:3.5.0")
-    implementation("io.coil-kt.coil3:coil-network-okhttp:3.5.0")
+    implementation("io.coil-kt.coil-network-okhttp:3.5.0")
     implementation("com.squareup.okhttp3:okhttp:5.5.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
