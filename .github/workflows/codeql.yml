@@ -27,7 +27,7 @@ jobs:
             build-mode: none
 
           - language: swift
-            runner: macos-latest
+            runner: macos-26-intel
             build-mode: autobuild
 
           - language: java-kotlin
