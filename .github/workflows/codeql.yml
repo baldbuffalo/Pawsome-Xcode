@@ -52,12 +52,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7.0.1
 
-      - name: Setup JDK 26
+      - name: Prepare Android Firebase configuration for CodeQL
         if: matrix.language == 'java-kotlin'
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: '26.0.2'
+        run: cp Firebase/Android/google-services.json Android/app/google-services.json
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4.37.9
