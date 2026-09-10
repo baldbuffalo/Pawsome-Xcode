@@ -82,7 +82,7 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
 
         viewModelScope.launch {
             try {
-                val completed = withTimeoutOrNull(12_000L) {
+                val completed = withTimeoutOrNull(15_000L) {
                     val token = current.getIdToken(false).await()
                     isAdmin = token.claims["admin"] == true
 
@@ -99,7 +99,9 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
                             if (observedUid == current.uid) user = updatedUser ?: profile
                         },
                         onError = { e ->
-                            if (observedUid == current.uid) error = e.message ?: "Could not listen to user profile"
+                            if (observedUid == current.uid) {
+                                error = e.message ?: "Could not listen to user profile"
+                            }
                         },
                     )
 
@@ -110,18 +112,21 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
                 }
 
                 if (completed == null && observedUid == current.uid) {
-                    // Do not leave the user trapped on the startup spinner if a Firebase
-                    // request is unavailable or takes too long. The main UI can still open
-                    // and report the backend problem without blocking the whole application.
-                    error = "Some account data could not be loaded yet. Please check your connection and try again."
-                    signedIn = true
+                    // Backend is required for the app. Do not enter the main UI when
+                    // authentication/profile startup cannot be completed.
+                    signedIn = false
                     isAdmin = false
+                    user = null
+                    posts = emptyList()
+                    error = "Could not connect to Firebase. Check your internet connection and try again."
                 }
             } catch (e: Exception) {
                 if (observedUid == current.uid) {
-                    error = e.message ?: "Could not load user profile"
-                    signedIn = true
+                    signedIn = false
                     isAdmin = false
+                    user = null
+                    posts = emptyList()
+                    error = e.message ?: "Could not connect to Firebase. Check your connection and try again."
                 }
             } finally {
                 if (observedUid == current.uid) loading = false
@@ -132,19 +137,17 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
     init {
         firebaseAuth.addAuthStateListener(authStateListener)
 
-        // Safety net for the initial Firebase auth callback. If it never arrives,
-        // do not keep the entire application on an infinite loading spinner.
+        // If Firebase Auth itself never delivers its initial state, keep the app
+        // blocked rather than allowing it into a partially initialized state.
         viewModelScope.launch {
-            delay(12_000L)
+            delay(15_000L)
             if (loading && observedUid == null) {
-                val current = firebaseAuth.currentUser
-                signedIn = current != null
-                if (current == null) {
-                    error = null
-                } else {
-                    error = "Account startup timed out. Please try again."
-                }
                 loading = false
+                signedIn = false
+                isAdmin = false
+                user = null
+                posts = emptyList()
+                error = "Firebase Auth is unavailable. Check your internet connection and try again."
             }
         }
     }
