@@ -29,6 +29,7 @@ jobs:
           - language: swift
             runner: macos-26-intel
             build-mode: autobuild
+            codeql-tools: https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.26.3/codeql-bundle-osx64.tar.zst
 
           - language: java-kotlin
             runner: ubuntu-latest
@@ -110,6 +111,7 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
+          tools: ${{ matrix.codeql-tools }}
 
       - name: Verify Swift Intel CodeQL environment
         if: matrix.language == 'swift'
