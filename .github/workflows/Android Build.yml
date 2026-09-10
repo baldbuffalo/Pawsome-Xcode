@@ -22,7 +22,7 @@ jobs:
       - uses: actions/setup-java@main
         with:
           distribution: temurin
-          java-version: '26.0.2.1'
+          java-version: '26.0.2+101'
           check-latest: true
       - uses: gradle/actions/setup-gradle@v6.2.0
         with:
@@ -32,8 +32,8 @@ jobs:
           set -euo pipefail
           java -version 2>&1
           javac -version 2>&1
-          java -version 2>&1 | grep -q '26.0.2.1'
-          javac -version 2>&1 | grep -q '26.0.2.1'
+          java -version 2>&1 | grep -q '26.0.2'
+          javac -version 2>&1 | grep -q '26.0.2'
           echo "JAVA_HOME=$JAVA_HOME"
       - name: Setup Firebase configuration
         run: cp ../Firebase/Android/google-services.json app/google-services.json
