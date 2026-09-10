@@ -1,3 +1,5 @@
+import org.gradle.api.tasks.compile.JavaCompile
+
 plugins {
     id("com.android.application")
 }
@@ -67,8 +69,18 @@ android {
     }
 }
 
-// The Gradle daemon itself is pinned to the CI-installed Temurin JDK 26.
-// This keeps JavaCompile on the exact same JDK without requiring Gradle toolchain discovery.
+// AGP is otherwise selecting a different javac for JavaCompile. Force every
+// Android Java compile task to use the exact Temurin JDK installed by CI.
+tasks.withType<JavaCompile>().configureEach {
+    val javaHome = System.getenv("JAVA_HOME")
+        ?: error("JAVA_HOME must point to the Temurin JDK 26 installation")
+    val javac = file("$javaHome/bin/javac")
+    if (!javac.isFile) {
+        error("Expected JDK 26 javac at ${javac.absolutePath}")
+    }
+    options.isFork = true
+    options.forkOptions.executable = javac.absolutePath
+}
 
 // The Google Services plugin requires google-services.json, which is intentionally
 // not committed. Apply it for normal builds when the Firebase configuration exists,
