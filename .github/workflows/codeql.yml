@@ -126,13 +126,18 @@ jobs:
           echo "xcodebuild:"
           xcrun --find xcodebuild
 
+      # 1. Swift Autobuild: Intercept and force execution under Rosetta 2 shell
+      - name: Autobuild Swift (Rosetta 2 Translation)
+        if: matrix.language == 'swift' && matrix.build-mode == 'autobuild'
+        shell: bash
+        run: |
+          echo "Launching Swift Autobuilder using x86_64 translation shell..."
+          arch -x86_64 node $GITHUB_ACTION_PATH/../autobuild/main.js
+
+      # 2. Standard Autobuild: Runs normally for Java, Kotlin, and C#
       - name: Autobuild compiled languages
-        if: matrix.build-mode == 'autobuild'
+        if: matrix.language != 'swift' && matrix.build-mode == 'autobuild'
         uses: github/codeql-action/autobuild@v4.37.9
-        env:
-          # Forces the underlying Apple Silicon environment to run the 
-          # CodeQL runner process in translated x86_64 mode safely.
-          ARCHPREFERENCE: x86_64
 
       - name: Analyze with CodeQL
         uses: github/codeql-action/analyze@v4.37.9
