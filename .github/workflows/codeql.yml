@@ -65,17 +65,17 @@ jobs:
           JDK_TAG='jdk-26.0.2.1+1'
           JDK_ARCHIVE="OpenJDK26U-jdk_x64_linux_hotspot_${JDK_VERSION}_1.tar.gz"
           JDK_URL="https://github.com/adoptium/temurin26-binaries/releases/download/${JDK_TAG//+/%2B}/${JDK_ARCHIVE}"
-          JDK_DIR="/opt/temurin-${JDK_VERSION}"
+          JDK_DIR="$RUNNER_TEMP/temurin-${JDK_VERSION}"
 
-          curl -fL --retry 5 --retry-delay 2 "$JDK_URL" -o /tmp/temurin-jdk.tar.gz
-          sudo rm -rf "$JDK_DIR"
-          sudo mkdir -p "$JDK_DIR"
-          sudo tar -xzf /tmp/temurin-jdk.tar.gz --strip-components=1 -C "$JDK_DIR"
+          curl -fL --retry 5 --retry-delay 2 "$JDK_URL" -o "$RUNNER_TEMP/temurin-jdk.tar.gz"
+          rm -rf "$JDK_DIR"
+          mkdir -p "$JDK_DIR"
+          tar -xzf "$RUNNER_TEMP/temurin-jdk.tar.gz" --strip-components=1 -C "$JDK_DIR"
 
+          test -x "$JDK_DIR/bin/java"
           echo "JAVA_HOME=$JDK_DIR" >> "$GITHUB_ENV"
           echo "$JDK_DIR/bin" >> "$GITHUB_PATH"
           echo "GRADLE_OPTS=-Dorg.gradle.java.home=$JDK_DIR" >> "$GITHUB_ENV"
-          echo "JAVA_TOOL_OPTIONS=-Dorg.gradle.java.home=$JDK_DIR" >> "$GITHUB_ENV"
           echo "GRADLE_JAVA_HOME=$JDK_DIR" >> "$GITHUB_ENV"
 
           "$JDK_DIR/bin/java" -version
@@ -88,16 +88,19 @@ jobs:
           GRADLE_VERSION='9.7.1'
           GRADLE_ARCHIVE="gradle-${GRADLE_VERSION}-bin.zip"
           GRADLE_URL="https://services.gradle.org/distributions/${GRADLE_ARCHIVE}"
-          GRADLE_DIR="/opt/gradle-${GRADLE_VERSION}"
+          GRADLE_DIR="$RUNNER_TEMP/gradle-${GRADLE_VERSION}"
 
-          curl -fL --retry 5 --retry-delay 2 "$GRADLE_URL" -o /tmp/gradle.zip
-          sudo rm -rf "$GRADLE_DIR"
-          sudo unzip -q /tmp/gradle.zip -d /opt
+          curl -fL --retry 5 --retry-delay 2 "$GRADLE_URL" -o "$RUNNER_TEMP/gradle.zip"
+          rm -rf "$GRADLE_DIR"
+          unzip -q "$RUNNER_TEMP/gradle.zip" -d "$RUNNER_TEMP"
+          test -x "$GRADLE_DIR/bin/gradle"
           echo "$GRADLE_DIR/bin" >> "$GITHUB_PATH"
 
       - name: Verify Eclipse Temurin OpenJDK 26.0.2.1
         if: matrix.language == 'java-kotlin'
         run: |
+          set -euo pipefail
+          test -x "$JAVA_HOME/bin/java"
           java -version 2>&1
           echo "JAVA_HOME=$JAVA_HOME"
           echo "GRADLE_OPTS=$GRADLE_OPTS"
@@ -107,30 +110,11 @@ jobs:
         if: matrix.language == 'java-kotlin'
         working-directory: Android
         run: |
+          set -euo pipefail
+          test -x "$JAVA_HOME/bin/java"
           gradle --version
           gradle --version 2>&1 | grep -q 'Gradle 9.7.1'
           gradle --version 2>&1 | grep -q '26.0.2.1'
-
-      - name: Register Temurin JDK 26 for CodeQL toolchain selection
-        if: matrix.language == 'java-kotlin'
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "$HOME/.m2"
-          cat > "$HOME/.m2/toolchains.xml" <<EOF
-          <?xml version="1.0" encoding="UTF-8"?>
-          <toolchains>
-            <toolchain>
-              <type>jdk</type>
-              <provides>
-                <version>26</version>
-              </provides>
-              <configuration>
-                <jdkHome>${JAVA_HOME}</jdkHome>
-              </configuration>
-            </toolchain>
-          </toolchains>
-          EOF
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4.38.0
@@ -144,11 +128,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          export JAVA_HOME="/opt/temurin-26.0.2.1"
+          test -x "$JAVA_HOME/bin/java"
           export PATH="$JAVA_HOME/bin:$PATH"
           export GRADLE_OPTS="-Dorg.gradle.java.home=$JAVA_HOME"
           gradle --stop || true
-          gradle :app:assembleRelease --no-daemon --stacktrace
+          gradle -Dorg.gradle.java.installations.paths="$JAVA_HOME" :app:assembleRelease --no-daemon --stacktrace
 
       - name: Verify Swift Intel CodeQL environment
         if: matrix.language == 'swift'
