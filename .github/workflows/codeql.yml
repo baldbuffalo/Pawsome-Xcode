@@ -26,9 +26,6 @@ jobs:
             runner: ubuntu-latest
             build-mode: none
 
-          # Swift CodeQL autobuild currently requires the Intel tracer.
-          # Keep the Swift CodeQL job on Intel; other languages remain on their
-          # appropriate native runners.
           - language: swift
             runner: macos-26-intel
             build-mode: autobuild
@@ -109,7 +106,7 @@ jobs:
           EOF
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4.37.8
+        uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
@@ -131,9 +128,9 @@ jobs:
 
       - name: Autobuild compiled languages
         if: matrix.build-mode == 'autobuild'
-        uses: github/codeql-action/autobuild@v4.37.8
+        uses: github/codeql-action/autobuild@v4
 
       - name: Analyze with CodeQL
-        uses: github/codeql-action/analyze@v4.37.8
+        uses: github/codeql-action/analyze@v4
         with:
           category: /language:${{ matrix.language }}
