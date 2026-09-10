@@ -67,13 +67,8 @@ android {
     }
 }
 
-// Explicitly select the same Java 26 toolchain that CI exposes through JAVA_HOME.
-// Gradle registers JAVA_HOME via org.gradle.java.installations.fromEnv.
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(26)
-    }
-}
+// The Gradle daemon itself is pinned to the CI-installed Temurin JDK 26.
+// This keeps JavaCompile on the exact same JDK without requiring Gradle toolchain discovery.
 
 // The Google Services plugin requires google-services.json, which is intentionally
 // not committed. Apply it for normal builds when the Firebase configuration exists,
