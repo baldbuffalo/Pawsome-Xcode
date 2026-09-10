@@ -139,11 +139,8 @@ jobs:
           "$JAVA_HOME/bin/java" -version
           "$JAVA_HOME/bin/javac" -version
           gradle --stop || true
-          gradle -q javaToolchains
           gradle \
-            -Dorg.gradle.java.installations.auto-detect=true \
-            -Dorg.gradle.java.installations.fromEnv=JAVA_HOME \
-            -Dorg.gradle.java.installations.paths="$JAVA_HOME" \
+            -Dorg.gradle.java.home="$JAVA_HOME" \
             :app:assembleRelease --no-daemon --stacktrace
 
       - name: Verify Swift Intel CodeQL environment
