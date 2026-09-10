@@ -28,7 +28,7 @@ jobs:
 
           - language: swift
             runner: macos-26-intel
-            build-mode: autobuild
+            build-mode: manual
 
           - language: java-kotlin
             runner: ubuntu-latest
@@ -102,7 +102,6 @@ jobs:
                 <jdkHome>${JAVA_HOME}</jdkHome>
               </configuration>
             </toolchain>
-          </toolchain>
           </toolchains>
           EOF
 
@@ -126,6 +125,39 @@ jobs:
           xcrun --find swiftc
           echo "xcodebuild:"
           xcrun --find xcodebuild
+
+      - name: Resolve Swift package dependencies
+        if: matrix.language == 'swift'
+        working-directory: iOS
+        run: xcodebuild -project Pawsome.xcodeproj -scheme Pawsome -resolvePackageDependencies
+
+      - name: Clean Swift build products
+        if: matrix.language == 'swift'
+        working-directory: iOS
+        run: xcodebuild -project Pawsome.xcodeproj -scheme Pawsome -configuration Debug clean
+
+      - name: Build Swift for CodeQL
+        if: matrix.language == 'swift'
+        working-directory: iOS
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project Pawsome.xcodeproj \
+            -scheme Pawsome \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/Pawsome-CodeQL-DerivedData" \
+            ARCHS=x86_64 \
+            ONLY_ACTIVE_ARCH=YES \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            COMPILATION_CACHE_ENABLE_CACHING=NO \
+            SWIFT_ENABLE_COMPILE_CACHE=NO \
+            SWIFT_USE_INTEGRATED_DRIVER=NO \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            clean build
 
       - name: Autobuild compiled languages
         if: matrix.build-mode == 'autobuild'
