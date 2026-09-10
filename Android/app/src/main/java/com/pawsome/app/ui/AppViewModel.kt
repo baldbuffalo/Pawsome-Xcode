@@ -23,9 +23,11 @@ import com.google.firebase.auth.OAuthProvider
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.io.ByteArrayOutputStream
 
 class AppViewModel(private val app: Application) : AndroidViewModel(app) {
@@ -80,29 +82,41 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
 
         viewModelScope.launch {
             try {
-                val token = current.getIdToken(false).await()
-                isAdmin = token.claims["admin"] == true
+                val completed = withTimeoutOrNull(12_000L) {
+                    val token = current.getIdToken(false).await()
+                    isAdmin = token.claims["admin"] == true
 
-                val profile = firestore.fetchOrCreateUser(
-                    current.uid,
-                    current.displayName,
-                    current.photoUrl?.toString(),
-                    loginMethod(current),
-                )
+                    val profile = firestore.fetchOrCreateUser(
+                        current.uid,
+                        current.displayName,
+                        current.photoUrl?.toString(),
+                        loginMethod(current),
+                    )
 
-                userListener = firestore.observeUser(
-                    uid = current.uid,
-                    onUserChanged = { updatedUser ->
-                        if (observedUid == current.uid) user = updatedUser ?: profile
-                    },
-                    onError = { e ->
-                        if (observedUid == current.uid) error = e.message ?: "Could not listen to user profile"
-                    },
-                )
+                    userListener = firestore.observeUser(
+                        uid = current.uid,
+                        onUserChanged = { updatedUser ->
+                            if (observedUid == current.uid) user = updatedUser ?: profile
+                        },
+                        onError = { e ->
+                            if (observedUid == current.uid) error = e.message ?: "Could not listen to user profile"
+                        },
+                    )
 
-                user = profile
-                signedIn = true
-                loadFeed()
+                    user = profile
+                    signedIn = true
+                    loadFeed()
+                    true
+                }
+
+                if (completed == null && observedUid == current.uid) {
+                    // Do not leave the user trapped on the startup spinner if a Firebase
+                    // request is unavailable or takes too long. The main UI can still open
+                    // and report the backend problem without blocking the whole application.
+                    error = "Some account data could not be loaded yet. Please check your connection and try again."
+                    signedIn = true
+                    isAdmin = false
+                }
             } catch (e: Exception) {
                 if (observedUid == current.uid) {
                     error = e.message ?: "Could not load user profile"
@@ -115,7 +129,25 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
         }
     }
 
-    init { firebaseAuth.addAuthStateListener(authStateListener) }
+    init {
+        firebaseAuth.addAuthStateListener(authStateListener)
+
+        // Safety net for the initial Firebase auth callback. If it never arrives,
+        // do not keep the entire application on an infinite loading spinner.
+        viewModelScope.launch {
+            delay(12_000L)
+            if (loading && observedUid == null) {
+                val current = firebaseAuth.currentUser
+                signedIn = current != null
+                if (current == null) {
+                    error = null
+                } else {
+                    error = "Account startup timed out. Please try again."
+                }
+                loading = false
+            }
+        }
+    }
 
     override fun onCleared() {
         userListener?.remove()
