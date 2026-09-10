@@ -78,6 +78,22 @@ jobs:
 
           "$JDK_DIR/bin/java" -version
 
+      - name: Install Gradle 9.7.1
+        if: matrix.language == 'java-kotlin'
+        shell: bash
+        run: |
+          set -euo pipefail
+          GRADLE_VERSION='9.7.1'
+          GRADLE_ARCHIVE="gradle-${GRADLE_VERSION}-bin.zip"
+          GRADLE_URL="https://services.gradle.org/distributions/${GRADLE_ARCHIVE}"
+          GRADLE_DIR="/opt/gradle-${GRADLE_VERSION}"
+
+          curl -fL --retry 5 --retry-delay 2 "$GRADLE_URL" -o /tmp/gradle.zip
+          sudo rm -rf "$GRADLE_DIR"
+          sudo mkdir -p "$GRADLE_DIR"
+          sudo unzip -q /tmp/gradle.zip -d /opt
+          echo "$GRADLE_DIR/bin" >> "$GITHUB_PATH"
+
       - name: Verify Eclipse Temurin OpenJDK 26.0.2.1
         if: matrix.language == 'java-kotlin'
         run: |
@@ -86,10 +102,12 @@ jobs:
           echo "GRADLE_OPTS=$GRADLE_OPTS"
           java -version 2>&1 | grep -q '26.0.2.1'
 
-      - name: Verify Gradle uses Temurin JDK 26
+      - name: Verify Gradle 9.7.1 uses Temurin JDK 26.0.2.1
         if: matrix.language == 'java-kotlin'
-        working-directory: Android
-        run: ./gradlew --version
+        run: |
+          gradle --version
+          gradle --version 2>&1 | grep -q 'Gradle 9.7.1'
+          gradle --version 2>&1 | grep -q '26.0.2.1'
 
       - name: Register Temurin JDK 26 for CodeQL toolchain selection
         if: matrix.language == 'java-kotlin'
