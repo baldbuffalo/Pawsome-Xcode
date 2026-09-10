@@ -67,6 +67,14 @@ android {
     }
 }
 
+// Explicitly use the Java 26 toolchain for both Java and Kotlin compilation.
+// CI installs Eclipse Temurin 26.0.2.1 at the requested path.
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(26)
+    }
+}
+
 // The Google Services plugin requires google-services.json, which is intentionally
 // not committed. Apply it for normal builds when the Firebase configuration exists,
 // but omit it for source-analysis builds such as CodeQL autobuild.
