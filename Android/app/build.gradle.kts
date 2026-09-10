@@ -67,9 +67,13 @@ android {
     }
 }
 
-// CI runs Gradle itself on Eclipse Temurin JDK 26.0.2.1, so Java compilation
-// uses that same JDK directly instead of asking Gradle to locate a separate
-// Java 26 toolchain installation.
+// Explicitly select the same Java 26 toolchain that CI exposes through JAVA_HOME.
+// Gradle registers JAVA_HOME via org.gradle.java.installations.fromEnv.
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(26)
+    }
+}
 
 // The Google Services plugin requires google-services.json, which is intentionally
 // not committed. Apply it for normal builds when the Firebase configuration exists,
