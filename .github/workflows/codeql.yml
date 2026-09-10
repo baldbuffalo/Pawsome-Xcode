@@ -32,7 +32,7 @@ jobs:
 
           - language: java-kotlin
             runner: ubuntu-latest
-            build-mode: autobuild
+            build-mode: manual
 
           - language: javascript-typescript
             runner: ubuntu-latest
@@ -75,6 +75,8 @@ jobs:
           echo "JAVA_HOME=$JDK_DIR" >> "$GITHUB_ENV"
           echo "$JDK_DIR/bin" >> "$GITHUB_PATH"
           echo "GRADLE_OPTS=-Dorg.gradle.java.home=$JDK_DIR" >> "$GITHUB_ENV"
+          echo "JAVA_TOOL_OPTIONS=-Dorg.gradle.java.home=$JDK_DIR" >> "$GITHUB_ENV"
+          echo "GRADLE_JAVA_HOME=$JDK_DIR" >> "$GITHUB_ENV"
 
           "$JDK_DIR/bin/java" -version
 
@@ -90,7 +92,6 @@ jobs:
 
           curl -fL --retry 5 --retry-delay 2 "$GRADLE_URL" -o /tmp/gradle.zip
           sudo rm -rf "$GRADLE_DIR"
-          sudo mkdir -p "$GRADLE_DIR"
           sudo unzip -q /tmp/gradle.zip -d /opt
           echo "$GRADLE_DIR/bin" >> "$GITHUB_PATH"
 
@@ -104,6 +105,7 @@ jobs:
 
       - name: Verify Gradle 9.7.1 uses Temurin JDK 26.0.2.1
         if: matrix.language == 'java-kotlin'
+        working-directory: Android
         run: |
           gradle --version
           gradle --version 2>&1 | grep -q 'Gradle 9.7.1'
@@ -135,6 +137,18 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
+
+      - name: Build Android for CodeQL
+        if: matrix.language == 'java-kotlin'
+        working-directory: Android
+        shell: bash
+        run: |
+          set -euo pipefail
+          export JAVA_HOME="/opt/temurin-26.0.2.1"
+          export PATH="$JAVA_HOME/bin:$PATH"
+          export GRADLE_OPTS="-Dorg.gradle.java.home=$JAVA_HOME"
+          gradle --stop || true
+          gradle :app:assembleRelease --no-daemon --stacktrace
 
       - name: Verify Swift Intel CodeQL environment
         if: matrix.language == 'swift'
