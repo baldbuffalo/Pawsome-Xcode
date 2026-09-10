@@ -50,7 +50,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@v4
 
       - name: Prepare Android Firebase configuration for CodeQL
         if: matrix.language == 'java-kotlin'
@@ -64,7 +64,7 @@ jobs:
           JDK_VERSION='26.0.2.1'
           JDK_TAG='jdk-26.0.2.1+1'
           JDK_ARCHIVE="OpenJDK26U-jdk_x64_linux_hotspot_${JDK_VERSION}_1.tar.gz"
-          JDK_URL="https://github.com/adoptium/temurin26-binaries/releases/download/${JDK_TAG//+/%2B}/${JDK_ARCHIVE}"
+          JDK_URL="https://github.com{JDK_TAG//+/%2B}/${JDK_ARCHIVE}"
           JDK_DIR="/opt/temurin-${JDK_VERSION}"
 
           curl -fL --retry 5 --retry-delay 2 "$JDK_URL" -o /tmp/temurin-jdk.tar.gz
@@ -118,7 +118,7 @@ jobs:
           set -euo pipefail
           echo "Runner architecture: $(uname -m)"
           echo "Swift:"
-          arch -arm64 swift --version
+          swift --version
           echo "Xcode:"
           xcodebuild -version
           echo "swiftc:"
@@ -129,6 +129,10 @@ jobs:
       - name: Autobuild compiled languages
         if: matrix.build-mode == 'autobuild'
         uses: github/codeql-action/autobuild@v4.37.9
+        env:
+          # Forces the underlying Apple Silicon environment to run the 
+          # CodeQL runner process in translated x86_64 mode safely.
+          ARCHPREFERENCE: x86_64
 
       - name: Analyze with CodeQL
         uses: github/codeql-action/analyze@v4.37.9
