@@ -24,12 +24,24 @@ jobs:
           distribution: temurin
           java-version: '26.0.2+101'
           check-latest: true
+      - name: Force configured JDK onto PATH
+        run: |
+          set -euo pipefail
+          echo "$JAVA_HOME/bin" >> "$GITHUB_PATH"
+          echo "JAVA_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
+          export PATH="$JAVA_HOME/bin:$PATH"
+          echo "Using JAVA_HOME=$JAVA_HOME"
+          command -v java
+          command -v javac
+          "$JAVA_HOME/bin/java" -version 2>&1
+          "$JAVA_HOME/bin/javac" -version 2>&1
       - uses: gradle/actions/setup-gradle@v6.2.0
         with:
           gradle-version: '9.7.1'
       - name: Verify exact JDK
         run: |
           set -euo pipefail
+          export PATH="$JAVA_HOME/bin:$PATH"
           java -version 2>&1
           javac -version 2>&1
           java -version 2>&1 | grep -q '26.0.2'
@@ -53,6 +65,7 @@ jobs:
           PAWSOME_KEY_PASSWORD: ${{ secrets.PAWSOME_KEY_PASSWORD }}
         run: |
           set -euo pipefail
+          export PATH="$JAVA_HOME/bin:$PATH"
 
           echo "GITHUB_TOKEN=$PAWSOME_IMAGE_UPLOAD_TOKEN" >> gradle.properties
           echo "TWITTER_CONSUMER_KEY=$TWITTER_CONSUMER_KEY" >> gradle.properties
@@ -74,13 +87,11 @@ jobs:
           export ANDROID_KEY_ALIAS="$KEY_ALIAS"
           export ANDROID_KEY_PASSWORD="$KEY_PASSWORD"
 
-          # Explicitly build the RELEASE variant. Never assembleDebug here.
           gradle clean assembleRelease
 
           APK_FILE=$(find app/build/outputs/apk/release -type f -name '*-release.apk' ! -name '*-unsigned.apk' -print -quit)
           test -n "$APK_FILE"
 
-          # Refuse an unsigned APK even if Gradle produced one unexpectedly.
           "$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n1)/apksigner" verify "$APK_FILE"
 
           mkdir -p build/release-apk
