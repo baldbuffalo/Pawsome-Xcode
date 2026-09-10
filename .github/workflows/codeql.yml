@@ -26,8 +26,11 @@ jobs:
             runner: ubuntu-latest
             build-mode: none
 
+          # Swift CodeQL autobuild currently requires the Intel tracer.
+          # Keep the Swift CodeQL job on Intel; other languages remain on their
+          # appropriate native runners.
           - language: swift
-            runner: macos-latest
+            runner: macos-26-intel
             build-mode: autobuild
 
           - language: java-kotlin
@@ -64,7 +67,7 @@ jobs:
           JDK_VERSION='26.0.2.1'
           JDK_TAG='jdk-26.0.2.1+1'
           JDK_ARCHIVE="OpenJDK26U-jdk_x64_linux_hotspot_${JDK_VERSION}_1.tar.gz"
-          JDK_URL="https://github.com{JDK_TAG//+/%2B}/${JDK_ARCHIVE}"
+          JDK_URL="https://github.com/adoptium/temurin26-binaries/releases/download/${JDK_TAG//+/%2B}/${JDK_ARCHIVE}"
           JDK_DIR="/opt/temurin-${JDK_VERSION}"
 
           curl -fL --retry 5 --retry-delay 2 "$JDK_URL" -o /tmp/temurin-jdk.tar.gz
@@ -111,7 +114,7 @@ jobs:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
 
-      - name: Verify Swift ARM64
+      - name: Verify Swift Intel CodeQL environment
         if: matrix.language == 'swift'
         shell: bash
         run: |
@@ -126,17 +129,8 @@ jobs:
           echo "xcodebuild:"
           xcrun --find xcodebuild
 
-      # 1. Swift Autobuild: Intercept and force execution under Rosetta 2 shell
-      - name: Autobuild Swift (Rosetta 2 Translation)
-        if: matrix.language == 'swift' && matrix.build-mode == 'autobuild'
-        shell: bash
-        run: |
-          echo "Launching Swift Autobuilder using x86_64 translation shell..."
-          arch -x86_64 node $GITHUB_ACTION_PATH/../autobuild/main.js
-
-      # 2. Standard Autobuild: Runs normally for Java, Kotlin, and C#
       - name: Autobuild compiled languages
-        if: matrix.language != 'swift' && matrix.build-mode == 'autobuild'
+        if: matrix.build-mode == 'autobuild'
         uses: github/codeql-action/autobuild@v4.37.9
 
       - name: Analyze with CodeQL
