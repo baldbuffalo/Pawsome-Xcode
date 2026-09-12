@@ -76,16 +76,21 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
             return@AuthStateListener
         }
 
-        signedIn = true
+        // Keep the app on the startup gate until Auth, the user profile,
+        // and the initial Firestore feed have all completed successfully.
+        signedIn = false
         loading = true
         error = null
 
         viewModelScope.launch {
             try {
                 val completed = withTimeoutOrNull(15_000L) {
+                    // This must succeed before the app is considered authenticated.
                     val token = current.getIdToken(false).await()
                     isAdmin = token.claims["admin"] == true
 
+                    // This read/create operation verifies that Firestore is reachable
+                    // and that the authenticated user can access their profile.
                     val profile = firestore.fetchOrCreateUser(
                         current.uid,
                         current.displayName,
@@ -106,18 +111,22 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
                     )
 
                     user = profile
+
+                    // Do not launch this in a separate coroutine during startup.
+                    // The initial feed read must complete successfully before the
+                    // main UI is allowed to open.
+                    posts = firestore.getPosts()
                     signedIn = true
-                    loadFeed()
                     true
                 }
 
                 if (completed == null && observedUid == current.uid) {
-                    // Backend is required for the app. Do not enter the main UI when
-                    // authentication/profile startup cannot be completed.
                     signedIn = false
                     isAdmin = false
                     user = null
                     posts = emptyList()
+                    userListener?.remove()
+                    userListener = null
                     error = "Could not connect to Firebase. Check your internet connection and try again."
                 }
             } catch (e: Exception) {
@@ -126,6 +135,8 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
                     isAdmin = false
                     user = null
                     posts = emptyList()
+                    userListener?.remove()
+                    userListener = null
                     error = e.message ?: "Could not connect to Firebase. Check your connection and try again."
                 }
             } finally {
