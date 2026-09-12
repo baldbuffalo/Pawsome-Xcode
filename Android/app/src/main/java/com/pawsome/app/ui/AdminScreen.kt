@@ -45,7 +45,7 @@ fun AdminScreen(onBack: () -> Unit = {}) {
             .post(JSONObject().put("data", data).toString().toRequestBody("application/json".toMediaType()))
             .build()
         client.newCall(request).execute().use { response ->
-            val text = response.body?.string().orEmpty()
+            val text = response.body.string()
             if (!response.isSuccessful) error(text.ifBlank { "Firebase function failed" })
             JSONObject(text).optJSONObject("data") ?: JSONObject()
         }
@@ -62,7 +62,9 @@ fun AdminScreen(onBack: () -> Unit = {}) {
             val docs = p.optJSONArray("documents")
             posts = buildList {
                 if (docs != null) for (i in 0 until docs.length()) {
-                    val d = docs.getJSONObject(i); add(d.optString("path") to d.optJSONObject("fields").orEmpty())
+                    val d = docs.getJSONObject(i)
+                    val fields = d.optJSONObject("fields") ?: JSONObject()
+                    add(d.optString("path") to fields)
                 }
             }
             val fields = c.optJSONObject("fields") ?: JSONObject()
@@ -117,5 +119,3 @@ fun AdminScreen(onBack: () -> Unit = {}) {
 private fun SwitchRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(label); Switch(checked, onCheckedChange) }
 }
-
-private fun JSONObject.orEmpty() = this
