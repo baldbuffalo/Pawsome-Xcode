@@ -22,7 +22,6 @@ public sealed class CommentsViewModel : ObservableObject
     public string CatName => Post.CatName;
     public string OwnerUsername => Post.OwnerUsername;
     public string ImageUrl => Post.ImageUrl;
-
     private bool _isLoading = true;
     public bool IsLoading { get => _isLoading; private set => SetProperty(ref _isLoading, value); }
     private bool _isEmpty;
@@ -41,8 +40,9 @@ public sealed class CommentsViewModel : ObservableObject
         {
             var comments = await _services.Firestore.GetCommentsAsync(Post.Model.Id);
             Comments.Clear();
+            var userID = _services.Session.CurrentUser?.UserNumber;
             foreach (var c in comments)
-                Comments.Add(new CommentItemViewModel(c, _services, _services.Session.CurrentUid, RemoveLocally));
+                Comments.Add(new CommentItemViewModel(c, _services, userID, RemoveLocally));
         }
         finally
         {
@@ -56,7 +56,6 @@ public sealed class CommentsViewModel : ObservableObject
         var text = NewComment.Trim();
         var user = _services.Session.CurrentUser;
         if (string.IsNullOrEmpty(text) || user is null || user.UserNumber <= 0) return;
-
         IsPosting = true;
         try
         {
@@ -68,16 +67,12 @@ public sealed class CommentsViewModel : ObservableObject
                 ["ProfilePic"] = user.ProfilePic ?? "",
                 ["timestamp"] = DateTimeOffset.UtcNow,
             };
-
             await _services.Firestore.AddCommentAsync(Post.Model.Id, fields);
             NewComment = "";
             Post.AdjustCommentCount(1);
             await LoadAsync();
         }
-        finally
-        {
-            IsPosting = false;
-        }
+        finally { IsPosting = false; }
     }
 
     private void RemoveLocally(CommentItemViewModel item)
