@@ -7,12 +7,7 @@ using Pawsome.Core.Models;
 
 namespace Pawsome.Core.Firestore;
 
-/// <summary>
-/// A client-side Firestore client built on the REST API and authenticated with
-/// the user's Firebase ID token, so the project's Security Rules apply exactly
-/// as they do for the iOS/macOS app. It reads/writes the same collections:
-/// <c>posts</c>, <c>posts/{id}/comments</c>, <c>users</c> and <c>counter</c>.
-/// </summary>
+/// <summary>Windows Firestore client using the Android Firestore schema.</summary>
 public sealed class FirestoreService
 {
     private readonly HttpClient _http;
@@ -29,7 +24,6 @@ public sealed class FirestoreService
     private static string FullName(string relativePath) =>
         $"projects/{PawsomeConfig.FirebaseProjectId}/databases/(default)/documents/{relativePath}";
 
-    // ── POSTS ───────────────────────────────────────────────────────────────
     public async Task<List<Post>> GetPostsAsync(int limit = 50, CancellationToken ct = default)
     {
         var query = new JsonObject
@@ -41,7 +35,7 @@ public sealed class FirestoreService
                 {
                     new JsonObject
                     {
-                        ["field"] = new JsonObject { ["fieldPath"] = "timestamp" },
+                        ["field"] = new JsonObject { ["fieldPath"] = "PostedAt" },
                         ["direction"] = "DESCENDING",
                     }
                 },
@@ -78,7 +72,6 @@ public sealed class FirestoreService
         return CommitTransformAsync($"posts/{postId}", transform, ct);
     }
 
-    // ── COMMENTS ──────────────────────────────────────────────────────────────
     public async Task<List<PostComment>> GetCommentsAsync(string postId, CancellationToken ct = default)
     {
         var query = new JsonObject
@@ -108,8 +101,7 @@ public sealed class FirestoreService
     {
         var name = await CreateDocumentAsync($"posts/{postId}/comments", fields, ct).ConfigureAwait(false);
         await CommitTransformAsync($"posts/{postId}",
-            new JsonObject { ["fieldPath"] = "commentCount", ["increment"] = FirestoreValue.FromObject(1L) },
-            ct).ConfigureAwait(false);
+            new JsonObject { ["fieldPath"] = "commentCount", ["increment"] = FirestoreValue.FromObject(1L) }, ct).ConfigureAwait(false);
         return name.Split('/').Last();
     }
 
@@ -117,15 +109,12 @@ public sealed class FirestoreService
     {
         await DeleteDocumentAsync($"posts/{postId}/comments/{commentId}", ct).ConfigureAwait(false);
         await CommitTransformAsync($"posts/{postId}",
-            new JsonObject { ["fieldPath"] = "commentCount", ["increment"] = FirestoreValue.FromObject(-1L) },
-            ct).ConfigureAwait(false);
+            new JsonObject { ["fieldPath"] = "commentCount", ["increment"] = FirestoreValue.FromObject(-1L) }, ct).ConfigureAwait(false);
     }
 
     public Task UpdateCommentTextAsync(string postId, string commentId, string text, CancellationToken ct = default)
-        => PatchDocumentAsync($"posts/{postId}/comments/{commentId}",
-            new Dictionary<string, object?> { ["text"] = text }, ct);
+        => PatchDocumentAsync($"posts/{postId}/comments/{commentId}", new Dictionary<string, object?> { ["text"] = text }, ct);
 
-    // ── USERS ─────────────────────────────────────────────────────────────────
     public async Task<AppUser?> GetUserAsync(string uid, CancellationToken ct = default)
     {
         var doc = await GetDocumentAsync($"users/{uid}", transaction: null, ct).ConfigureAwait(false);
@@ -135,54 +124,45 @@ public sealed class FirestoreService
     public Task UpdateUserAsync(string uid, IReadOnlyDictionary<string, object?> fields, CancellationToken ct = default)
         => PatchDocumentAsync($"users/{uid}", fields, ct);
 
-    /// <summary>
-    /// Fetches the user doc, or atomically creates it with the next sequential
-    /// user number — a faithful port of the Swift transaction.
-    /// </summary>
     public async Task<AppUser> FetchOrCreateUserAsync(string uid, string? defaultUsername, string? defaultImage, CancellationToken ct = default)
     {
         var existing = await GetUserAsync(uid, ct).ConfigureAwait(false);
-        if (existing is not null) return existing;
+        if (existing is not null && existing.UserNumber > 0) return existing;
 
         var transaction = await BeginTransactionAsync(ct).ConfigureAwait(false);
         var counter = await GetDocumentAsync("counter/users", transaction, ct).ConfigureAwait(false);
-        var last = counter is null ? 0 : (int)counter.GetLong("lastUserNumber");
+        var last = counter is null ? 0 : (int)counter.GetLong("lastUserID");
         var next = last + 1;
-
         var username = defaultUsername ?? $"User{next}";
+
         var writes = new JsonArray
         {
-            UpdateWrite("counter/users", new Dictionary<string, object?> { ["lastUserNumber"] = (long)next },
-                mask: new[] { "lastUserNumber" }),
+            UpdateWrite("counter/users", new Dictionary<string, object?> { ["lastUserID"] = (long)next }, new[] { "lastUserID" }),
             UpdateWrite($"users/{uid}", new Dictionary<string, object?>
             {
-                ["userNumber"] = (long)next,
-                ["username"] = username,
-                ["profilePic"] = defaultImage ?? "",
-                ["createdAt"] = DateTimeOffset.UtcNow,
+                ["Username"] = username,
+                ["ProfilePic"] = defaultImage ?? "",
+                ["UserID"] = (long)next,
+                ["LoginMethod"] = "Unknown",
+                ["JoinedOn"] = DateTimeOffset.UtcNow,
             }),
         };
 
         await CommitAsync(writes, transaction, ct).ConfigureAwait(false);
-
         return new AppUser { Uid = uid, Username = username, ProfilePic = defaultImage, UserNumber = next };
     }
 
-    // ── REST primitives ─────────────────────────────────────────────────────
-    private async Task<List<(string id, Dictionary<string, object?> fields)>> RunQueryAsync(
-        string url, JsonNode query, CancellationToken ct)
+    private async Task<List<(string id, Dictionary<string, object?> fields)>> RunQueryAsync(string url, JsonNode query, CancellationToken ct)
     {
         var node = await SendJsonAsync(HttpMethod.Post, url, query, ct).ConfigureAwait(false);
         var results = new List<(string, Dictionary<string, object?>)>();
-
         if (node is JsonArray array)
         {
             foreach (var row in array)
             {
                 if (row?["document"] is not JsonObject doc) continue;
                 var name = doc["name"]?.GetValue<string>() ?? "";
-                var id = name.Split('/').Last();
-                results.Add((id, FirestoreValue.ParseFields(doc)));
+                results.Add((name.Split('/').Last(), FirestoreValue.ParseFields(doc)));
             }
         }
         return results;
@@ -192,14 +172,11 @@ public sealed class FirestoreService
     {
         var url = $"{Base}/{relativePath}";
         if (transaction is not null) url += $"?transaction={Uri.EscapeDataString(transaction)}";
-
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         await AuthorizeAsync(request, ct).ConfigureAwait(false);
         using var response = await _http.SendAsync(request, ct).ConfigureAwait(false);
-
         if (response.StatusCode == HttpStatusCode.NotFound) return null;
         await EnsureSuccessAsync(response, ct).ConfigureAwait(false);
-
         var text = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
         return FirestoreValue.ParseFields(JsonNode.Parse(text) as JsonObject);
     }
@@ -214,9 +191,7 @@ public sealed class FirestoreService
     private async Task PatchDocumentAsync(string relativePath, IReadOnlyDictionary<string, object?> fields, CancellationToken ct)
     {
         var mask = string.Join("&", fields.Keys.Select(k => $"updateMask.fieldPaths={Uri.EscapeDataString(k)}"));
-        var url = $"{Base}/{relativePath}?{mask}";
-        var body = new JsonObject { ["fields"] = FirestoreValue.ToFields(fields) };
-        await SendJsonAsync(HttpMethod.Patch, url, body, ct).ConfigureAwait(false);
+        await SendJsonAsync(HttpMethod.Patch, $"{Base}/{relativePath}?{mask}", new JsonObject { ["fields"] = FirestoreValue.ToFields(fields) }, ct).ConfigureAwait(false);
     }
 
     private async Task DeleteDocumentAsync(string relativePath, CancellationToken ct)
@@ -235,18 +210,12 @@ public sealed class FirestoreService
 
     private Task CommitTransformAsync(string relativePath, JsonObject fieldTransform, CancellationToken ct)
     {
-        var writes = new JsonArray
+        var writes = new JsonArray { new JsonObject { ["transform"] = new JsonObject
         {
-            new JsonObject
-            {
-                ["transform"] = new JsonObject
-                {
-                    ["document"] = FullName(relativePath),
-                    ["fieldTransforms"] = new JsonArray { fieldTransform },
-                }
-            }
-        };
-        return CommitAsync(writes, transaction: null, ct);
+            ["document"] = FullName(relativePath),
+            ["fieldTransforms"] = new JsonArray { fieldTransform },
+        } } };
+        return CommitAsync(writes, null, ct);
     }
 
     private async Task CommitAsync(JsonArray writes, string? transaction, CancellationToken ct)
@@ -258,14 +227,11 @@ public sealed class FirestoreService
 
     private JsonObject UpdateWrite(string relativePath, IReadOnlyDictionary<string, object?> fields, string[]? mask = null)
     {
-        var write = new JsonObject
+        var write = new JsonObject { ["update"] = new JsonObject
         {
-            ["update"] = new JsonObject
-            {
-                ["name"] = FullName(relativePath),
-                ["fields"] = FirestoreValue.ToFields(fields),
-            }
-        };
+            ["name"] = FullName(relativePath),
+            ["fields"] = FirestoreValue.ToFields(fields),
+        } };
         if (mask is not null)
             write["updateMask"] = new JsonObject { ["fieldPaths"] = new JsonArray(mask.Select(m => (JsonNode)m!).ToArray()) };
         return write;
@@ -277,7 +243,6 @@ public sealed class FirestoreService
         await AuthorizeAsync(request, ct).ConfigureAwait(false);
         using var response = await _http.SendAsync(request, ct).ConfigureAwait(false);
         await EnsureSuccessAsync(response, ct).ConfigureAwait(false);
-
         var text = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
         return string.IsNullOrWhiteSpace(text) ? null : JsonNode.Parse(text);
     }
