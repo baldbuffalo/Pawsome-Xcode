@@ -1,6 +1,7 @@
 import FirebaseFirestore
 
 /// Apple-native Firestore adapter used by the iOS and macOS Pawsome targets.
+/// Firestore schema follows the Android implementation exactly.
 public final class PawsomeFirestore {
     public static let shared = PawsomeFirestore()
     private let db = Firestore.firestore()
@@ -11,22 +12,25 @@ public final class PawsomeFirestore {
         return snapshot.exists ? snapshot.data() : nil
     }
 
-    public func createOrUpdateUser(uid: String, username: String?, profilePic: String?) async throws {
+    public func createOrUpdateUser(uid: String, username: String?, profilePic: String?, loginMethod: String = "Unknown") async throws {
         let userRef = db.collection("users").document(uid)
         let counterRef = db.collection("counter").document("users")
         try await db.runTransaction { transaction, errorPointer in
             do {
+                let existing = try transaction.getDocument(userRef)
+                if existing.exists { return nil }
                 let counterSnapshot = try transaction.getDocument(counterRef)
-                let lastUserNumber = counterSnapshot.data()?["lastUserNumber"] as? Int ?? 0
-                let nextUserNumber = lastUserNumber + 1
-                transaction.setData(["lastUserNumber": nextUserNumber], forDocument: counterRef, merge: true)
+                let lastUserID = counterSnapshot.data()?["lastUserID"] as? Int ?? 0
+                let nextUserID = lastUserID + 1
+                transaction.setData(["lastUserID": nextUserID], forDocument: counterRef, merge: true)
                 transaction.setData([
-                    "username": username ?? "User",
-                    "profilePic": profilePic ?? "",
-                    "userNumber": nextUserNumber,
-                    "joinedOn": FieldValue.serverTimestamp()
+                    "Username": username ?? "User",
+                    "ProfilePic": profilePic ?? "",
+                    "UserID": nextUserID,
+                    "LoginMethod": loginMethod,
+                    "JoinedOn": FieldValue.serverTimestamp()
                 ], forDocument: userRef, merge: false)
-            } catch { errorPointer?.pointee = error }
+            } catch { errorPointer?.pointee = error as NSError }
             return nil
         }
     }
@@ -42,12 +46,10 @@ public final class PawsomeFirestore {
 
     public func createPost(fields: [String: Any]) async throws -> String {
         var fields = fields
-        if fields["UserId"] == nil {
-            throw NSError(domain: "PawsomeFirestore", code: 1, userInfo: [NSLocalizedDescriptionKey: "UserId is required when creating a post"])
+        guard fields["UserID"] != nil else {
+            throw NSError(domain: "PawsomeFirestore", code: 1, userInfo: [NSLocalizedDescriptionKey: "UserID is required when creating a post"])
         }
-        if fields["PostedAt"] == nil {
-            fields["PostedAt"] = FieldValue.serverTimestamp()
-        }
+        if fields["PostedAt"] == nil { fields["PostedAt"] = FieldValue.serverTimestamp() }
         let ref = try await db.collection("posts").addDocument(data: fields)
         return ref.documentID
     }
