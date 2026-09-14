@@ -52,16 +52,21 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
     val uid: String? get() = firebaseAuth.currentUser?.uid
 
     private var observedUid: String? = null
+    private var authStateReceived = false
     private var userListener: ListenerRegistration? = null
 
     private val authStateListener = FirebaseAuth.AuthStateListener { auth ->
         busyGoogle = false
         busyTwitter = false
+        authStateReceived = true
 
         val current = auth.currentUser
         val currentUid = current?.uid
 
-        if (currentUid == observedUid) return@AuthStateListener
+        // The first AuthStateListener callback can legitimately have currentUser == null.
+        // Do not treat that initial null state as "no change"; it is the successful
+        // Firebase Auth initialization state and should open the login screen.
+        if (authStateReceived && currentUid == observedUid && observedUid != null) return@AuthStateListener
 
         userListener?.remove()
         userListener = null
@@ -73,6 +78,7 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
             user = null
             posts = emptyList()
             loading = false
+            error = null
             return@AuthStateListener
         }
 
@@ -152,7 +158,7 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
         // blocked rather than allowing it into a partially initialized state.
         viewModelScope.launch {
             delay(15_000L)
-            if (loading && observedUid == null) {
+            if (loading && !authStateReceived) {
                 loading = false
                 signedIn = false
                 isAdmin = false
