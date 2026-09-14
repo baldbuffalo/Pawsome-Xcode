@@ -8,17 +8,15 @@ struct FormView: View {
     @Binding var activeHomeFlow: PawsomeApp.HomeFlow?
     var onPostCreated: (() -> Void)?
 
-    @State private var catName      = ""
-    @State private var description  = ""
-    @State private var age          = ""
-    @State private var isPosting    = false
+    @State private var catName = ""
+    @State private var description = ""
+    @State private var age = ""
+    @State private var isPosting = false
     @State private var errorMessage: String?
 
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-
-                // ── Header ──────────────────────────────────────────────
                 HStack {
                     Button {
                         appState.selectedImage = nil
@@ -33,7 +31,6 @@ struct FormView: View {
                 }
                 .padding(.horizontal)
 
-                // ── Preview image ────────────────────────────────────────
                 if let image = appState.selectedImage {
                     previewImage(image)
                         .resizable()
@@ -44,10 +41,9 @@ struct FormView: View {
                         .padding(.horizontal)
                 }
 
-                // ── Fields ───────────────────────────────────────────────
                 VStack(spacing: 14) {
-                    FormField(icon: "pawprint.fill",  placeholder: "Cat Name",    text: $catName)
-                    FormField(icon: "number",          placeholder: "Age (years)", text: $age)
+                    FormField(icon: "pawprint.fill", placeholder: "Cat Name", text: $catName)
+                    FormField(icon: "number", placeholder: "Age (years)", text: $age)
                     #if os(iOS)
                         .keyboardType(.numberPad)
                     #endif
@@ -55,25 +51,19 @@ struct FormView: View {
                 }
                 .padding(.horizontal)
 
-                // ── Error ────────────────────────────────────────────────
                 if let error = errorMessage {
                     Text(error)
                         .font(.footnote).foregroundColor(.red)
                         .padding(.horizontal).multilineTextAlignment(.center)
                 }
 
-                // ── Post button ───────────────────────────────────────────
                 Button { Task { await submitPost() } } label: {
                     HStack {
                         if isPosting { ProgressView().tint(.white).padding(.trailing, 6) }
                         Text(isPosting ? "Uploading…" : "Post 🐾").font(.headline)
                     }
                     .frame(maxWidth: .infinity).padding()
-                    .background(
-                        isFormComplete && !isPosting
-                            ? Color(red: 0.49, green: 0.23, blue: 0.93)
-                            : Color.gray
-                    )
+                    .background(isFormComplete && !isPosting ? Color(red: 0.49, green: 0.23, blue: 0.93) : Color.gray)
                     .foregroundColor(.white)
                     .clipShape(RoundedRectangle(cornerRadius: 16))
                     .padding(.horizontal)
@@ -86,7 +76,6 @@ struct FormView: View {
         .onAppear { activeHomeFlow = .form }
     }
 
-    // MARK: - Cross-platform image helper
     private func previewImage(_ image: PlatformImage) -> Image {
         #if os(iOS)
         return Image(uiImage: image)
@@ -95,47 +84,41 @@ struct FormView: View {
         #endif
     }
 
-    // MARK: - Submit (all logic inline)
     private func submitPost() async {
-        guard
-            isFormComplete,
-            let image = appState.selectedImage,
-            let uid   = Auth.auth().currentUser?.uid
-        else { return }
+        guard isFormComplete,
+              let image = appState.selectedImage,
+              let uid = Auth.auth().currentUser?.uid,
+              let userID = appState.currentUserID else { return }
 
-        isPosting    = true
+        isPosting = true
         errorMessage = nil
 
         do {
-            // 1. Upload image → GitHub pawsome-assets/postImages/
-            let resized  = image.resizedForUpload(maxDimension: 1200)
+            let resized = image.resizedForUpload(maxDimension: 1200)
             let filename = "\(uid)_\(Int(Date().timeIntervalSince1970)).jpg"
-            let imageURL = try await GitHubUploader.shared.uploadImage(
-                resized, filename: filename, folder: "postImages"
-            )
+            let imageURL = try await GitHubUploader.shared.uploadImage(resized, filename: filename, folder: "postImages")
 
-            // 2. Grab author's profile pic
-            let userSnap   = try? await Firestore.firestore().collection("users").document(uid).getDocument()
-            let profilePic = userSnap?.data()?["profilePic"] as? String ?? ""
+            let userSnap = try await Firestore.firestore().collection("users").document(uid).getDocument()
+            let data = userSnap.data() ?? [:]
+            let username = data["Username"] as? String ?? appState.currentUsername
+            let profilePic = data["ProfilePic"] as? String ?? ""
 
-            // 3. Save post to Firestore
             try await Firestore.firestore().collection("posts").addDocument(data: [
-                "catName":         catName.trimmingCharacters(in: .whitespacesAndNewlines),
-                "description":     description.trimmingCharacters(in: .whitespacesAndNewlines),
-                "age":             age.trimmingCharacters(in: .whitespacesAndNewlines),
-                "imageURL":        imageURL,
-                "ownerUID":        uid,
-                "ownerUsername":   appState.currentUsername,
-                "ownerProfilePic": profilePic,
-                "timestamp":       Timestamp(),
-                "likes":           [String](),
-                "commentCount":    0
+                "catName": catName.trimmingCharacters(in: .whitespacesAndNewlines),
+                "description": description.trimmingCharacters(in: .whitespacesAndNewlines),
+                "age": age.trimmingCharacters(in: .whitespacesAndNewlines),
+                "imageURL": imageURL,
+                "UserID": userID,
+                "Username": username,
+                "ProfilePic": profilePic,
+                "PostedAt": FieldValue.serverTimestamp(),
+                "likes": [String](),
+                "commentCount": 0
             ])
 
             appState.selectedImage = nil
-            activeHomeFlow         = nil
+            activeHomeFlow = nil
             onPostCreated?()
-
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -151,7 +134,6 @@ struct FormView: View {
     }
 }
 
-// MARK: - Reusable field
 private struct FormField: View {
     let icon: String
     let placeholder: String
