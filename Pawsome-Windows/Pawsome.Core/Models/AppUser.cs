@@ -13,8 +13,8 @@ public sealed class AppUser
     public static AppUser FromFirestore(string uid, IReadOnlyDictionary<string, object?> data) => new()
     {
         Uid = uid,
-        Username = data.GetString("username") ?? "User",
-        ProfilePic = data.GetString("profilePic"),
-        UserNumber = (int)data.GetLong("userNumber"),
+        Username = data.GetString("Username") ?? "User",
+        ProfilePic = data.GetString("ProfilePic"),
+        UserNumber = (int)data.GetLong("UserID"),
     };
 }
