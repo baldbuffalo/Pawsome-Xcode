@@ -5,12 +5,13 @@ using Pawsome.Core.Models;
 
 namespace Pawsome.App.ViewModels;
 
-/// <summary>A single post in the feed, with optimistic like/comment state.</summary>
+/// <summary>A single post in the feed, using Android UserID for ownership.</summary>
 public sealed class PostItemViewModel : ObservableObject
 {
     private readonly AppServices _services;
     private readonly IPostInteraction _interaction;
     private readonly string? _currentUid;
+    private readonly int? _currentUserID;
 
     public Post Model { get; private set; }
 
@@ -20,6 +21,7 @@ public sealed class PostItemViewModel : ObservableObject
         _services = services;
         _interaction = interaction;
         _currentUid = currentUid;
+        _currentUserID = services.Session.CurrentUser?.UserNumber;
 
         _isLiked = model.IsLikedBy(currentUid);
         _likeCount = model.LikeCount;
@@ -39,14 +41,12 @@ public sealed class PostItemViewModel : ObservableObject
     public string OwnerProfilePic => Model.OwnerProfilePic;
     public string ImageUrl => Model.ImageUrl;
     public string TimeAgo => Model.TimeAgo;
-    public bool CanDelete => _currentUid is not null && Model.OwnerUid == _currentUid;
+    public bool CanDelete => _currentUserID is not null && Model.UserID == _currentUserID.Value;
 
     private bool _isLiked;
     public bool IsLiked { get => _isLiked; private set => SetProperty(ref _isLiked, value); }
-
     private int _likeCount;
     public int LikeCount { get => _likeCount; private set => SetProperty(ref _likeCount, value); }
-
     private int _commentCount;
     public int CommentCount { get => _commentCount; private set => SetProperty(ref _commentCount, value); }
 
@@ -58,25 +58,19 @@ public sealed class PostItemViewModel : ObservableObject
     private async Task ToggleLikeAsync()
     {
         if (_currentUid is null) return;
-
         var like = !IsLiked;
         IsLiked = like;
         LikeCount += like ? 1 : -1;
-
-        try
-        {
-            await _services.Firestore.ToggleLikeAsync(Model.Id, _currentUid, like);
-        }
+        try { await _services.Firestore.ToggleLikeAsync(Model.Id, _currentUid, like); }
         catch
         {
-            IsLiked = !like;             // revert optimistic update on failure
+            IsLiked = !like;
             LikeCount += like ? -1 : 1;
         }
     }
 
     public void AdjustCommentCount(int delta) => CommentCount = Math.Max(0, CommentCount + delta);
 
-    /// <summary>Reconciles this item with fresh server data during a refresh.</summary>
     public void UpdateFrom(Post fresh)
     {
         Model = fresh;
