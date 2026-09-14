@@ -42,18 +42,24 @@ struct PawsomeApp: App {
         @Published var isAuthChecked = false
         @Published var isAdmin = false
         @Published var currentUsername = ""
+        @Published var currentUserID: Int?
         @Published var profileImageURL: String?
         @Published var selectedImage: PlatformImage? = nil
 
         private var authListener: AuthStateDidChangeListenerHandle?
         lazy var db: Firestore = Firestore.firestore()
 
-        func login(username: String, imageURL: String?) { isLoggedIn = true; currentUsername = username; profileImageURL = imageURL }
+        func login(username: String, imageURL: String?, userID: Int? = nil) {
+            isLoggedIn = true
+            currentUsername = username
+            profileImageURL = imageURL
+            if let userID { currentUserID = userID }
+        }
 
         func logout() {
             if let handle = authListener { Auth.auth().removeStateDidChangeListener(handle); authListener = nil }
             do { try Auth.auth().signOut() } catch { print("❌ Sign out failed:", error) }
-            isLoggedIn = false; isAdmin = false; currentUsername = ""; profileImageURL = nil; selectedImage = nil
+            isLoggedIn = false; isAdmin = false; currentUsername = ""; currentUserID = nil; profileImageURL = nil; selectedImage = nil
         }
 
         func observeAuthState() {
@@ -87,19 +93,39 @@ struct PawsomeApp: App {
                 let doc = try await userRef.getDocument()
                 if doc.exists {
                     let data = doc.data() ?? [:]
-                    login(username: data["username"] as? String ?? data["Username"] as? String ?? "User", imageURL: data["profilePic"] as? String ?? data["ProfilePic"] as? String)
+                    let userID = data["UserID"] as? Int
+                    login(
+                        username: data["Username"] as? String ?? "User",
+                        imageURL: data["ProfilePic"] as? String ?? "",
+                        userID: userID
+                    )
                     return
                 }
-                let newUserNumber = try await db.runTransaction { transaction, errorPointer in
+
+                let newUserID = try await db.runTransaction { transaction, errorPointer in
                     do {
+                        let existing = try transaction.getDocument(userRef)
+                        if existing.exists { return existing.data()?["UserID"] as? Int ?? 0 }
+
                         let counterSnap = try transaction.getDocument(counterRef)
-                        let next = (counterSnap.data()?["lastUserNumber"] as? Int ?? 0) + 1
-                        transaction.updateData(["lastUserNumber": next], forDocument: counterRef)
-                        transaction.setData(["userNumber": next, "username": defaultUsername ?? "User\(next)", "profilePic": defaultImage ?? "", "createdAt": Timestamp()], forDocument: userRef)
+                        let next = (counterSnap.data()?["lastUserID"] as? Int ?? 0) + 1
+                        transaction.setData(["lastUserID": next], forDocument: counterRef, merge: true)
+                        transaction.setData([
+                            "Username": defaultUsername ?? "User\(next)",
+                            "ProfilePic": defaultImage ?? "",
+                            "UserID": next,
+                            "LoginMethod": "Unknown",
+                            "JoinedOn": FieldValue.serverTimestamp()
+                        ], forDocument: userRef, merge: false)
                         return next
                     } catch { errorPointer?.pointee = error as NSError; return nil }
                 }
-                login(username: defaultUsername ?? "User\(newUserNumber ?? 0)", imageURL: defaultImage)
+
+                login(
+                    username: defaultUsername ?? "User\(newUserID ?? 0)",
+                    imageURL: defaultImage,
+                    userID: newUserID
+                )
             } catch { print("❌ User fetch/create error:", error.localizedDescription) }
         }
     }
