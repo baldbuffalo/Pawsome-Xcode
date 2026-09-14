@@ -3,6 +3,7 @@ import FirebaseAuth
 import FirebaseFirestore
 
 struct HomeView: View {
+    @EnvironmentObject var appState: PawsomeApp.AppState
     @Binding var isLoggedIn: Bool
     @Binding var currentUsername: String
     @Binding var profileImageURL: String?
@@ -15,47 +16,33 @@ struct HomeView: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [Color.purple.opacity(0.05), Color.blue.opacity(0.05)],
-                startPoint: .top, endPoint: .bottom
-            )
-            .ignoresSafeArea()
+            LinearGradient(colors: [Color.purple.opacity(0.05), Color.blue.opacity(0.05)], startPoint: .top, endPoint: .bottom)
+                .ignoresSafeArea()
 
             ScrollView {
                 LazyVStack(spacing: 16) {
-
-                    // Header
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Welcome back 👋")
-                            .font(.caption).foregroundColor(.secondary)
-                        Text(currentUsername)
-                            .font(.largeTitle).fontWeight(.bold)
+                        Text("Welcome back 👋").font(.caption).foregroundColor(.secondary)
+                        Text(currentUsername).font(.largeTitle).fontWeight(.bold)
                             .foregroundStyle(Color(red: 0.49, green: 0.23, blue: 0.93))
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding()
-                    .background(.ultraThinMaterial)
+                    .padding().background(.ultraThinMaterial)
                     .clipShape(RoundedRectangle(cornerRadius: 20))
-                    .padding(.horizontal)
-                    .padding(.top)
+                    .padding(.horizontal).padding(.top)
 
-                    // Create post button
                     Button { activeFlow = .scan } label: {
                         HStack {
                             Image(systemName: "plus.circle.fill").font(.title2)
                             Text("Create a new post").font(.headline)
                         }
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
+                        .foregroundColor(.white).frame(maxWidth: .infinity).padding()
                         .background(Color(red: 0.49, green: 0.23, blue: 0.93))
                         .clipShape(RoundedRectangle(cornerRadius: 18))
                         .shadow(color: .purple.opacity(0.35), radius: 10, y: 5)
                     }
-                    .buttonStyle(.plain)
-                    .padding(.horizontal)
+                    .buttonStyle(.plain).padding(.horizontal)
 
-                    // Feed
                     if isLoading {
                         ProgressView("Loading posts…").padding(.top, 40)
                     } else if posts.isEmpty {
@@ -71,7 +58,7 @@ struct HomeView: View {
                                 post: post,
                                 onLike: { toggleLike(post: post) },
                                 onComment: { selectedPostForComments = post },
-                                onDelete: post.ownerUID == Auth.auth().currentUser?.uid
+                                onDelete: post.userID == appState.currentUserID
                                     ? { Task { await deletePost(post) } } : nil
                             )
                             .padding(.horizontal)
@@ -82,26 +69,23 @@ struct HomeView: View {
                 }
             }
         }
-        .onAppear  { startListening() }
+        .onAppear { startListening() }
         .onDisappear { listener?.remove() }
         .sheet(item: $selectedPostForComments) { CommentsView(post: $0) }
     }
 
-    // MARK: - Listen
     private func startListening() {
         isLoading = true
         listener = Firestore.firestore()
             .collection("posts")
-            .order(by: "timestamp", descending: true)
+            .order(by: "PostedAt", descending: true)
             .addSnapshotListener { snapshot, error in
                 isLoading = false
                 if let error { print("❌", error.localizedDescription); return }
-                posts = snapshot?.documents
-                    .compactMap { Post(id: $0.documentID, data: $0.data()) } ?? []
+                posts = snapshot?.documents.compactMap { Post(id: $0.documentID, data: $0.data()) } ?? []
             }
     }
 
-    // MARK: - Like
     private func toggleLike(post: Post) {
         guard let uid = Auth.auth().currentUser?.uid else { return }
         let ref = Firestore.firestore().collection("posts").document(post.id)
@@ -112,7 +96,6 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - Delete
     private func deletePost(_ post: Post) async {
         if let filename = post.imageURL.components(separatedBy: "/").last, !filename.isEmpty {
             try? await GitHubUploader.shared.deleteFile(path: "postImages/\(filename)")
