@@ -6,6 +6,7 @@ struct CatPostView: View {
     var onLike: () -> Void
     var onComment: () -> Void
     var onDelete: (() -> Void)?
+    @EnvironmentObject private var appState: PawsomeApp.AppState
 
     @State private var showFullScreen = false
     @State private var showDeleteConfirm = false
@@ -26,15 +27,13 @@ struct CatPostView: View {
                     if let image = phase.image { image.resizable().scaledToFill() }
                     else { Image(systemName: "person.circle.fill").resizable().foregroundStyle(.gray) }
                 }
-                .frame(width: 44, height: 44)
-                .clipShape(Circle())
+                .frame(width: 44, height: 44).clipShape(Circle())
 
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 8) {
                         Text(post.username).font(.subheadline.weight(.semibold))
                         Text("\(post.status.emoji) \(post.status.displayName)")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(statusColor)
+                            .font(.caption2.weight(.semibold)).foregroundStyle(statusColor)
                             .padding(.horizontal, 8).padding(.vertical, 3)
                             .background(statusColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
                     }
@@ -48,11 +47,10 @@ struct CatPostView: View {
                     }
                 }
                 Spacer()
-                if post.userID == onwerID(), onDelete != nil {
+                if post.userID == appState.currentUserID, onDelete != nil {
                     Button { showDeleteConfirm = true } label: {
                         Image(systemName: "trash").foregroundStyle(.red)
-                    }
-                    .buttonStyle(.plain)
+                    }.buttonStyle(.plain)
                 }
             }
             .padding(14)
@@ -63,18 +61,13 @@ struct CatPostView: View {
                     else if phase.error != nil { Color.gray.opacity(0.2).overlay(Image(systemName: "photo").foregroundStyle(.gray)) }
                     else { Color.gray.opacity(0.1).overlay(ProgressView()) }
                 }
-                .frame(maxWidth: .infinity)
-                .frame(height: 280)
-                .clipped()
-                .contentShape(Rectangle())
-                .onTapGesture { showFullScreen = true }
+                .frame(maxWidth: .infinity).frame(height: 280).clipped()
+                .contentShape(Rectangle()).onTapGesture { showFullScreen = true }
 
                 Text(post.status.displayName.uppercased())
-                    .font(.caption2.bold())
-                    .foregroundStyle(.white)
+                    .font(.caption2.bold()).foregroundStyle(.white)
                     .padding(.horizontal, 12).padding(.vertical, 6)
-                    .background(statusColor, in: RoundedRectangle(cornerRadius: 10))
-                    .padding(12)
+                    .background(statusColor, in: RoundedRectangle(cornerRadius: 10)).padding(12)
             }
 
             VStack(alignment: .leading, spacing: 6) {
@@ -90,37 +83,28 @@ struct CatPostView: View {
                     Text(post.description).font(.subheadline).foregroundStyle(.secondary).lineLimit(3)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading).padding(16)
 
             HStack(spacing: 12) {
                 Button(action: onLike) {
                     Label("\(post.likes.count) likes", systemImage: isLiked ? "heart.fill" : "heart")
-                        .foregroundStyle(isLiked ? .red : .secondary)
-                        .frame(minHeight: 40)
-                }
-                .buttonStyle(.bordered)
-
+                        .foregroundStyle(isLiked ? .red : .secondary).frame(minHeight: 40)
+                }.buttonStyle(.bordered)
                 Button(action: onComment) {
-                    Label("\(post.commentCount) comments", systemImage: "bubble.right")
-                        .frame(minHeight: 40)
-                }
-                .buttonStyle(.bordered)
+                    Label("\(post.commentCount) comments", systemImage: "bubble.right").frame(minHeight: 40)
+                }.buttonStyle(.bordered)
                 Spacer()
             }
             .padding(.horizontal, 8).padding(.bottom, 8)
         }
         .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 20))
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-        .shadow(radius: 4, y: 2)
+        .clipShape(RoundedRectangle(cornerRadius: 20)).shadow(radius: 4, y: 2)
         .fullScreenCover(isPresented: $showFullScreen) { FullScreenImageView(imageURL: post.imageURL) }
         .confirmationDialog("Delete this post?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
             Button("Delete", role: .destructive) { onDelete?() }
             Button("Cancel", role: .cancel) {}
         }
     }
-
-    private func onwerID() -> Int? { nil }
 }
 
 struct FullScreenImageView: View {
