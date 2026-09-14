@@ -2,7 +2,7 @@ using Pawsome.Core.Firestore;
 
 namespace Pawsome.Core.Models;
 
-/// <summary>A cat post — mirrors the `Post` struct in the Swift app.</summary>
+/// <summary>A cat post using the Android Firestore schema.</summary>
 public sealed class Post
 {
     public required string Id { get; init; }
@@ -10,12 +10,17 @@ public sealed class Post
     public string Description { get; init; } = "";
     public string Age { get; init; } = "";
     public string ImageUrl { get; init; } = "";
-    public string OwnerUid { get; init; } = "";
-    public string OwnerUsername { get; init; } = "User";
-    public string OwnerProfilePic { get; init; } = "";
+    public int UserID { get; init; }
+    public string Username { get; init; } = "User";
+    public string ProfilePic { get; init; } = "";
     public DateTimeOffset Timestamp { get; init; } = DateTimeOffset.UtcNow;
     public IReadOnlyList<string> Likes { get; init; } = Array.Empty<string>();
     public int CommentCount { get; init; }
+
+    // UI compatibility aliases; Firestore itself uses UserID/Username/ProfilePic.
+    public string OwnerUid => UserID.ToString();
+    public string OwnerUsername => Username;
+    public string OwnerProfilePic => ProfilePic;
 
     public int LikeCount => Likes.Count;
     public string TimeAgo => Timestamp.TimeAgoDisplay();
@@ -23,7 +28,6 @@ public sealed class Post
     public bool IsLikedBy(string? uid) =>
         !string.IsNullOrEmpty(uid) && Likes.Contains(uid);
 
-    /// <summary>The filename portion of the image URL (used to delete from GitHub).</summary>
     public string? ImageFileName
     {
         get
@@ -34,24 +38,22 @@ public sealed class Post
         }
     }
 
-    /// <summary>Builds a Post from a parsed Firestore document, or null if invalid.</summary>
     public static Post? FromFirestore(string id, IReadOnlyDictionary<string, object?> data)
     {
         if (data.GetString("catName") is not { } catName) return null;
         if (data.GetString("imageURL") is not { } imageUrl) return null;
-        if (data.GetString("ownerUID") is not { } ownerUid) return null;
 
         return new Post
         {
             Id = id,
             CatName = catName,
             ImageUrl = imageUrl,
-            OwnerUid = ownerUid,
+            UserID = (int)data.GetLong("UserID"),
+            Username = data.GetString("Username") ?? "User",
+            ProfilePic = data.GetString("ProfilePic") ?? "",
             Description = data.GetString("description") ?? "",
             Age = data.GetString("age") ?? "",
-            OwnerUsername = data.GetString("ownerUsername") ?? "User",
-            OwnerProfilePic = data.GetString("ownerProfilePic") ?? "",
-            Timestamp = data.GetTimestamp("timestamp") ?? DateTimeOffset.UtcNow,
+            Timestamp = data.GetTimestamp("PostedAt") ?? DateTimeOffset.UtcNow,
             Likes = data.GetStringList("likes"),
             CommentCount = (int)data.GetLong("commentCount"),
         };
