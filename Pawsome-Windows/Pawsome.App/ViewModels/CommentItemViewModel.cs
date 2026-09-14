@@ -10,16 +10,14 @@ public sealed class CommentItemViewModel : ObservableObject
 {
     private readonly AppServices _services;
     private readonly Action<CommentItemViewModel> _onDeleted;
-
     public PostComment Model { get; private set; }
 
-    public CommentItemViewModel(PostComment model, AppServices services, string? currentUid, Action<CommentItemViewModel> onDeleted)
+    public CommentItemViewModel(PostComment model, AppServices services, int? currentUserID, Action<CommentItemViewModel> onDeleted)
     {
         Model = model;
         _services = services;
         _onDeleted = onDeleted;
-        CanModify = model.IsOwnedBy(currentUid);
-
+        CanModify = model.IsOwnedByUserID(currentUserID);
         DeleteCommand = new AsyncRelayCommand(DeleteAsync);
         BeginEditCommand = new RelayCommand(() => { EditText = Text; IsEditing = true; });
         CancelEditCommand = new RelayCommand(() => IsEditing = false);
@@ -34,7 +32,6 @@ public sealed class CommentItemViewModel : ObservableObject
 
     private bool _isEditing;
     public bool IsEditing { get => _isEditing; private set => SetProperty(ref _isEditing, value); }
-
     private string _editText = "";
     public string EditText { get => _editText; set => SetProperty(ref _editText, value); }
 
@@ -51,14 +48,13 @@ public sealed class CommentItemViewModel : ObservableObject
             await _services.Firestore.DeleteCommentAsync(Model.PostId, Model.Id);
             _onDeleted(this);
         }
-        catch { /* leave the comment in place if the delete failed */ }
+        catch { }
     }
 
     private async Task SaveEditAsync()
     {
         var trimmed = EditText.Trim();
         if (string.IsNullOrEmpty(trimmed) || trimmed == Text) { IsEditing = false; return; }
-
         try
         {
             await _services.Firestore.UpdateCommentTextAsync(Model.PostId, Model.Id, trimmed);
@@ -67,16 +63,13 @@ public sealed class CommentItemViewModel : ObservableObject
                 Id = Model.Id,
                 PostId = Model.PostId,
                 Text = trimmed,
-                OwnerUid = Model.OwnerUid,
-                OwnerUsername = Model.OwnerUsername,
-                OwnerProfilePic = Model.OwnerProfilePic,
+                UserID = Model.UserID,
+                Username = Model.Username,
+                ProfilePic = Model.ProfilePic,
                 Timestamp = Model.Timestamp,
             };
             OnPropertyChanged(nameof(Text));
         }
-        finally
-        {
-            IsEditing = false;
-        }
+        finally { IsEditing = false; }
     }
 }
