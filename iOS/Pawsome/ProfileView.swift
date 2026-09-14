@@ -1,110 +1,177 @@
 import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore
-import PhotosUI
 
 struct ProfileView: View {
     @ObservedObject var appState: PawsomeApp.AppState
-
-    @State private var username      = ""
-    @State private var statusText    = ""
-    @State private var isUploading   = false
-    @State private var uploadError: String?
-    @State private var showAdminPanel = false
-
-    @State private var selectedItem: PhotosPickerItem?
-    @State private var isPickingFile = false
+    @State private var posts: [Post] = []
+    @State private var showAbout = false
+    @State private var showHelp = false
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 28) {
-                avatarSection
-                VStack(alignment: .leading, spacing: 6) {
-                    Label("Username", systemImage: "person").font(.caption).foregroundColor(.secondary)
-                    TextField("Username", text: $username).textFieldStyle(.roundedBorder).onSubmit { saveUsername() }
-                    if !statusText.isEmpty { Text(statusText).font(.footnote).foregroundColor(.green) }
-                }.padding(.horizontal)
-                if let err = uploadError { Text(err).font(.footnote).foregroundColor(.red).padding(.horizontal) }
-                if appState.isAdmin {
-                    Button { showAdminPanel = true } label: {
-                        Label("Admin", systemImage: "shield.lefthalf.filled").frame(maxWidth: .infinity, minHeight: 46)
+            VStack(spacing: 0) {
+                Spacer(minLength: 24)
+
+                ZStack {
+                    Circle().fill(Color.purple.opacity(0.14)).frame(width: 120, height: 120)
+                    AsyncImage(url: URL(string: appState.profileImageURL ?? "")) { phase in
+                        if let image = phase.image {
+                            image.resizable().scaledToFill()
+                        } else {
+                            Image(systemName: "person.fill").font(.system(size: 52)).foregroundStyle(.purple.opacity(0.65))
+                        }
                     }
-                    .buttonStyle(.borderedProminent).tint(.purple).padding(.horizontal)
-                    .sheet(isPresented: $showAdminPanel) { AdminView(appState: appState) }
+                    .frame(width: 112, height: 112)
+                    .clipShape(Circle())
                 }
-                Spacer(minLength: 30)
-                Button(role: .destructive) { Task { @MainActor in appState.logout() } } label: {
-                    Label("Log Out", systemImage: "rectangle.portrait.and.arrow.right").frame(maxWidth: .infinity, minHeight: 46)
-                }.buttonStyle(.borderedProminent).tint(.red.opacity(0.85)).padding(.horizontal)
-            }.padding(.vertical, 24)
-        }
-        .onAppear { username = appState.currentUsername }
-        .onChange(of: selectedItem) { _, item in guard let item else { return }; Task { await handlePhotoPickerItem(item) } }
-        #if os(macOS)
-        .fileImporter(isPresented: $isPickingFile, allowedContentTypes: [.jpeg, .png, .heic], allowsMultipleSelection: false) { result in
-            if case .success(let urls) = result, let url = urls.first { Task { await handleFileURL(url) } }
-        }
-        #endif
-    }
 
-    private var avatarSection: some View {
-        VStack(spacing: 12) {
-            ZStack(alignment: .bottomTrailing) {
-                profileImage.frame(width: 110, height: 110).clipShape(Circle()).shadow(radius: 6)
-                changePhotoButton.padding(6).background(Circle().fill(.background).shadow(radius: 2)).offset(x: 4, y: 4)
+                Spacer(minLength: 16)
+                Text(appState.currentUsername.isEmpty ? "User" : appState.currentUsername)
+                    .font(.largeTitle.bold())
+                Text("@\(appState.currentUsername.isEmpty ? "user" : appState.currentUsername)")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+
+                Spacer(minLength: 32)
+
+                HStack {
+                    ProfileStat(count: posts.count, label: "Posts")
+                    ProfileStat(count: posts.reduce(0) { $0 + $1.likes.count }, label: "Likes")
+                    ProfileStat(count: appState.currentUserID ?? 0, label: "Member #")
+                }
+                .frame(maxWidth: .infinity)
+
+                Spacer(minLength: 24)
+
+                SettingsCard {
+                    SettingsRow(icon: "bell.fill", title: "Notifications", subtitle: "Manage your notification preferences") { }
+                    Divider().padding(.horizontal)
+                    SettingsRow(icon: "pawprint.fill", title: "My Posts", subtitle: "\(posts.filter { $0.userID == appState.currentUserID }.count) posts") { }
+                    Divider().padding(.horizontal)
+                    SettingsRow(icon: "heart.fill", title: "Liked Posts", subtitle: "Posts you've liked") { }
+                }
+                .padding(.horizontal, 20)
+
+                Spacer(minLength: 16)
+
+                SettingsCard {
+                    SettingsRow(icon: "info.circle.fill", title: "About Pawsome", subtitle: "Version 1.0.0") { showAbout = true }
+                    Divider().padding(.horizontal)
+                    SettingsRow(icon: "questionmark.circle.fill", title: "Help & Support", subtitle: "Get help or report issues") { showHelp = true }
+                }
+                .padding(.horizontal, 20)
+
+                Spacer(minLength: 32)
+
+                Button(role: .destructive) {
+                    appState.logout()
+                } label: {
+                    Label("Log Out", systemImage: "rectangle.portrait.and.arrow.right")
+                        .font(.headline.weight(.semibold))
+                        .frame(maxWidth: .infinity, minHeight: 56)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.red)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .padding(.horizontal, 20)
+
+                Spacer(minLength: 24)
             }
-            if isUploading { ProgressView("Updating photo…").font(.footnote) }
         }
+        .background(Color(.systemBackground))
+        .onAppear { loadPosts() }
+        .sheet(isPresented: $showAbout) { AboutView() }
+        .sheet(isPresented: $showHelp) { HelpView() }
     }
 
-    private var profileImage: some View {
-        Group {
-            if let urlString = appState.profileImageURL, let url = URL(string: urlString), !urlString.isEmpty {
-                AsyncImage(url: url) { phase in
-                    if let img = phase.image { img.resizable().scaledToFill() }
-                    else if phase.error != nil { Image(systemName: "person.crop.circle.badge.exclamationmark").resizable().scaledToFit().foregroundColor(.gray) }
-                    else { ProgressView() }
+    private func loadPosts() {
+        Firestore.firestore().collection("posts").order(by: "PostedAt", descending: true).getDocuments { snapshot, _ in
+            posts = snapshot?.documents.compactMap { Post(id: $0.documentID, data: $0.data()) } ?? []
+        }
+    }
+}
+
+private struct ProfileStat: View {
+    let count: Int
+    let label: String
+    var body: some View {
+        VStack(spacing: 4) {
+            Text("\(count)").font(.title2.bold()).foregroundStyle(.purple)
+            Text(label).font(.subheadline).foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+private struct SettingsCard<Content: View>: View {
+    @ViewBuilder let content: Content
+    var body: some View {
+        VStack(spacing: 0) { content }
+            .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 16))
+    }
+}
+
+private struct SettingsRow: View {
+    let icon: String
+    let title: String
+    let subtitle: String
+    let action: () -> Void
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 16) {
+                Image(systemName: icon).frame(width: 24).foregroundStyle(.purple)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title).font(.body.weight(.medium)).foregroundStyle(.primary)
+                    Text(subtitle).font(.subheadline).foregroundStyle(.secondary)
                 }
-            } else { Image(systemName: "person.circle.fill").resizable().foregroundColor(.gray) }
+                Spacer()
+                Image(systemName: "chevron.right").font(.caption).foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct AboutView: View {
+    @Environment(\.dismiss) private var dismiss
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 20) {
+                Spacer()
+                Image(systemName: "pawprint.fill").font(.system(size: 54)).foregroundStyle(.purple)
+                Text("Pawsome").font(.largeTitle.bold())
+                Text("Find. Help. Reunite. 🐱").foregroundStyle(.secondary)
+                Text("Version 1.0.0").font(.headline)
+                Spacer()
+                Text("Made with ❤️ for cats everywhere").font(.footnote).foregroundStyle(.secondary)
+            }
+            .padding()
+            .navigationTitle("About Pawsome")
+            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Done") { dismiss() } } }
         }
     }
+}
 
-    @ViewBuilder private var changePhotoButton: some View {
-        #if os(iOS)
-        PhotosPicker(selection: $selectedItem, matching: .images) { Image(systemName: "camera.circle.fill").font(.title2).foregroundStyle(.purple) }.disabled(isUploading)
-        #else
-        Button { isPickingFile = true } label: { Image(systemName: "camera.circle.fill").font(.title2).foregroundStyle(.purple) }.buttonStyle(.plain).disabled(isUploading)
-        #endif
-    }
-
-    private func handlePhotoPickerItem(_ item: PhotosPickerItem) async {
-        guard let data = try? await item.loadTransferable(type: Data.self), let uid = Auth.auth().currentUser?.uid else { return }
-        #if os(iOS)
-        guard let image = UIImage(data: data) else { return }
-        await uploadProfilePicture(image, uid: uid)
-        #endif
-    }
-
-    #if os(macOS)
-    private func handleFileURL(_ url: URL) async { guard let image = NSImage(contentsOf: url), let uid = Auth.auth().currentUser?.uid else { return }; await uploadProfilePicture(image, uid: uid) }
-    #endif
-
-    private func uploadProfilePicture(_ image: PlatformImage, uid: String) async {
-        isUploading = true; uploadError = nil
-        do {
-            let resized = image.resizedForUpload(maxDimension: 400)
-            let newURL = try await GitHubUploader.shared.uploadImage(resized, filename: "\(uid).jpg", folder: "profilePictures")
-            try await Firestore.firestore().collection("users").document(uid).updateData(["profilePic": newURL])
-            await MainActor.run { appState.profileImageURL = newURL; isUploading = false }
-        } catch { await MainActor.run { uploadError = error.localizedDescription; isUploading = false } }
-    }
-
-    private func saveUsername() {
-        let trimmed = username.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, let uid = Auth.auth().currentUser?.uid, trimmed != appState.currentUsername else { return }
-        Firestore.firestore().collection("users").document(uid).updateData(["username": trimmed]) { error in
-            guard error == nil else { return }
-            Task { @MainActor in appState.currentUsername = trimmed; statusText = "✓ Saved"; DispatchQueue.main.asyncAfter(deadline: .now() + 2) { statusText = "" } }
+private struct HelpView: View {
+    @Environment(\.dismiss) private var dismiss
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 16) {
+                Text("Need help with Pawsome?").font(.title3.bold())
+                Text("If you're experiencing issues or have questions, please report them on GitHub.").foregroundStyle(.secondary).multilineTextAlignment(.center)
+                Link(destination: URL(string: "https://github.com/baldbuffalo/Pawsome-Xcode/issues")!) {
+                    Label("Report an Issue on GitHub", systemImage: "ladybug.fill")
+                        .frame(maxWidth: .infinity, minHeight: 56)
+                }
+                .buttonStyle(.borderedProminent)
+                Spacer()
+            }
+            .padding(20)
+            .navigationTitle("Help & Support")
+            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Done") { dismiss() } } }
         }
     }
 }
