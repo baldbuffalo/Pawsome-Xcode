@@ -108,11 +108,7 @@ struct PawsomeApp: App {
             let doc = try await userRef.getDocument()
             if doc.exists {
                 let data = doc.data() ?? [:]
-                login(
-                    username: data["Username"] as? String ?? "User",
-                    imageURL: data["ProfilePic"] as? String ?? "",
-                    userID: data["UserID"] as? Int
-                )
+                login(username: data["Username"] as? String ?? "User", imageURL: data["ProfilePic"] as? String ?? "", userID: data["UserID"] as? Int)
                 return
             }
 
@@ -123,11 +119,12 @@ struct PawsomeApp: App {
                     let counterSnap = try transaction.getDocument(counterRef)
                     let next = (counterSnap.data()?["lastUserID"] as? Int ?? 0) + 1
                     transaction.setData(["lastUserID": next], forDocument: counterRef, merge: true)
+                    let method = self.loginMethod(for: Auth.auth().currentUser)
                     transaction.setData([
                         "Username": defaultUsername ?? "User\(next)",
                         "ProfilePic": defaultImage ?? "",
                         "UserID": next,
-                        "LoginMethod": loginMethod(for: userIDProvider(uid)),
+                        "LoginMethod": method,
                         "JoinedOn": FieldValue.serverTimestamp()
                     ], forDocument: userRef, merge: false)
                     return next
@@ -140,9 +137,8 @@ struct PawsomeApp: App {
             login(username: defaultUsername ?? "User\(newUserID)", imageURL: defaultImage, userID: newUserID)
         }
 
-        private func userIDProvider(_ uid: String) -> User { Auth.auth().currentUser ?? User() }
-
-        private func loginMethod(for user: User) -> String {
+        private func loginMethod(for user: User?) -> String {
+            guard let user else { return "Unknown" }
             let provider = user.providerData.first(where: { $0.providerID != "firebase" })?.providerID
             switch provider {
             case "google.com": return "Google"
@@ -157,25 +153,25 @@ struct PawsomeApp: App {
     struct MainTabView: View {
         @ObservedObject var appState: AppState
         @State private var selectedTab = 0
-        @State private var creating = false
-        @State private var showAdmin = false
+        @State private var activeHomeFlow: HomeFlow?
 
         var body: some View {
             TabView(selection: $selectedTab) {
                 Group {
-                    if creating {
-                        FormView(activeHomeFlow: .constant(.form), onPostCreated: { creating = false })
-                    } else {
+                    switch activeHomeFlow {
+                    case .form:
+                        FormView(activeHomeFlow: $activeHomeFlow, onPostCreated: { activeHomeFlow = nil })
+                    case .none, .scan:
                         HomeView(
                             isLoggedIn: $appState.isLoggedIn,
                             currentUsername: $appState.currentUsername,
                             profileImageURL: $appState.profileImageURL,
-                            activeFlow: .constant(nil)
+                            activeFlow: $activeHomeFlow
                         )
                     }
                 }
                 .environmentObject(appState)
-                .tabItem { Label(creating ? "Post" : "Home", systemImage: creating ? "plus" : "house.fill") }
+                .tabItem { Label(activeHomeFlow == .form ? "Post" : "Home", systemImage: activeHomeFlow == .form ? "plus" : "house.fill") }
                 .tag(0)
 
                 ProfileView(appState: appState)
@@ -189,14 +185,9 @@ struct PawsomeApp: App {
                         .tag(2)
                 }
             }
-            .onChange(of: selectedTab) { _, _ in creating = false }
-            .onChange(of: creating) { _, value in if value { selectedTab = 0 } }
-            .safeAreaInset(edge: .top) {
-                if creating {
-                    Color.clear.frame(height: 0)
-                }
+            .onChange(of: selectedTab) { _, newValue in
+                if newValue != 0 { activeHomeFlow = nil }
             }
-            .toolbar(.hidden, for: .navigationBar)
         }
     }
 
