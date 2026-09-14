@@ -17,20 +17,16 @@ public sealed class CreatePostViewModel : ObservableObject
         SubmitCommand = new AsyncRelayCommand(SubmitAsync, () => CanSubmit);
     }
 
-    /// <summary>Raised after a successful post so the host can navigate back and refresh.</summary>
     public event Action? PostCreated;
 
     private BitmapImage? _preview;
     public BitmapImage? Preview { get => _preview; private set => SetProperty(ref _preview, value); }
-
     public bool HasImage => _jpegBytes is not null;
 
     private string _catName = "";
     public string CatName { get => _catName; set { if (SetProperty(ref _catName, value)) OnInputChanged(); } }
-
     private string _age = "";
     public string Age { get => _age; set { if (SetProperty(ref _age, value)) OnInputChanged(); } }
-
     private string _description = "";
     public string Description { get => _description; set { if (SetProperty(ref _description, value)) OnInputChanged(); } }
 
@@ -44,13 +40,7 @@ public sealed class CreatePostViewModel : ObservableObject
     private string? _error;
     public string? Error { get => _error; private set => SetProperty(ref _error, value); }
 
-    public bool CanSubmit =>
-        HasImage &&
-        !IsPosting &&
-        !string.IsNullOrWhiteSpace(CatName) &&
-        !string.IsNullOrWhiteSpace(Age) &&
-        !string.IsNullOrWhiteSpace(Description);
-
+    public bool CanSubmit => HasImage && !IsPosting && !string.IsNullOrWhiteSpace(CatName) && !string.IsNullOrWhiteSpace(Age) && !string.IsNullOrWhiteSpace(Description);
     public IAsyncRelayCommand SubmitCommand { get; }
 
     public void SetImage(byte[] jpeg, BitmapImage preview)
@@ -78,8 +68,7 @@ public sealed class CreatePostViewModel : ObservableObject
         try
         {
             if (!_services.GitHub.HasToken)
-                throw new InvalidOperationException(
-                    "No image-upload token is configured. Add a GitHub token in Profile, or set the PAWSOME_GITHUB_TOKEN environment variable.");
+                throw new InvalidOperationException("No image-upload token is configured. Add a GitHub token in Profile, or set the PAWSOME_GITHUB_TOKEN environment variable.");
 
             var filename = $"{uid}_{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}.jpg";
             var imageUrl = await _services.GitHub.UploadImageAsync(_jpegBytes, filename, "postImages");
@@ -90,10 +79,10 @@ public sealed class CreatePostViewModel : ObservableObject
                 ["description"] = Description.Trim(),
                 ["age"] = Age.Trim(),
                 ["imageURL"] = imageUrl,
-                ["ownerUID"] = uid,
-                ["ownerUsername"] = user.Username,
-                ["ownerProfilePic"] = user.ProfilePic ?? "",
-                ["timestamp"] = DateTimeOffset.UtcNow,
+                ["UserID"] = (long)user.UserNumber,
+                ["Username"] = user.Username,
+                ["ProfilePic"] = user.ProfilePic ?? "",
+                ["PostedAt"] = DateTimeOffset.UtcNow,
                 ["likes"] = new List<object?>(),
                 ["commentCount"] = 0L,
             };
