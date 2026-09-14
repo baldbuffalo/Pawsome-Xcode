@@ -11,64 +11,67 @@ struct HomeView: View {
 
     @State private var posts: [Post] = []
     @State private var isLoading = true
+    @State private var selectedFilter: PostStatus?
     @State private var listener: ListenerRegistration?
     @State private var selectedPostForComments: Post?
 
     var body: some View {
-        ZStack {
-            LinearGradient(colors: [Color.purple.opacity(0.05), Color.blue.opacity(0.05)], startPoint: .top, endPoint: .bottom)
-                .ignoresSafeArea()
-
-            ScrollView {
-                LazyVStack(spacing: 16) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Welcome back 👋").font(.caption).foregroundColor(.secondary)
-                        Text(currentUsername).font(.largeTitle).fontWeight(.bold)
-                            .foregroundStyle(Color(red: 0.49, green: 0.23, blue: 0.93))
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding().background(.ultraThinMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 20))
-                    .padding(.horizontal).padding(.top)
-
-                    Button { activeFlow = .scan } label: {
-                        HStack {
-                            Image(systemName: "plus.circle.fill").font(.title2)
-                            Text("Create a new post").font(.headline)
+        VStack(spacing: 0) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    FilterButton(title: "All 🐾", selected: selectedFilter == nil) { selectedFilter = nil }
+                    ForEach(PostStatus.allCases) { status in
+                        FilterButton(title: "\(status.emoji) \(status.displayName)", selected: selectedFilter == status) {
+                            selectedFilter = selectedFilter == status ? nil : status
                         }
-                        .foregroundColor(.white).frame(maxWidth: .infinity).padding()
-                        .background(Color(red: 0.49, green: 0.23, blue: 0.93))
-                        .clipShape(RoundedRectangle(cornerRadius: 18))
-                        .shadow(color: .purple.opacity(0.35), radius: 10, y: 5)
                     }
-                    .buttonStyle(.plain).padding(.horizontal)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+            }
 
-                    if isLoading {
-                        ProgressView("Loading posts…").padding(.top, 40)
-                    } else if posts.isEmpty {
-                        VStack(spacing: 10) {
-                            Image(systemName: "tray").font(.system(size: 48)).foregroundColor(.gray)
-                            Text("No posts yet").font(.subheadline).foregroundColor(.secondary)
-                            Text("Be the first to drop something 👀").font(.caption).foregroundColor(.secondary)
-                        }
-                        .frame(maxWidth: .infinity).padding(.top, 40)
-                    } else {
-                        ForEach(posts) { post in
+            Button { activeFlow = .form } label: {
+                Label("Create a new post", systemImage: "plus")
+                    .font(.headline.weight(.semibold))
+                    .frame(maxWidth: .infinity, minHeight: 52)
+            }
+            .buttonStyle(.borderedProminent)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .padding(.horizontal, 16)
+
+            Spacer(minLength: 8)
+
+            let filteredPosts = selectedFilter == nil ? posts : posts.filter { $0.status == selectedFilter }
+            if isLoading && posts.isEmpty {
+                Spacer()
+                ProgressView()
+                Spacer()
+            } else if filteredPosts.isEmpty {
+                Spacer()
+                VStack(spacing: 10) {
+                    Text("😿").font(.system(size: 64))
+                    Text("No cats found").font(.title3.bold())
+                    Text("Be the first to post!").foregroundStyle(.secondary)
+                }
+                Spacer()
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 16) {
+                        ForEach(filteredPosts) { post in
                             CatPostView(
                                 post: post,
                                 onLike: { toggleLike(post: post) },
                                 onComment: { selectedPostForComments = post },
-                                onDelete: post.userID == appState.currentUserID
-                                    ? { Task { await deletePost(post) } } : nil
+                                onDelete: post.userID == appState.currentUserID ? { Task { await deletePost(post) } } : nil
                             )
-                            .padding(.horizontal)
+                            .padding(.horizontal, 16)
                         }
                     }
-
-                    Spacer(minLength: 30)
+                    .padding(.vertical, 16)
                 }
             }
         }
+        .background(Color(uiColor: .systemBackground))
         .onAppear { startListening() }
         .onDisappear { listener?.remove() }
         .sheet(item: $selectedPostForComments) { CommentsView(post: $0) }
@@ -76,13 +79,13 @@ struct HomeView: View {
 
     private func startListening() {
         isLoading = true
-        listener = Firestore.firestore()
-            .collection("posts")
+        listener?.remove()
+        listener = Firestore.firestore().collection("posts")
             .order(by: "PostedAt", descending: true)
             .addSnapshotListener { snapshot, error in
-                isLoading = false
-                if let error { print("❌", error.localizedDescription); return }
+                if let error { print("❌", error.localizedDescription); isLoading = false; return }
                 posts = snapshot?.documents.compactMap { Post(id: $0.documentID, data: $0.data()) } ?? []
+                isLoading = false
             }
     }
 
@@ -101,5 +104,24 @@ struct HomeView: View {
             try? await GitHubUploader.shared.deleteFile(path: "postImages/\(filename)")
         }
         try? await Firestore.firestore().collection("posts").document(post.id).delete()
+    }
+}
+
+private struct FilterButton: View {
+    let title: String
+    let selected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .padding(.horizontal, 14)
+                .frame(minHeight: 36)
+        }
+        .buttonStyle(.bordered)
+        .tint(selected ? .purple : .secondary)
+        .background(selected ? Color.purple : Color.clear, in: Capsule())
+        .foregroundStyle(selected ? .white : .primary)
     }
 }
