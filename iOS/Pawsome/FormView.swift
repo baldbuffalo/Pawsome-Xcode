@@ -22,16 +22,13 @@ struct FormView: View {
         ScrollView {
             VStack(spacing: 18) {
                 HStack {
-                    Button { close() } label: {
-                        Image(systemName: "chevron.left").font(.headline)
-                    }
+                    Button { close() } label: { Image(systemName: "chevron.left").font(.headline) }
                     Spacer()
                     Text("Create Post").font(.title3.bold())
                     Spacer()
                     Color.clear.frame(width: 32)
                 }
-                .padding(.horizontal)
-                .padding(.top, 8)
+                .padding(.horizontal).padding(.top, 8)
 
                 VStack(alignment: .leading, spacing: 12) {
                     Text("What's the status?").font(.headline)
@@ -55,21 +52,11 @@ struct FormView: View {
 
                 if let data = imageData, let image = PlatformImage(data: data) {
                     ZStack(alignment: .topTrailing) {
-                        platformImage(image)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 220)
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                        platformImage(image).resizable().scaledToFit().frame(maxWidth: .infinity).frame(height: 220).clipShape(RoundedRectangle(cornerRadius: 16))
                         Button { imageData = nil; selectedPhoto = nil } label: {
-                            Image(systemName: "xmark")
-                                .foregroundStyle(.white)
-                                .padding(9)
-                                .background(.black.opacity(0.6), in: Circle())
-                        }
-                        .padding(8)
-                    }
-                    .padding(.horizontal)
+                            Image(systemName: "xmark").foregroundStyle(.white).padding(9).background(.black.opacity(0.6), in: Circle())
+                        }.padding(8)
+                    }.padding(.horizontal)
                 } else {
                     PhotosPicker(selection: $selectedPhoto, matching: .images) {
                         VStack(spacing: 8) {
@@ -86,37 +73,28 @@ struct FormView: View {
                     Label(imageData == nil ? "Choose Image" : "Change Image", systemImage: imageData == nil ? "photo.badge.plus" : "arrow.clockwise")
                         .frame(maxWidth: .infinity, minHeight: 48)
                 }
-                .buttonStyle(.bordered)
-                .padding(.horizontal)
+                .buttonStyle(.bordered).padding(.horizontal)
 
                 VStack(spacing: 14) {
                     FormField(icon: "pawprint.fill", title: "Cat Name", text: $catName)
-                    FormField(icon: "birthday.cake.fill", title: "Age (years)", text: $age, keyboard: .numberPad)
-                        .onChange(of: age) { _, value in
-                            let digits = value.filter { $0.isNumber }
-                            age = String(digits.prefix(2))
-                        }
+                    FormField(icon: "birthday.cake.fill", title: "Age (years)", text: $age, numeric: true)
+                        .onChange(of: age) { _, value in age = String(value.filter { $0.isNumber }.prefix(2)) }
                     FormField(icon: "mappin.and.ellipse", title: "Location (optional)", text: $location)
                     FormField(icon: "doc.text", title: "Description", text: $description, axis: .vertical)
                 }
                 .padding(.horizontal)
 
-                if let errorMessage {
-                    Text(errorMessage).font(.footnote).foregroundStyle(.red).padding(.horizontal)
-                }
+                if let errorMessage { Text(errorMessage).font(.footnote).foregroundStyle(.red).padding(.horizontal) }
 
                 Button { Task { await submitPost() } } label: {
                     Group {
                         if isPosting { ProgressView().tint(.white) }
                         else { Label("Post \(selectedStatus.emoji)", systemImage: "paperplane.fill") }
                     }
-                    .font(.headline)
-                    .frame(maxWidth: .infinity, minHeight: 56)
+                    .font(.headline).frame(maxWidth: .infinity, minHeight: 56)
                 }
-                .buttonStyle(.borderedProminent)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-                .disabled(!isComplete || isPosting)
-                .padding(.horizontal)
+                .buttonStyle(.borderedProminent).clipShape(RoundedRectangle(cornerRadius: 16))
+                .disabled(!isComplete || isPosting).padding(.horizontal)
 
                 Spacer(minLength: 32)
             }
@@ -125,15 +103,13 @@ struct FormView: View {
         .background(Color(.systemBackground))
         .onChange(of: selectedPhoto) { _, item in
             guard let item else { return }
-            Task {
-                imageData = try? await item.loadTransferable(type: Data.self)
-            }
+            Task { imageData = try? await item.loadTransferable(type: Data.self) }
         }
     }
 
     private var isComplete: Bool {
-        !catName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        !age.isEmpty && !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && imageData != nil
+        !catName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !age.isEmpty &&
+        !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && imageData != nil
     }
 
     private func close() {
@@ -164,7 +140,6 @@ struct FormView: View {
             let data = userSnap.data() ?? [:]
             let username = data["Username"] as? String ?? appState.currentUsername
             let profilePic = data["ProfilePic"] as? String ?? ""
-
             try await Firestore.firestore().collection("posts").addDocument(data: [
                 "CatName": catName.trimmingCharacters(in: .whitespacesAndNewlines),
                 "CatAge": age,
@@ -184,9 +159,7 @@ struct FormView: View {
             selectedPhoto = nil
             activeHomeFlow = nil
             onPostCreated?()
-        } catch {
-            errorMessage = error.localizedDescription
-        }
+        } catch { errorMessage = error.localizedDescription }
         isPosting = false
     }
 }
@@ -196,14 +169,16 @@ private struct FormField: View {
     let title: String
     @Binding var text: String
     var axis: Axis = .horizontal
-    var keyboard: UIKeyboardType = .default
+    var numeric = false
 
     var body: some View {
         HStack(alignment: axis == .vertical ? .top : .center, spacing: 10) {
             Image(systemName: icon).frame(width: 22).foregroundStyle(.tint)
             TextField(title, text: $text, axis: axis)
                 .textFieldStyle(.roundedBorder)
-                .keyboardType(keyboard)
+                #if os(iOS)
+                .keyboardType(numeric ? .numberPad : .default)
+                #endif
                 .textInputAutocapitalization(.sentences)
                 .lineLimit(axis == .vertical ? 3...6 : 1)
         }
