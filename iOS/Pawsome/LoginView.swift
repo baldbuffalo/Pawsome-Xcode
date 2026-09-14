@@ -1,341 +1,114 @@
 import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore
-import FirebaseCore
 import GoogleSignIn
 import GoogleSignInSwift
-import CryptoKit
-
-#if canImport(AuthenticationServices)
-import AuthenticationServices
-#endif
-
-#if os(macOS)
-import AppKit
-#endif
 
 struct LoginView: View {
-
     @ObservedObject var appState: PawsomeApp.AppState
-
-    @State private var showError = false
-    @State private var errorMessage = ""
-    @State private var currentNonce: String?
     @State private var isLoadingGoogle = false
-    @State private var isLoadingApple = false
     @State private var isLoadingTwitter = false
+    @State private var errorMessage: String?
 
     var body: some View {
         ZStack {
             LinearGradient(
-                colors: [Color.purple.opacity(0.06), Color.blue.opacity(0.06)],
-                startPoint: .top, endPoint: .bottom
+                colors: [Color.purple.opacity(0.10), Color(.systemBackground), Color.blue.opacity(0.05)],
+                startPoint: .top,
+                endPoint: .bottom
             )
             .ignoresSafeArea()
 
-            VStack(spacing: 28) {
-                VStack(spacing: 10) {
-                    Text("🐾 Pawsome")
-                        .font(.largeTitle.bold())
-                        .foregroundColor(.primary)
-
-                    Text("Find. Help. Reunite.")
-                        .foregroundColor(.secondary)
-                }
-
-                Button {
-                    Task {
-                        isLoadingGoogle = true
-                        await signInWithGoogle()
-                        isLoadingGoogle = false
-                    }
-                } label: {
-                    HStack {
-                        if isLoadingGoogle {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .black))
-                        } else {
-                            Image(systemName: "globe")
-                        }
-                        Text(isLoadingGoogle ? "Signing in..." : "Continue with Google").bold()
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.white)
-                    .foregroundColor(.black)
-                    .cornerRadius(14)
-                    .shadow(radius: 8)
-                }
-                .disabled(isLoadingGoogle || isLoadingApple || isLoadingTwitter)
-
-                #if canImport(AuthenticationServices)
-                SignInWithAppleButton(.signIn) { request in
-                    let nonce = randomNonceString()
-                    currentNonce = nonce
-                    request.requestedScopes = [.fullName, .email]
-                    request.nonce = sha256(nonce)
-                } onCompletion: { result in
-                    isLoadingApple = true
-                    Task {
-                        await handleAppleSignIn(result)
-                        isLoadingApple = false
-                    }
-                }
-                .frame(height: 50)
-                .cornerRadius(14)
-                .shadow(radius: 8)
-                .opacity(isLoadingApple ? 0.6 : 1)
-                .disabled(isLoadingApple || isLoadingGoogle || isLoadingTwitter)
-                #endif
-
-                Button {
-                    Task {
-                        isLoadingTwitter = true
-                        await signInWithTwitter()
-                        isLoadingTwitter = false
-                    }
-                } label: {
-                    HStack {
-                        if isLoadingTwitter {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                        } else {
-                            Image(systemName: "xmark.seal.fill")
-                        }
-                        Text(isLoadingTwitter ? "Signing in..." : "Continue with X").bold()
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.black)
-                    .foregroundColor(.white)
-                    .cornerRadius(14)
-                    .shadow(radius: 8)
-                }
-                .disabled(isLoadingTwitter || isLoadingGoogle || isLoadingApple)
+            VStack {
+                HStack { Spacer(); Text("🐾").font(.system(size: 100)).padding(.top, 60).padding(.trailing, 24) }
+                Spacer()
             }
-            .padding(28)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24))
-            .padding()
-            .frame(maxWidth: 420)
-        }
-        .alert("Sign-In Error", isPresented: $showError) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(errorMessage)
+
+            HStack {
+                Text("🐾").font(.system(size: 70)).padding(.leading, 24).padding(.bottom, 100)
+                Spacer()
+            }
+
+            VStack(spacing: 20) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 24).fill(LinearGradient(colors: [.orange, .purple], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    Image(systemName: "pawprint.fill").font(.system(size: 54)).foregroundStyle(.white)
+                }
+                .frame(width: 100, height: 100)
+
+                Text("🐱 Pawsome").font(.largeTitle.bold())
+                Text("Help lost cats find their way home")
+                    .font(.body).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                Spacer().frame(height: 4)
+
+                Button {
+                    Task { isLoadingGoogle = true; await signInWithGoogle(); isLoadingGoogle = false }
+                } label: {
+                    HStack {
+                        if isLoadingGoogle { ProgressView().tint(.gray) }
+                        else { Image(systemName: "g.circle").font(.title2) }
+                        Text("Continue with Google").foregroundStyle(.primary).fontWeight(.semibold)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 56)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.white)
+                .disabled(isLoadingGoogle || isLoadingTwitter)
+
+                Button {
+                    Task { isLoadingTwitter = true; await signInWithTwitter(); isLoadingTwitter = false }
+                } label: {
+                    HStack {
+                        if isLoadingTwitter { ProgressView().tint(.white) }
+                        else { Text("𝕏").font(.title2.bold()) }
+                        Text("Continue with X").foregroundStyle(.white).fontWeight(.semibold)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 56)
+                    .background(Color.black, in: RoundedRectangle(cornerRadius: 14))
+                }
+                .buttonStyle(.plain)
+                .disabled(isLoadingGoogle || isLoadingTwitter)
+
+                if let errorMessage {
+                    Text(errorMessage).font(.caption).foregroundStyle(.red).multilineTextAlignment(.center)
+                }
+            }
+            .padding(32)
+            .frame(maxWidth: 400)
+            .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 28))
+            .shadow(radius: 8)
+            .padding(24)
         }
     }
 
     private func signInWithGoogle() async {
-        guard
-            let clientID = Bundle.main.object(forInfoDictionaryKey: "GIDClientID") as? String,
-            !clientID.isEmpty
-        else {
-            await showError("Missing Google client ID.")
+        guard let clientID = Bundle.main.object(forInfoDictionaryKey: "GIDClientID") as? String, !clientID.isEmpty else {
+            errorMessage = "Missing Google client ID."
             return
         }
-
-        GIDSignIn.sharedInstance.configuration =
-            GIDConfiguration(clientID: clientID)
-
+        GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: clientID)
         do {
-            let result: GIDSignInResult
-
             #if os(iOS)
-            guard
-                let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                let rootVC = scene.windows.first?.rootViewController
-            else {
-                await showError("No root view controller.")
-                return
-            }
-
-            result = try await GIDSignIn.sharedInstance
-                .signIn(withPresenting: rootVC)
-
-            #elseif os(macOS)
-            guard let window = NSApplication.shared.windows.first else {
-                await showError("No window.")
-                return
-            }
-
-            result = try await GIDSignIn.sharedInstance
-                .signIn(withPresenting: window)
+            guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                  let rootVC = scene.windows.first?.rootViewController else { throw NSError(domain: "Pawsome", code: 1, userInfo: [NSLocalizedDescriptionKey: "No root view controller."]) }
+            let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: rootVC)
+            #else
+            guard let window = NSApplication.shared.windows.first else { throw NSError(domain: "Pawsome", code: 1, userInfo: [NSLocalizedDescriptionKey: "No window."]) }
+            let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: window)
             #endif
-
-            let user = result.user
-
-            guard let idToken = user.idToken?.tokenString else {
-                await showError("Missing Google token.")
-                return
-            }
-
-            let credential = GoogleAuthProvider.credential(
-                withIDToken: idToken,
-                accessToken: user.accessToken.tokenString
-            )
-
-            let authResult =
-                try await Auth.auth().signIn(with: credential)
-
-            await fetchUserAndLogin(
-                uid: authResult.user.uid,
-                defaultUsername: user.profile?.name,
-                profileImageURL:
-                    user.profile?.imageURL(withDimension: 200)?.absoluteString
-            )
-
-        } catch {
-            await showError(error.localizedDescription)
-        }
+            guard let idToken = result.user.idToken?.tokenString else { throw NSError(domain: "Pawsome", code: 1, userInfo: [NSLocalizedDescriptionKey: "Missing Google token."]) }
+            let credential = GoogleAuthProvider.credential(withIDToken: idToken, accessToken: result.user.accessToken.tokenString)
+            let authResult = try await Auth.auth().signIn(with: credential)
+            await appState.fetchOrCreateUser(uid: authResult.user.uid, defaultUsername: result.user.profile?.name, defaultImage: result.user.profile?.imageURL(withDimension: 200)?.absoluteString)
+        } catch { errorMessage = error.localizedDescription }
     }
 
-    // MARK: - X / TWITTER SIGN IN
     private func signInWithTwitter() async {
         do {
             let provider = OAuthProvider(providerID: "twitter.com")
             let credential = try await provider.credential(with: nil)
             let result = try await Auth.auth().signIn(with: credential)
-            await fetchUserAndLogin(
-                uid: result.user.uid,
-                defaultUsername: result.user.displayName,
-                profileImageURL: result.user.photoURL?.absoluteString
-            )
-        } catch {
-            await showError(error.localizedDescription)
-        }
-    }
-
-    #if canImport(AuthenticationServices)
-    private func handleAppleSignIn(
-        _ result: Result<ASAuthorization, Error>
-    ) async {
-        do {
-            guard
-                case .success(let auth) = result,
-                let credential =
-                    auth.credential as? ASAuthorizationAppleIDCredential,
-                let nonce = currentNonce,
-                let tokenData = credential.identityToken,
-                let idToken =
-                    String(data: tokenData, encoding: .utf8)
-            else {
-                await showError("Apple Sign-In failed.")
-                return
-            }
-
-            let firebaseCredential =
-                OAuthProvider.credential(
-                    providerID: AuthProviderID.apple,
-                    idToken: idToken,
-                    rawNonce: nonce
-                )
-
-            let authResult =
-                try await Auth.auth().signIn(
-                    with: firebaseCredential
-                )
-
-            await fetchUserAndLogin(
-                uid: authResult.user.uid,
-                defaultUsername:
-                    credential.fullName?.givenName,
-                profileImageURL: nil
-            )
-
-        } catch {
-            await showError(error.localizedDescription)
-        }
-    }
-    #endif
-
-    private func fetchUserAndLogin(
-        uid: String,
-        defaultUsername: String?,
-        profileImageURL: String?
-    ) async {
-        let db = Firestore.firestore()
-        let userRef = db.collection("users").document(uid)
-        let counterRef = db.collection("counter").document("users")
-
-        do {
-            let snap = try await userRef.getDocument()
-
-            if snap.exists {
-                let data = snap.data() ?? [:]
-                await MainActor.run {
-                    appState.isLoggedIn = true
-                    appState.currentUsername =
-                        data["username"] as? String ?? "User"
-                    appState.profileImageURL =
-                        data["profilePic"] as? String
-                }
-                return
-            }
-
-            let nextUserNumber = try await db.runTransaction {
-                transaction, errorPointer in
-                do {
-                    let counterSnap =
-                        try transaction.getDocument(counterRef)
-
-                    let last =
-                        counterSnap.data()?["lastUserNumber"] as? Int ?? 0
-                    let next = last + 1
-
-                    transaction.updateData(
-                        ["lastUserNumber": next],
-                        forDocument: counterRef
-                    )
-
-                    transaction.setData([
-                        "userNumber": next,
-                        "username":
-                            defaultUsername ?? "User\(next)",
-                        "profilePic": profileImageURL ?? "",
-                        "createdAt": Timestamp()
-                    ], forDocument: userRef)
-
-                    return next
-
-                } catch {
-                    errorPointer?.pointee = error as NSError
-                    return nil
-                }
-            }
-
-            guard let nextUserNumber else {
-                throw NSError(domain: "Firestore", code: -1)
-            }
-
-            await MainActor.run {
-                appState.isLoggedIn = true
-                appState.currentUsername =
-                    defaultUsername ?? "User\(nextUserNumber)"
-                appState.profileImageURL =
-                    profileImageURL
-            }
-
-        } catch {
-            await showError(error.localizedDescription)
-        }
-    }
-
-    private func showError(_ message: String) async {
-        await MainActor.run {
-            errorMessage = message
-            showError = true
-        }
-    }
-
-    private func randomNonceString(length: Int = 32) -> String {
-        let charset =
-            Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
-        return String((0..<length).compactMap { _ in charset.randomElement() })
-    }
-
-    private func sha256(_ input: String) -> String {
-        SHA256.hash(data: Data(input.utf8))
-            .map { String(format: "%02x", $0) }
-            .joined()
+            await appState.fetchOrCreateUser(uid: result.user.uid, defaultUsername: result.user.displayName, defaultImage: result.user.photoURL?.absoluteString)
+        } catch { errorMessage = error.localizedDescription }
     }
 }
