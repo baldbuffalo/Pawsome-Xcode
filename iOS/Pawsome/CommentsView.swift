@@ -3,22 +3,18 @@ import FirebaseAuth
 import FirebaseFirestore
 
 struct CommentsView: View {
-
     let post: Post
     @EnvironmentObject var appState: PawsomeApp.AppState
     @Environment(\.dismiss) private var dismiss
-
-    @State private var comments:    [PostComment] = []
-    @State private var newComment   = ""
-    @State private var isLoading    = true
-    @State private var isPosting    = false
-    @State private var listener:    ListenerRegistration?
+    @State private var comments: [PostComment] = []
+    @State private var newComment = ""
+    @State private var isLoading = true
+    @State private var isPosting = false
+    @State private var listener: ListenerRegistration?
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-
-                // ── Post summary ────────────────────────────────────────
                 HStack(spacing: 10) {
                     AsyncImage(url: URL(string: post.imageURL)) { phase in
                         if let img = phase.image { img.resizable().scaledToFill() }
@@ -26,43 +22,30 @@ struct CommentsView: View {
                     }
                     .frame(width: 52, height: 52)
                     .clipShape(RoundedRectangle(cornerRadius: 10))
-
                     VStack(alignment: .leading, spacing: 3) {
                         Text(post.catName).font(.headline)
-                        Text("by \(post.ownerUsername)")
-                            .font(.caption).foregroundColor(.secondary)
+                        Text("by \(post.ownerUsername)").font(.caption).foregroundColor(.secondary)
                     }
                     Spacer()
                 }
-                .padding()
-                .background(.ultraThinMaterial)
-
+                .padding().background(.ultraThinMaterial)
                 Divider()
 
-                // ── Comments list ───────────────────────────────────────
                 if isLoading {
-                    Spacer()
-                    ProgressView("Loading comments…")
-                    Spacer()
+                    Spacer(); ProgressView("Loading comments…"); Spacer()
                 } else if comments.isEmpty {
                     Spacer()
                     VStack(spacing: 8) {
-                        Image(systemName: "bubble.right")
-                            .font(.system(size: 42)).foregroundColor(.secondary)
-                        Text("No comments yet")
-                            .font(.subheadline).foregroundColor(.secondary)
-                        Text("Be the first to comment! 🐾")
-                            .font(.caption).foregroundColor(.secondary)
+                        Image(systemName: "bubble.right").font(.system(size: 42)).foregroundColor(.secondary)
+                        Text("No comments yet").font(.subheadline).foregroundColor(.secondary)
+                        Text("Be the first to comment! 🐾").font(.caption).foregroundColor(.secondary)
                     }
                     Spacer()
                 } else {
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: 14) {
                             ForEach(comments) { comment in
-                                CommentRow(
-                                    comment: comment,
-                                    currentUID: Auth.auth().currentUser?.uid ?? ""
-                                ) {
+                                CommentRow(comment: comment, currentUserID: appState.currentUserID) {
                                     deleteComment(comment)
                                 }
                             }
@@ -72,26 +55,13 @@ struct CommentsView: View {
                 }
 
                 Divider()
-
-                // ── Input bar ───────────────────────────────────────────
                 HStack(spacing: 10) {
                     TextField("Add a comment…", text: $newComment, axis: .vertical)
-                        .lineLimit(1...5)
-                        .textFieldStyle(.roundedBorder)
-                        .onSubmit {
-                            Task { await postComment() }
-                        }
-
-                    Button {
-                        Task { await postComment() }
-                    } label: {
-                        if isPosting {
-                            ProgressView().tint(.purple)
-                        } else {
-                            Image(systemName: "arrow.up.circle.fill")
-                                .font(.title2)
-                                .foregroundColor(canPost ? .purple : .gray)
-                        }
+                        .lineLimit(1...5).textFieldStyle(.roundedBorder)
+                        .onSubmit { Task { await postComment() } }
+                    Button { Task { await postComment() } } label: {
+                        if isPosting { ProgressView().tint(.purple) }
+                        else { Image(systemName: "arrow.up.circle.fill").font(.title2).foregroundColor(canPost ? .purple : .gray) }
                     }
                     .disabled(!canPost || isPosting)
                 }
@@ -101,99 +71,61 @@ struct CommentsView: View {
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
-                }
-            }
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
         }
-        .onAppear  { attachListener() }
+        .onAppear { attachListener() }
         .onDisappear { listener?.remove() }
     }
 
-    // MARK: - Helpers
-    private var canPost: Bool {
-        !newComment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
+    private var canPost: Bool { !newComment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
-    // MARK: - Firestore listener
     private func attachListener() {
         isLoading = true
         listener?.remove()
-
         listener = Firestore.firestore()
-            .collection("posts")
-            .document(post.id)
-            .collection("comments")
+            .collection("posts").document(post.id).collection("comments")
             .order(by: "timestamp", descending: false)
             .addSnapshotListener { snapshot, error in
                 isLoading = false
-                if let error {
-                    print("❌ Comments listener error:", error.localizedDescription)
-                    return
-                }
-                comments = snapshot?.documents
-                    .compactMap { PostComment(id: $0.documentID, postId: post.id, data: $0.data()) } ?? []
+                if let error { print("❌ Comments listener error:", error.localizedDescription); return }
+                comments = snapshot?.documents.compactMap { PostComment(id: $0.documentID, postId: post.id, data: $0.data()) } ?? []
             }
     }
 
-    // MARK: - Post comment
     private func postComment() async {
         let text = newComment.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty, let uid = Auth.auth().currentUser?.uid else { return }
-
+        guard !text.isEmpty, let userID = appState.currentUserID else { return }
         isPosting = true
         let data: [String: Any] = [
-            "text":            text,
-            "ownerUID":        uid,
-            "ownerUsername":   appState.currentUsername,
-            "ownerProfilePic": appState.profileImageURL ?? "",
-            "timestamp":       Timestamp()
+            "text": text,
+            "UserID": userID,
+            "Username": appState.currentUsername,
+            "ProfilePic": appState.profileImageURL ?? "",
+            "timestamp": Timestamp()
         ]
-
         do {
-            try await Firestore.firestore()
-                .collection("posts")
-                .document(post.id)
-                .collection("comments")
-                .addDocument(data: data)
-
-            try await Firestore.firestore()
-                .collection("posts")
-                .document(post.id)
-                .updateData(["commentCount": FieldValue.increment(Int64(1))])
-
-            await MainActor.run {
-                newComment = ""
-                isPosting  = false
-            }
+            try await Firestore.firestore().collection("posts").document(post.id).collection("comments").addDocument(data: data)
+            try await Firestore.firestore().collection("posts").document(post.id).updateData(["commentCount": FieldValue.increment(Int64(1))])
+            await MainActor.run { newComment = ""; isPosting = false }
         } catch {
             await MainActor.run { isPosting = false }
             print("❌ Post comment error:", error.localizedDescription)
         }
     }
 
-    // MARK: - Delete comment
     private func deleteComment(_ comment: PostComment) {
-        guard comment.ownerUID == Auth.auth().currentUser?.uid else { return }
+        guard comment.userID == appState.currentUserID else { return }
         Task {
-            try? await Firestore.firestore()
-                .collection("posts").document(post.id)
-                .collection("comments").document(comment.id)
-                .delete()
-            try? await Firestore.firestore()
-                .collection("posts").document(post.id)
-                .updateData(["commentCount": FieldValue.increment(Int64(-1))])
+            try? await Firestore.firestore().collection("posts").document(post.id).collection("comments").document(comment.id).delete()
+            try? await Firestore.firestore().collection("posts").document(post.id).updateData(["commentCount": FieldValue.increment(Int64(-1))])
         }
     }
 }
 
-// MARK: - Comment Row
 struct CommentRow: View {
     let comment: PostComment
-    let currentUID: String
+    let currentUserID: Int?
     var onDelete: () -> Void
-
     @State private var showDeleteConfirm = false
     @State private var showEditSheet = false
     @State private var editedText = ""
@@ -204,49 +136,32 @@ struct CommentRow: View {
                 if let img = phase.image { img.resizable().scaledToFill() }
                 else { Image(systemName: "person.circle.fill").resizable().foregroundColor(.gray) }
             }
-            .frame(width: 32, height: 32)
-            .clipShape(Circle())
+            .frame(width: 32, height: 32).clipShape(Circle())
 
             VStack(alignment: .leading, spacing: 3) {
                 HStack(alignment: .firstTextBaseline) {
                     Text(comment.ownerUsername).font(.caption.weight(.semibold))
-                    Text(comment.timestamp.timeAgoDisplay())
-                        .font(.caption2).foregroundColor(.secondary)
+                    Text(comment.timestamp.timeAgoDisplay()).font(.caption2).foregroundColor(.secondary)
                     Spacer()
                 }
                 Text(comment.text).font(.subheadline)
             }
         }
         .contextMenu {
-            if comment.ownerUID == currentUID {
-                Button {
-                    editedText = comment.text
-                    showEditSheet = true
-                } label: {
-                    Label("Edit", systemImage: "pencil")
-                }
-
-                Button(role: .destructive) {
-                    showDeleteConfirm = true
-                } label: {
-                    Label("Delete", systemImage: "trash")
-                }
+            if comment.userID == currentUserID {
+                Button { editedText = comment.text; showEditSheet = true } label: { Label("Edit", systemImage: "pencil") }
+                Button(role: .destructive) { showDeleteConfirm = true } label: { Label("Delete", systemImage: "trash") }
             }
         }
         .confirmationDialog("Delete this comment?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
             Button("Delete", role: .destructive) { onDelete() }
             Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("This action cannot be undone.")
-        }
+        } message: { Text("This action cannot be undone.") }
         .sheet(isPresented: $showEditSheet) {
             NavigationStack {
                 VStack(spacing: 16) {
                     TextField("Edit comment…", text: $editedText, axis: .vertical)
-                        .lineLimit(1...8)
-                        .textFieldStyle(.roundedBorder)
-                        .padding()
-
+                        .lineLimit(1...8).textFieldStyle(.roundedBorder).padding()
                     Spacer()
                 }
                 .navigationTitle("Edit Comment")
@@ -254,14 +169,10 @@ struct CommentRow: View {
                 .navigationBarTitleDisplayMode(.inline)
                 #endif
                 .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Cancel") { showEditSheet = false }
-                    }
+                    ToolbarItem(placement: .cancellationAction) { Button("Cancel") { showEditSheet = false } }
                     ToolbarItem(placement: .confirmationAction) {
-                        Button("Save") {
-                            saveEdit()
-                        }
-                        .disabled(editedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        Button("Save") { saveEdit() }
+                            .disabled(editedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     }
                 }
             }
@@ -272,10 +183,7 @@ struct CommentRow: View {
         let trimmed = editedText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         Task {
-            try? await Firestore.firestore()
-                .collection("posts").document(comment.postId)
-                .collection("comments").document(comment.id)
-                .updateData(["text": trimmed])
+            try? await Firestore.firestore().collection("posts").document(comment.postId).collection("comments").document(comment.id).updateData(["text": trimmed])
             await MainActor.run { showEditSheet = false }
         }
     }
