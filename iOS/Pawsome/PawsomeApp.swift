@@ -11,30 +11,27 @@ struct PawsomeApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var delegate
     #endif
 
-    init() { FirebaseApp.configure() }
-
     @StateObject private var appState = AppState()
     @StateObject private var adManager = AdManager.shared
-    @State private var activeHomeFlow: HomeFlow? = nil
+
+    init() { FirebaseApp.configure() }
 
     var body: some Scene {
         WindowGroup {
-            ZStack(alignment: .bottom) {
+            Group {
                 if !appState.isAuthChecked {
                     LoadingView()
                 } else if appState.isLoggedIn {
-                    MainTabView(appState: appState, activeHomeFlow: $activeHomeFlow).environmentObject(appState)
+                    MainTabView(appState: appState)
                 } else {
                     LoginView(appState: appState)
                 }
-                adManager.overlay
             }
+            .environmentObject(appState)
             .environmentObject(adManager)
             .onAppear { appState.observeAuthState() }
         }
     }
-
-    enum HomeFlow { case scan, form }
 
     @MainActor
     final class AppState: ObservableObject {
@@ -44,7 +41,8 @@ struct PawsomeApp: App {
         @Published var currentUsername = ""
         @Published var currentUserID: Int?
         @Published var profileImageURL: String?
-        @Published var selectedImage: PlatformImage? = nil
+        @Published var selectedImage: PlatformImage?
+        @Published var startupError: String?
 
         private var authListener: AuthStateDidChangeListenerHandle?
         lazy var db: Firestore = Firestore.firestore()
@@ -59,103 +57,155 @@ struct PawsomeApp: App {
         func logout() {
             if let handle = authListener { Auth.auth().removeStateDidChangeListener(handle); authListener = nil }
             do { try Auth.auth().signOut() } catch { print("❌ Sign out failed:", error) }
-            isLoggedIn = false; isAdmin = false; currentUsername = ""; currentUserID = nil; profileImageURL = nil; selectedImage = nil
+            isLoggedIn = false
+            isAdmin = false
+            currentUsername = ""
+            currentUserID = nil
+            profileImageURL = nil
+            selectedImage = nil
+            startupError = nil
+            isAuthChecked = true
         }
 
         func observeAuthState() {
-            authListener = Auth.auth().addStateDidChangeListener { _, user in
+            guard authListener == nil else { return }
+            authListener = Auth.auth().addStateDidChangeListener { [weak self] _, user in
+                guard let self else { return }
                 if let user {
-                    Task {
-                        await self.refreshAdminStatus(for: user)
-                        await self.fetchOrCreateUser(uid: user.uid, defaultUsername: user.displayName, defaultImage: user.photoURL?.absoluteString)
-                        self.isAuthChecked = true
+                    Task { @MainActor in
+                        do {
+                            try await self.verifyFirebaseAndLoadUser(user)
+                            self.isAuthChecked = true
+                        } catch {
+                            self.isLoggedIn = false
+                            self.currentUserID = nil
+                            self.startupError = error.localizedDescription
+                            self.isAuthChecked = true
+                        }
                     }
                 } else {
-                    self.isLoggedIn = false; self.isAdmin = false; self.isAuthChecked = true
+                    self.isLoggedIn = false
+                    self.isAdmin = false
+                    self.currentUsername = ""
+                    self.currentUserID = nil
+                    self.profileImageURL = nil
+                    self.startupError = nil
+                    self.isAuthChecked = true
                 }
             }
         }
 
-        private func refreshAdminStatus(for user: User) async {
-            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-                user.getIDTokenResult { result, error in
-                    let isAdmin = (result?.claims["admin"] as? NSNumber)?.boolValue ?? false
-                    if let error { print("❌ Admin claim check failed:", error.localizedDescription) }
-                    Task { @MainActor in self.isAdmin = isAdmin; continuation.resume() }
-                }
-            }
+        private func verifyFirebaseAndLoadUser(_ user: User) async throws {
+            let token = try await user.getIDTokenResult(forcingRefresh: false)
+            isAdmin = (token.claims["admin"] as? Bool) ?? false
+            try await fetchOrCreateUser(uid: user.uid, defaultUsername: user.displayName, defaultImage: user.photoURL?.absoluteString)
+            _ = try await db.collection("posts").order(by: "PostedAt", descending: true).limit(to: 1).getDocuments()
         }
 
-        func fetchOrCreateUser(uid: String, defaultUsername: String?, defaultImage: String?) async {
+        func fetchOrCreateUser(uid: String, defaultUsername: String?, defaultImage: String?) async throws {
             let userRef = db.collection("users").document(uid)
             let counterRef = db.collection("counter").document("users")
-            do {
-                let doc = try await userRef.getDocument()
-                if doc.exists {
-                    let data = doc.data() ?? [:]
-                    let userID = data["UserID"] as? Int
-                    login(
-                        username: data["Username"] as? String ?? "User",
-                        imageURL: data["ProfilePic"] as? String ?? "",
-                        userID: userID
-                    )
-                    return
-                }
-
-                let newUserID = try await db.runTransaction { transaction, errorPointer in
-                    do {
-                        let existing = try transaction.getDocument(userRef)
-                        if existing.exists { return existing.data()?["UserID"] as? Int ?? 0 }
-
-                        let counterSnap = try transaction.getDocument(counterRef)
-                        let next = (counterSnap.data()?["lastUserID"] as? Int ?? 0) + 1
-                        transaction.setData(["lastUserID": next], forDocument: counterRef, merge: true)
-                        transaction.setData([
-                            "Username": defaultUsername ?? "User\(next)",
-                            "ProfilePic": defaultImage ?? "",
-                            "UserID": next,
-                            "LoginMethod": "Unknown",
-                            "JoinedOn": FieldValue.serverTimestamp()
-                        ], forDocument: userRef, merge: false)
-                        return next
-                    } catch { errorPointer?.pointee = error as NSError; return nil }
-                }
-
+            let doc = try await userRef.getDocument()
+            if doc.exists {
+                let data = doc.data() ?? [:]
                 login(
-                    username: defaultUsername ?? "User\(newUserID ?? 0)",
-                    imageURL: defaultImage,
-                    userID: newUserID
+                    username: data["Username"] as? String ?? "User",
+                    imageURL: data["ProfilePic"] as? String ?? "",
+                    userID: data["UserID"] as? Int
                 )
-            } catch { print("❌ User fetch/create error:", error.localizedDescription) }
+                return
+            }
+
+            let newUserID = try await db.runTransaction { transaction, errorPointer -> Int? in
+                do {
+                    let existing = try transaction.getDocument(userRef)
+                    if existing.exists { return existing.data()?["UserID"] as? Int ?? 0 }
+                    let counterSnap = try transaction.getDocument(counterRef)
+                    let next = (counterSnap.data()?["lastUserID"] as? Int ?? 0) + 1
+                    transaction.setData(["lastUserID": next], forDocument: counterRef, merge: true)
+                    transaction.setData([
+                        "Username": defaultUsername ?? "User\(next)",
+                        "ProfilePic": defaultImage ?? "",
+                        "UserID": next,
+                        "LoginMethod": loginMethod(for: userIDProvider(uid)),
+                        "JoinedOn": FieldValue.serverTimestamp()
+                    ], forDocument: userRef, merge: false)
+                    return next
+                } catch {
+                    errorPointer?.pointee = error as NSError
+                    return nil
+                }
+            }
+            guard let newUserID else { throw NSError(domain: "Pawsome", code: 1, userInfo: [NSLocalizedDescriptionKey: "Could not create user profile."]) }
+            login(username: defaultUsername ?? "User\(newUserID)", imageURL: defaultImage, userID: newUserID)
+        }
+
+        private func userIDProvider(_ uid: String) -> User { Auth.auth().currentUser ?? User() }
+
+        private func loginMethod(for user: User) -> String {
+            let provider = user.providerData.first(where: { $0.providerID != "firebase" })?.providerID
+            switch provider {
+            case "google.com": return "Google"
+            case "twitter.com": return "Twitter"
+            case "apple.com": return "Apple"
+            case "password": return "Email/Password"
+            default: return provider?.split(separator: ".").first.map(String.init).map { $0.capitalized } ?? "Unknown"
+            }
         }
     }
 
     struct MainTabView: View {
         @ObservedObject var appState: AppState
-        @EnvironmentObject var adManager: AdManager
-        @Binding var activeHomeFlow: HomeFlow?
         @State private var selectedTab = 0
+        @State private var creating = false
+        @State private var showAdmin = false
+
         var body: some View {
             TabView(selection: $selectedTab) {
-                ZStack {
-                    switch activeHomeFlow {
-                    case .form: FormView(activeHomeFlow: $activeHomeFlow, onPostCreated: { appState.selectedImage = nil; activeHomeFlow = nil }).environmentObject(appState)
-                    case .scan, .none: HomeView(isLoggedIn: $appState.isLoggedIn, currentUsername: $appState.currentUsername, profileImageURL: $appState.profileImageURL, activeFlow: $activeHomeFlow)
+                Group {
+                    if creating {
+                        FormView(activeHomeFlow: .constant(.form), onPostCreated: { creating = false })
+                    } else {
+                        HomeView(
+                            isLoggedIn: $appState.isLoggedIn,
+                            currentUsername: $appState.currentUsername,
+                            profileImageURL: $appState.profileImageURL,
+                            activeFlow: .constant(nil)
+                        )
                     }
                 }
-                .overlay { if activeHomeFlow == .scan { ScanView(activeHomeFlow: $activeHomeFlow, username: appState.currentUsername).environmentObject(appState) } }
-                .tabItem { Label(tabTitle(for: activeHomeFlow), systemImage: "house") }.tag(0)
-                ProfileView(appState: appState).tabItem { Label("Profile", systemImage: "person.crop.circle") }.tag(1)
+                .environmentObject(appState)
+                .tabItem { Label(creating ? "Post" : "Home", systemImage: creating ? "plus" : "house.fill") }
+                .tag(0)
+
+                ProfileView(appState: appState)
+                    .environmentObject(appState)
+                    .tabItem { Label("Profile", systemImage: "person.fill") }
+                    .tag(1)
+
+                if appState.isAdmin {
+                    AdminView(appState: appState)
+                        .tabItem { Label("Admin", systemImage: "person.badge.key.fill") }
+                        .tag(2)
+                }
             }
-            .onAppear { adManager.updateCurrentScreen(selectedTab: selectedTab, activeHomeFlow: activeHomeFlow) }
-            .onChange(of: selectedTab) { _, newValue in activeHomeFlow = nil; adManager.updateCurrentScreen(selectedTab: newValue, activeHomeFlow: activeHomeFlow) }
-            .onChange(of: activeHomeFlow) { _, newValue in adManager.updateCurrentScreen(selectedTab: selectedTab, activeHomeFlow: newValue) }
+            .onChange(of: selectedTab) { _, _ in creating = false }
+            .onChange(of: creating) { _, value in if value { selectedTab = 0 } }
+            .safeAreaInset(edge: .top) {
+                if creating {
+                    Color.clear.frame(height: 0)
+                }
+            }
+            .toolbar(.hidden, for: .navigationBar)
         }
-        private func tabTitle(for flow: HomeFlow?) -> String { switch flow { case .scan: return "Scan"; case .form: return "Post"; case .none: return "Home" } }
     }
 
     struct LoadingView: View {
-        @State private var spin = false
-        var body: some View { ZStack { Color.black.opacity(0.05).ignoresSafeArea(); Circle().trim(from: 0.2, to: 1).stroke(Color(red: 0.49, green: 0.23, blue: 0.93), style: StrokeStyle(lineWidth: 6, lineCap: .round)).frame(width: 60, height: 60).rotationEffect(.degrees(spin ? 360 : 0)).animation(.linear(duration: 1).repeatForever(autoreverses: false), value: spin).onAppear { spin = true } } }
+        var body: some View {
+            ZStack {
+                Color(.systemBackground).ignoresSafeArea()
+                ProgressView().controlSize(.large)
+            }
+        }
     }
 }
