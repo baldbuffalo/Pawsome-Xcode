@@ -29,6 +29,9 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.FileInputStream
+import java.io.InputStream
 
 class AppViewModel(private val app: Application) : AndroidViewModel(app) {
 
@@ -226,10 +229,19 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
     fun createPost(uri: Uri, name: String, age: String, desc: String, location: String,
                    status: com.example.pawsome.model.PostStatus, onDone: () -> Unit) = viewModelScope.launch {
         busyPost = true; error = null
+        var cachedFile: File? = null
         try {
             val u = user ?: throw Exception("Not signed in")
             if (!github.hasToken) throw Exception("No image-upload token in this build.")
-            val jpeg = withContext(Dispatchers.IO) { encodeJpeg(uri) }
+
+            // Android pickers return provider-specific content:// URIs. Never assume
+            // that a URI can be read again later or that it maps directly to a file.
+            // Copy the selected bytes into our private cache first so every Android
+            // content provider (Gallery, Files, cloud providers, emulators, etc.)
+            // is handled consistently.
+            cachedFile = cachePickedImage(uri)
+            val jpeg = withContext(Dispatchers.IO) { encodeJpeg(Uri.fromFile(cachedFile)) }
+
             val fileName = "${u.uid}_${System.currentTimeMillis() / 1000}.jpg"
             val url = github.uploadImage(jpeg, fileName, "postImages")
             firestore.createPostForUser(u.uid, mapOf(
@@ -239,7 +251,33 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
             ))
             loadFeed(); onDone()
         } catch (e: Exception) { error = e.message }
-        finally { busyPost = false }
+        finally {
+            cachedFile?.delete()
+            busyPost = false
+        }
+    }
+
+    private suspend fun cachePickedImage(uri: Uri): File = withContext(Dispatchers.IO) {
+        val file = File.createTempFile("pawsome_image_", ".tmp", app.cacheDir)
+        try {
+            openUriInputStream(uri).use { input ->
+                if (input == null) throw Exception("Could not read the selected image")
+                file.outputStream().use { output -> input.copyTo(output) }
+            }
+            if (file.length() == 0L) throw Exception("The selected image is empty")
+            file
+        } catch (e: Exception) {
+            file.delete()
+            throw e
+        }
+    }
+
+    private fun openUriInputStream(uri: Uri): InputStream? {
+        return when (uri.scheme) {
+            "content" -> app.contentResolver.openInputStream(uri)
+            "file" -> uri.path?.let(::FileInputStream)
+            else -> throw Exception("Unsupported image URI: ${uri.scheme ?: "unknown"}")
+        }
     }
 
     private fun loginMethod(user: FirebaseUser): String {
@@ -254,8 +292,7 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
     }
 
     private fun encodeJpeg(uri: Uri, maxDim: Int = 1200): ByteArray {
-        val cr = getApplication<Application>().contentResolver
-        val src = cr.openInputStream(uri).use { BitmapFactory.decodeStream(it) }
+        val src = openUriInputStream(uri).use { BitmapFactory.decodeStream(it) }
             ?: throw Exception("Could not read image")
         val scale = minOf(1f, maxDim.toFloat() / maxOf(src.width, src.height))
         val bmp = if (scale < 1f) Bitmap.createScaledBitmap(src, (src.width * scale).toInt(), (src.height * scale).toInt(), true) else src
