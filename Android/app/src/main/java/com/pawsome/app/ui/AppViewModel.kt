@@ -1,15 +1,21 @@
 package com.example.pawsome.ui
 
+import android.Manifest
 import android.app.Activity
 import android.app.Application
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.os.Build
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.pawsome.auth.GoogleAuth
@@ -51,7 +57,6 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
     var error by mutableStateOf<String?>(null)
     var user by mutableStateOf<AppUser?>(null); private set
     var posts by mutableStateOf<List<Post>>(emptyList()); private set
-
     var conversations by mutableStateOf<List<ChatConversation>>(emptyList()); private set
     var chatLoading by mutableStateOf(false); private set
     var activeConversationId by mutableStateOf<String?>(null); private set
@@ -68,6 +73,7 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
     private var authStateReceived = false
     private var userListener: ListenerRegistration? = null
     private var messagesListener: ListenerRegistration? = null
+    private var notificationListener: ListenerRegistration? = null
 
     private val authStateListener = FirebaseAuth.AuthStateListener { auth ->
         busyGoogle = false; busyTwitter = false; authStateReceived = true
@@ -76,6 +82,7 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
         if (currentUid == observedUid && observedUid != null) return@AuthStateListener
         userListener?.remove(); userListener = null
         messagesListener?.remove(); messagesListener = null
+        notificationListener?.remove(); notificationListener = null
         observedUid = currentUid
         conversations = emptyList(); activeMessages = emptyList(); activeConversationId = null
         if (current == null) {
@@ -93,6 +100,7 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
                     posts = firestore.getPosts()
                     signedIn = true
                     loadConversations()
+                    startChatNotificationListener()
                     true
                 }
                 if (completed == null && observedUid == current.uid) {
@@ -120,7 +128,7 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
     }
 
     override fun onCleared() {
-        userListener?.remove(); messagesListener?.remove()
+        userListener?.remove(); messagesListener?.remove(); notificationListener?.remove()
         firebaseAuth.removeAuthStateListener(authStateListener)
         super.onCleared()
     }
@@ -177,8 +185,7 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
                 pendingFoundPostId = createdId
                 findPossibleMatches(name, desc, location)
             } else {
-                pendingFoundPostId = null
-                possibleMatches = emptyList()
+                pendingFoundPostId = null; possibleMatches = emptyList()
             }
             onDone()
         } catch (e: Exception) { error = e.message }
@@ -201,7 +208,7 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
         try {
             val u = uid ?: throw Exception("Not signed in")
             firestore.createPossibleMatchNotification(foundPostId, lostPost, u)
-            error = "The owner of ${lostPost.catName} has been notified."
+            error = "The owner of ${lostPost.catName} has been notified in their chat."
         } catch (e: Exception) { error = e.message }
     }
 
@@ -225,10 +232,31 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
     fun openConversation(id: String, otherUid: String, otherName: String) {
         messagesListener?.remove()
         activeConversationId = id; activeConversationName = otherName; activeMessages = emptyList()
-        messagesListener = firestore.observeMessages(id, { activeMessages = it }, { e -> error = e.message })
+        messagesListener = firestore.observeMessages(id, uid ?: return, { activeMessages = it }, { e -> error = e.message })
     }
 
     fun closeConversation() { messagesListener?.remove(); messagesListener = null; activeConversationId = null; activeConversationName = null; activeMessages = emptyList(); loadConversations() }
+
+    fun startChatNotificationListener() {
+        notificationListener?.remove()
+        val u = uid ?: return
+        notificationListener = firestore.observeChatNotifications(u, { text, chatId, otherUid, otherName ->
+            showChatNotification(text, chatId)
+        }, { e -> error = e.message })
+    }
+
+    private fun showChatNotification(text: String, chatId: String) {
+        if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(app, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return
+        val notification = NotificationCompat.Builder(app, "pawsome_chat")
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle("Pawsome chat")
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .build()
+        NotificationManagerCompat.from(app).notify(chatId.hashCode() and 0x7fffffff, notification)
+    }
 
     fun sendMessage(text: String) = viewModelScope.launch {
         try { val id = activeConversationId ?: return@launch; val u = uid ?: return@launch; firestore.sendMessage(id, u, text) }
