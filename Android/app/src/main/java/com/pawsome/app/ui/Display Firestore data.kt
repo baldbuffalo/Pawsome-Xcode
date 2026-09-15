@@ -154,7 +154,7 @@ private fun PostCard(post: Post, uid: String?, onLike: () -> Unit, onDelete: () 
             Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp).padding(bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 val liked = post.isLikedBy(uid)
                 FilledTonalButton(onClick = onLike, colors = ButtonDefaults.filledTonalButtonColors(containerColor = if (liked) LostRed.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(12.dp)) {
-                    Icon(if (liked) Icons.Default.Favorite else Icons.Default.FavoriteBorder, null, tint = if (liked) LostRed else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp)); Spacer(Modifier.width(6.dp)); Text("${post.likeCount} likes", color = if (liked) LostRed else MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon(if (liked) Icons.Default.Favorite else Icons.Default.FavoriteBorder, null, tint = if (liked) LostRed else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp)); Spacer(Modifier.width(6.dp)); Text(if (post.likeCount == 1) "1 like" else "${post.likeCount} likes", color = if (liked) LostRed else MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Spacer(Modifier.width(12.dp))
                 FilledTonalButton(onClick = { }, shape = RoundedCornerShape(12.dp)) { Icon(Icons.Default.ChatBubbleOutline, null, modifier = Modifier.size(20.dp)); Spacer(Modifier.width(6.dp)); Text("${post.commentCount} comments") }
