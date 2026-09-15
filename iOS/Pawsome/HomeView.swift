@@ -13,7 +13,6 @@ struct HomeView: View {
     @State private var isLoading = true
     @State private var selectedFilter: PostStatus?
     @State private var listener: ListenerRegistration?
-    @State private var selectedPostForComments: Post?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -43,9 +42,7 @@ struct HomeView: View {
 
             let filteredPosts = selectedFilter == nil ? posts : posts.filter { $0.status == selectedFilter }
             if isLoading && posts.isEmpty {
-                Spacer()
-                ProgressView()
-                Spacer()
+                Spacer(); ProgressView(); Spacer()
             } else if filteredPosts.isEmpty {
                 Spacer()
                 VStack(spacing: 10) {
@@ -61,7 +58,6 @@ struct HomeView: View {
                             CatPostView(
                                 post: post,
                                 onLike: { toggleLike(post: post) },
-                                onComment: { selectedPostForComments = post },
                                 onDelete: post.userID == appState.currentUserID ? { Task { await deletePost(post) } } : nil
                             )
                             .padding(.horizontal, 16)
@@ -74,7 +70,6 @@ struct HomeView: View {
         .background(Color(uiColor: .systemBackground))
         .onAppear { startListening() }
         .onDisappear { listener?.remove() }
-        .sheet(item: $selectedPostForComments) { CommentsView(post: $0) }
     }
 
     private func startListening() {
@@ -92,11 +87,8 @@ struct HomeView: View {
     private func toggleLike(post: Post) {
         guard let uid = Auth.auth().currentUser?.uid else { return }
         let ref = Firestore.firestore().collection("posts").document(post.id)
-        if post.likes.contains(uid) {
-            ref.updateData(["likes": FieldValue.arrayRemove([uid])])
-        } else {
-            ref.updateData(["likes": FieldValue.arrayUnion([uid])])
-        }
+        if post.likes.contains(uid) { ref.updateData(["likes": FieldValue.arrayRemove([uid])]) }
+        else { ref.updateData(["likes": FieldValue.arrayUnion([uid])]) }
     }
 
     private func deletePost(_ post: Post) async {
@@ -114,10 +106,7 @@ private struct FilterButton: View {
 
     var body: some View {
         Button(action: action) {
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-                .padding(.horizontal, 14)
-                .frame(minHeight: 36)
+            Text(title).font(.subheadline.weight(.semibold)).padding(.horizontal, 14).frame(minHeight: 36)
         }
         .buttonStyle(.bordered)
         .tint(selected ? .purple : .secondary)
