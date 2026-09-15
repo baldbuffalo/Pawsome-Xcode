@@ -7,21 +7,11 @@ enum PostStatus: String, CaseIterable, Identifiable {
     case REUNITED
 
     var id: String { rawValue }
-
     var emoji: String {
-        switch self {
-        case .LOST: return "🔴"
-        case .FOUND: return "🟢"
-        case .REUNITED: return "🟡"
-        }
+        switch self { case .LOST: return "🔴"; case .FOUND: return "🟢"; case .REUNITED: return "🟡" }
     }
-
     var displayName: String {
-        switch self {
-        case .LOST: return "Lost"
-        case .FOUND: return "Found"
-        case .REUNITED: return "Reunited"
-        }
+        switch self { case .LOST: return "Lost"; case .FOUND: return "Found"; case .REUNITED: return "Reunited" }
     }
 }
 
@@ -38,19 +28,15 @@ struct Post: Identifiable {
     let profilePic: String
     let timestamp: Timestamp
     var likes: [String]
-    var commentCount: Int
 
     var ownerUID: String { String(userID) }
     var ownerUsername: String { username }
     var ownerProfilePic: String { profilePic }
 
     init?(id: String, data: [String: Any]) {
-        guard
-            let catName = data["CatName"] as? String ?? data["catName"] as? String,
-            let imageURL = data["imageURL"] as? String,
-            let userID = data["UserID"] as? Int
-        else { return nil }
-
+        guard let catName = data["CatName"] as? String ?? data["catName"] as? String,
+              let imageURL = data["imageURL"] as? String,
+              let userID = data["UserID"] as? Int else { return nil }
         self.id = id
         self.catName = catName
         self.description = data["description"] as? String ?? ""
@@ -63,35 +49,5 @@ struct Post: Identifiable {
         self.profilePic = data["ProfilePic"] as? String ?? ""
         self.timestamp = data["PostedAt"] as? Timestamp ?? Timestamp()
         self.likes = data["likes"] as? [String] ?? []
-        self.commentCount = data["commentCount"] as? Int ?? (data["commentCount"] as? NSNumber)?.intValue ?? 0
-    }
-}
-
-struct PostComment: Identifiable {
-    let id: String
-    let postId: String
-    let text: String
-    let userID: Int
-    let username: String
-    let profilePic: String
-    let timestamp: Timestamp
-
-    var ownerUID: String { String(userID) }
-    var ownerUsername: String { username }
-    var ownerProfilePic: String { profilePic }
-
-    init?(id: String, postId: String, data: [String: Any]) {
-        guard
-            let text = data["text"] as? String,
-            let userID = data["UserID"] as? Int
-        else { return nil }
-
-        self.id = id
-        self.postId = postId
-        self.text = text
-        self.userID = userID
-        self.username = data["Username"] as? String ?? "User"
-        self.profilePic = data["ProfilePic"] as? String ?? ""
-        self.timestamp = data["timestamp"] as? Timestamp ?? Timestamp()
     }
 }
