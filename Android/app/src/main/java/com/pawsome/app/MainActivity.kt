@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AdminPanelSettings
+import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
@@ -21,11 +22,13 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.pawsome.ui.AdminScreen
 import com.example.pawsome.ui.AboutScreen
 import com.example.pawsome.ui.AppViewModel
+import com.example.pawsome.ui.ChatScreen
 import com.example.pawsome.ui.CreatePostScreen
 import com.example.pawsome.ui.FeedScreen
 import com.example.pawsome.ui.HelpScreen
 import com.example.pawsome.ui.ImageViewer
 import com.example.pawsome.ui.LoginScreen
+import com.example.pawsome.ui.PossibleMatchesScreen
 import com.example.pawsome.ui.ProfileScreen
 import com.example.pawsome.ui.theme.PawsomeTheme
 import com.example.pawsome.auth.GoogleAuth
@@ -69,7 +72,9 @@ private fun MainScaffold(vm: AppViewModel) {
             showHelp -> showHelp = false
             showAbout -> showAbout = false
             creating -> creating = false
-            tab == 1 -> tab = 0
+            vm.activeConversationId != null -> vm.closeConversation()
+            vm.pendingFoundPostId != null -> vm.dismissMatches()
+            tab != 0 -> tab = 0
             else -> Unit
         }
     }
@@ -78,17 +83,20 @@ private fun MainScaffold(vm: AppViewModel) {
         showAdmin -> AdminScreen { showAdmin = false }
         showAbout -> AboutScreen { showAbout = false }
         showHelp -> HelpScreen { showHelp = false }
+        vm.pendingFoundPostId != null -> PossibleMatchesScreen(vm, vm.pendingFoundPostId!!, { vm.dismissMatches() })
         else -> Scaffold(bottomBar = {
             NavigationBar {
                 NavigationBarItem(tab == 0 && !creating, { tab = 0; creating = false }, { Icon(Icons.Filled.Home, null) }, label = { Text("Home") })
-                NavigationBarItem(tab == 1, { tab = 1; creating = false }, { Icon(Icons.Filled.Person, null) }, label = { Text("Profile") })
+                NavigationBarItem(tab == 1 && !creating, { tab = 1; creating = false }, { Icon(Icons.Filled.ChatBubbleOutline, null) }, label = { Text("Chat") })
+                NavigationBarItem(tab == 2 && !creating, { tab = 2; creating = false }, { Icon(Icons.Filled.Person, null) }, label = { Text("Profile") })
                 if (vm.isAdmin) NavigationBarItem(false, { showAdmin = true }, { Icon(Icons.Filled.AdminPanelSettings, null) }, label = { Text("Admin") })
             }
         }) { paddingValues ->
             Box(Modifier.fillMaxSize().padding(paddingValues)) {
                 when {
                     creating -> CreatePostScreen(vm) { creating = false }
-                    tab == 1 -> ProfileScreen(vm, { showAbout = true }, { showHelp = true })
+                    tab == 1 -> ChatScreen(vm)
+                    tab == 2 -> ProfileScreen(vm, { showAbout = true }, { showHelp = true })
                     else -> FeedScreen(vm, { creating = true }, { imageToView = it })
                 }
             }
