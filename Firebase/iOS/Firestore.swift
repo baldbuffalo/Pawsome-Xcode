@@ -23,21 +23,13 @@ public final class PawsomeFirestore {
                 let lastUserID = counterSnapshot.data()?["lastUserID"] as? Int ?? 0
                 let nextUserID = lastUserID + 1
                 transaction.setData(["lastUserID": nextUserID], forDocument: counterRef, merge: true)
-                transaction.setData([
-                    "Username": username ?? "User",
-                    "ProfilePic": profilePic ?? "",
-                    "UserID": nextUserID,
-                    "LoginMethod": loginMethod,
-                    "JoinedOn": FieldValue.serverTimestamp()
-                ], forDocument: userRef, merge: false)
+                transaction.setData(["Username": username ?? "User", "ProfilePic": profilePic ?? "", "UserID": nextUserID, "LoginMethod": loginMethod, "JoinedOn": FieldValue.serverTimestamp()], forDocument: userRef, merge: false)
             } catch { errorPointer?.pointee = error as NSError }
             return nil
         }
     }
 
-    public func updateUser(uid: String, fields: [String: Any]) async throws {
-        try await db.collection("users").document(uid).setData(fields, merge: true)
-    }
+    public func updateUser(uid: String, fields: [String: Any]) async throws { try await db.collection("users").document(uid).setData(fields, merge: true) }
 
     public func getPosts(limit: Int = 50) async throws -> [[String: Any]] {
         let snapshot = try await db.collection("posts").order(by: "PostedAt", descending: true).limit(to: limit).getDocuments()
@@ -46,12 +38,9 @@ public final class PawsomeFirestore {
 
     public func createPost(fields: [String: Any]) async throws -> String {
         var fields = fields
-        guard fields["UserID"] != nil else {
-            throw NSError(domain: "PawsomeFirestore", code: 1, userInfo: [NSLocalizedDescriptionKey: "UserID is required when creating a post"])
-        }
+        guard fields["UserID"] != nil else { throw NSError(domain: "PawsomeFirestore", code: 1, userInfo: [NSLocalizedDescriptionKey: "UserID is required when creating a post"]) }
         if fields["PostedAt"] == nil { fields["PostedAt"] = FieldValue.serverTimestamp() }
-        let ref = try await db.collection("posts").addDocument(data: fields)
-        return ref.documentID
+        return try await db.collection("posts").addDocument(data: fields).documentID
     }
 
     public func deletePost(id: String) async throws { try await db.collection("posts").document(id).delete() }
@@ -59,25 +48,5 @@ public final class PawsomeFirestore {
     public func toggleLike(postId: String, uid: String, like: Bool) async throws {
         let value: Any = like ? FieldValue.arrayUnion([uid]) : FieldValue.arrayRemove([uid])
         try await db.collection("posts").document(postId).updateData(["likes": value])
-    }
-
-    public func getComments(postId: String) async throws -> [[String: Any]] {
-        let snapshot = try await db.collection("posts").document(postId).collection("comments").order(by: "timestamp", descending: false).getDocuments()
-        return snapshot.documents.map { document in var data = document.data(); data["id"] = document.documentID; data["postId"] = postId; return data }
-    }
-
-    public func addComment(postId: String, fields: [String: Any]) async throws -> String {
-        let ref = try await db.collection("posts").document(postId).collection("comments").addDocument(data: fields)
-        try await db.collection("posts").document(postId).updateData(["commentCount": FieldValue.increment(Int64(1))])
-        return ref.documentID
-    }
-
-    public func deleteComment(postId: String, commentId: String) async throws {
-        try await db.collection("posts").document(postId).collection("comments").document(commentId).delete()
-        try await db.collection("posts").document(postId).updateData(["commentCount": FieldValue.increment(Int64(-1))])
-    }
-
-    public func updateCommentText(postId: String, commentId: String, text: String) async throws {
-        try await db.collection("posts").document(postId).collection("comments").document(commentId).updateData(["text": text])
     }
 }
