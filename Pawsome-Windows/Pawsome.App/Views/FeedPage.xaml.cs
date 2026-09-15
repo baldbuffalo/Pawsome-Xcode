@@ -33,12 +33,6 @@ public sealed partial class FeedPage : Page, IPostInteraction
         => Frame.Navigate(typeof(CreatePostPage), null, new EntranceNavigationTransitionInfo());
 
     // ── IPostInteraction ────────────────────────────────────────────────────
-    public async Task ShowCommentsAsync(PostItemViewModel post)
-    {
-        var dialog = new CommentsDialog(post) { XamlRoot = XamlRoot };
-        await dialog.ShowAsync();
-    }
-
     public async Task ConfirmDeleteAsync(PostItemViewModel post)
     {
         var confirm = new ContentDialog

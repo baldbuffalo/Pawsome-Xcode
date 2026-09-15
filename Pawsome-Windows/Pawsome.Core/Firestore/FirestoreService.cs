@@ -72,49 +72,6 @@ public sealed class FirestoreService
         return CommitTransformAsync($"posts/{postId}", transform, ct);
     }
 
-    public async Task<List<PostComment>> GetCommentsAsync(string postId, CancellationToken ct = default)
-    {
-        var query = new JsonObject
-        {
-            ["structuredQuery"] = new JsonObject
-            {
-                ["from"] = new JsonArray { new JsonObject { ["collectionId"] = "comments" } },
-                ["orderBy"] = new JsonArray
-                {
-                    new JsonObject
-                    {
-                        ["field"] = new JsonObject { ["fieldPath"] = "timestamp" },
-                        ["direction"] = "ASCENDING",
-                    }
-                },
-            }
-        };
-
-        var rows = await RunQueryAsync($"{Base}/posts/{postId}:runQuery", query, ct).ConfigureAwait(false);
-        var comments = new List<PostComment>();
-        foreach (var (id, fields) in rows)
-            if (PostComment.FromFirestore(id, postId, fields) is { } c) comments.Add(c);
-        return comments;
-    }
-
-    public async Task<string> AddCommentAsync(string postId, IReadOnlyDictionary<string, object?> fields, CancellationToken ct = default)
-    {
-        var name = await CreateDocumentAsync($"posts/{postId}/comments", fields, ct).ConfigureAwait(false);
-        await CommitTransformAsync($"posts/{postId}",
-            new JsonObject { ["fieldPath"] = "commentCount", ["increment"] = FirestoreValue.FromObject(1L) }, ct).ConfigureAwait(false);
-        return name.Split('/').Last();
-    }
-
-    public async Task DeleteCommentAsync(string postId, string commentId, CancellationToken ct = default)
-    {
-        await DeleteDocumentAsync($"posts/{postId}/comments/{commentId}", ct).ConfigureAwait(false);
-        await CommitTransformAsync($"posts/{postId}",
-            new JsonObject { ["fieldPath"] = "commentCount", ["increment"] = FirestoreValue.FromObject(-1L) }, ct).ConfigureAwait(false);
-    }
-
-    public Task UpdateCommentTextAsync(string postId, string commentId, string text, CancellationToken ct = default)
-        => PatchDocumentAsync($"posts/{postId}/comments/{commentId}", new Dictionary<string, object?> { ["text"] = text }, ct);
-
     public async Task<AppUser?> GetUserAsync(string uid, CancellationToken ct = default)
     {
         var doc = await GetDocumentAsync($"users/{uid}", transaction: null, ct).ConfigureAwait(false);

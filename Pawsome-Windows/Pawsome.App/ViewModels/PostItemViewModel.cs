@@ -25,10 +25,8 @@ public sealed class PostItemViewModel : ObservableObject
 
         _isLiked = model.IsLikedBy(currentUid);
         _likeCount = model.LikeCount;
-        _commentCount = model.CommentCount;
 
         ToggleLikeCommand = new AsyncRelayCommand(ToggleLikeAsync);
-        OpenCommentsCommand = new AsyncRelayCommand(() => _interaction.ShowCommentsAsync(this));
         DeleteCommand = new AsyncRelayCommand(() => _interaction.ConfirmDeleteAsync(this));
         OpenImageCommand = new RelayCommand(() => _interaction.ShowImage(Model.ImageUrl));
     }
@@ -47,11 +45,7 @@ public sealed class PostItemViewModel : ObservableObject
     public bool IsLiked { get => _isLiked; private set => SetProperty(ref _isLiked, value); }
     private int _likeCount;
     public int LikeCount { get => _likeCount; private set => SetProperty(ref _likeCount, value); }
-    private int _commentCount;
-    public int CommentCount { get => _commentCount; private set => SetProperty(ref _commentCount, value); }
-
     public IAsyncRelayCommand ToggleLikeCommand { get; }
-    public IAsyncRelayCommand OpenCommentsCommand { get; }
     public IAsyncRelayCommand DeleteCommand { get; }
     public IRelayCommand OpenImageCommand { get; }
 
@@ -69,13 +63,10 @@ public sealed class PostItemViewModel : ObservableObject
         }
     }
 
-    public void AdjustCommentCount(int delta) => CommentCount = Math.Max(0, CommentCount + delta);
-
     public void UpdateFrom(Post fresh)
     {
         Model = fresh;
         LikeCount = fresh.LikeCount;
-        CommentCount = fresh.CommentCount;
         IsLiked = fresh.IsLikedBy(_currentUid);
         OnPropertyChanged(nameof(TimeAgo));
         OnPropertyChanged(nameof(OwnerUsername));

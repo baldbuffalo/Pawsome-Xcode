@@ -15,7 +15,6 @@ public sealed class Post
     public string ProfilePic { get; init; } = "";
     public DateTimeOffset Timestamp { get; init; } = DateTimeOffset.UtcNow;
     public IReadOnlyList<string> Likes { get; init; } = Array.Empty<string>();
-    public int CommentCount { get; init; }
 
     // UI compatibility aliases; Firestore itself uses UserID/Username/ProfilePic.
     public string OwnerUid => UserID.ToString();
@@ -55,7 +54,6 @@ public sealed class Post
             Age = data.GetString("age") ?? "",
             Timestamp = data.GetTimestamp("PostedAt") ?? DateTimeOffset.UtcNow,
             Likes = data.GetStringList("likes"),
-            CommentCount = (int)data.GetLong("commentCount"),
         };
     }
 }

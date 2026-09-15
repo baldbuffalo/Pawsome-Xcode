@@ -84,7 +84,6 @@ public sealed class CreatePostViewModel : ObservableObject
                 ["ProfilePic"] = user.ProfilePic ?? "",
                 ["PostedAt"] = DateTimeOffset.UtcNow,
                 ["likes"] = new List<object?>(),
-                ["commentCount"] = 0L,
             };
 
             await _services.Firestore.CreatePostAsync(fields);

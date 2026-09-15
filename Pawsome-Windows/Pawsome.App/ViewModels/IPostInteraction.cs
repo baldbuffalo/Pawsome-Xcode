@@ -6,7 +6,6 @@ namespace Pawsome.App.ViewModels;
 /// </summary>
 public interface IPostInteraction
 {
-    Task ShowCommentsAsync(PostItemViewModel post);
     Task ConfirmDeleteAsync(PostItemViewModel post);
     void ShowImage(string imageUrl);
 }

@@ -30,7 +30,6 @@ data class Post(
     val profilePic: String,
     val postedAtMillis: Long,
     val likes: List<String>,
-    val commentCount: Int,
     val status: PostStatus = PostStatus.LOST,
     val location: String = ""
 ) {
@@ -93,8 +92,6 @@ data class Post(
                 profilePic = document.getString("ProfilePic") ?: "",
                 postedAtMillis = postedAtMillis,
                 likes = likes,
-                commentCount =
-                    (document.getLong("commentCount") ?: 0L).toInt(),
                 status =
                     PostStatus.fromString(
                         document.getString("status")

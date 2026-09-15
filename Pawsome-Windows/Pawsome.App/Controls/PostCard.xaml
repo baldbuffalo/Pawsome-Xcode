@@ -83,13 +83,6 @@
                     </StackPanel>
                 </Button>
 
-                <Button Command="{Binding OpenCommentsCommand}" Background="Transparent" BorderThickness="0" Padding="6,4">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <FontIcon Glyph="&#xE90A;" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                        <TextBlock Text="{Binding CommentCount}"
-                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                    </StackPanel>
-                </Button>
             </StackPanel>
         </StackPanel>
     </Border>

@@ -178,7 +178,7 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
             val url = github.uploadImage(jpeg, fileName, "postImages")
             val createdId = firestore.createPostForUser(u.uid, mapOf(
                 "CatName" to name.trim(), "CatAge" to age.trim(), "description" to desc.trim(), "location" to location.trim(),
-                "imageURL" to url, "likes" to emptyList<String>(), "commentCount" to 0L, "status" to status.name,
+                "imageURL" to url, "likes" to emptyList<String>(), "status" to status.name,
             ))
             loadFeed()
             if (status == com.example.pawsome.model.PostStatus.FOUND) {
