@@ -10,7 +10,7 @@ object PawsomeConfig {
             "Firebase apiKey is missing from google-services.json"
         }
 
-    const val githubRepo = "baldbuffalo/Pawsome-Xcode"
+    const val githubRepo = "baldbuffalo/Pawsome-assets"
 
     val twitterConsumerKey: String get() = BuildConfig.TWITTER_CONSUMER_KEY
     val twitterConsumerSecret: String get() = BuildConfig.TWITTER_CONSUMER_SECRET
