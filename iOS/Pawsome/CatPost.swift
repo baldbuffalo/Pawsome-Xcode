@@ -4,7 +4,6 @@ import FirebaseAuth
 struct CatPostView: View {
     let post: Post
     var onLike: () -> Void
-    var onComment: () -> Void
     var onDelete: (() -> Void)?
     @EnvironmentObject private var appState: PawsomeApp.AppState
 
@@ -90,9 +89,6 @@ struct CatPostView: View {
                     Label("\(post.likes.count) likes", systemImage: isLiked ? "heart.fill" : "heart")
                         .foregroundStyle(isLiked ? .red : .secondary).frame(minHeight: 40)
                 }.buttonStyle(.bordered)
-                Button(action: onComment) {
-                    Label("\(post.commentCount) comments", systemImage: "bubble.right").frame(minHeight: 40)
-                }.buttonStyle(.bordered)
                 Spacer()
             }
             .padding(.horizontal, 8).padding(.bottom, 8)
@@ -124,7 +120,7 @@ struct FullScreenImageView: View {
                         .onTapGesture(count: 2) { withAnimation { if scale > 1 { scale = 1; offset = .zero } else { scale = 2.5 } } }
                 } else { ProgressView().tint(.white) }
             }
-            Button { dismiss() } label: { Image(systemName: "xmark.circle.fill").font(.title).foregroundStyle(.white).padding() }
+            Button { dismiss() } label { Image(systemName: "xmark.circle.fill").font(.title).foregroundStyle(.white).padding() }
             .buttonStyle(.plain)
         }
     }
