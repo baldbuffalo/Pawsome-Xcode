@@ -29,45 +29,33 @@ data class ChatMessage(
     val senderUid: String,
     val text: String,
     val timestampMillis: Long,
+    val type: String = "user",
+    val recipientUid: String? = null,
 )
 
 class Firestore {
     private val db = FirebaseFirestore.getInstance()
 
     suspend fun getPosts(limit: Int = 50): List<Post> = withContext(Dispatchers.IO) {
-        db.collection("posts")
-            .orderBy("PostedAt", Query.Direction.DESCENDING)
-            .limit(limit.toLong())
-            .get()
-            .await()
-            .documents
-            .mapNotNull { Post.fromDocument(it) }
+        db.collection("posts").orderBy("PostedAt", Query.Direction.DESCENDING).limit(limit.toLong()).get().await().documents.mapNotNull { Post.fromDocument(it) }
     }
 
     suspend fun createPost(fields: Map<String, Any?>): String = withContext(Dispatchers.IO) {
-        val ref = db.collection("posts").document()
-        ref.set(prepareFields(fields)).await()
-        ref.id
+        val ref = db.collection("posts").document(); ref.set(prepareFields(fields)).await(); ref.id
     }
 
     suspend fun createPostForUser(uid: String, fields: Map<String, Any?>): String = withContext(Dispatchers.IO) {
         val user = getUser(uid) ?: throw FirestoreException("User profile does not exist")
         val postFields = fields.toMutableMap().apply {
-            put("UserID", user.userNumber)
-            put("Username", user.username)
-            put("ProfilePic", user.profilePic ?: "")
-            put("PostedAt", FieldValue.serverTimestamp())
+            put("UserID", user.userNumber); put("Username", user.username); put("ProfilePic", user.profilePic ?: ""); put("PostedAt", FieldValue.serverTimestamp())
         }
-        val ref = db.collection("posts").document()
-        ref.set(prepareFields(postFields)).await()
-        ref.id
+        val ref = db.collection("posts").document(); ref.set(prepareFields(postFields)).await(); ref.id
     }
 
     suspend fun deletePost(id: String) = withContext(Dispatchers.IO) { db.collection("posts").document(id).delete().await() }
 
     suspend fun toggleLike(postId: String, uid: String, like: Boolean) = withContext(Dispatchers.IO) {
-        val ref = db.collection("posts").document(postId)
-        ref.update("likes", if (like) FieldValue.arrayUnion(uid) else FieldValue.arrayRemove(uid)).await()
+        db.collection("posts").document(postId).update("likes", if (like) FieldValue.arrayUnion(uid) else FieldValue.arrayRemove(uid)).await()
     }
 
     suspend fun getUser(uid: String): AppUser? = withContext(Dispatchers.IO) {
@@ -78,12 +66,11 @@ class Firestore {
         db.collection("users").whereEqualTo("UserID", userNumber.toLong()).limit(1).get().await().documents.firstOrNull()?.let(AppUser::fromDocument)
     }
 
-    fun observeUser(uid: String, onUserChanged: (AppUser?) -> Unit, onError: (Exception) -> Unit): ListenerRegistration {
-        return db.collection("users").document(uid).addSnapshotListener { snapshot, error ->
+    fun observeUser(uid: String, onUserChanged: (AppUser?) -> Unit, onError: (Exception) -> Unit): ListenerRegistration =
+        db.collection("users").document(uid).addSnapshotListener { snapshot, error ->
             if (error != null) { onError(error); return@addSnapshotListener }
             onUserChanged(snapshot?.takeIf { it.exists() }?.let(AppUser::fromDocument))
         }
-    }
 
     suspend fun updateUser(uid: String, fields: Map<String, Any?>) = withContext(Dispatchers.IO) {
         db.collection("users").document(uid).set(prepareFields(fields), SetOptions.merge()).await()
@@ -93,13 +80,7 @@ class Firestore {
         db.collection("chats").whereArrayContains("participants", uid).get().await().documents.mapNotNull { d ->
             val participants = d.get("participants") as? List<*> ?: return@mapNotNull null
             val otherUid = participants.filterIsInstance<String>().firstOrNull { it != uid } ?: return@mapNotNull null
-            ChatConversation(
-                id = d.id,
-                otherUid = otherUid,
-                otherName = d.getString("${otherUid}_name") ?: "Pawsome user",
-                lastMessage = d.getString("lastMessage") ?: "",
-                updatedAtMillis = d.getTimestamp("updatedAt")?.toDate()?.time ?: 0L,
-            )
+            ChatConversation(d.id, otherUid, d.getString("${otherUid}_name") ?: "Pawsome user", d.getString("${uid}_lastMessage") ?: d.getString("lastMessage") ?: "", d.getTimestamp("${uid}_updatedAt")?.toDate()?.time ?: d.getTimestamp("updatedAt")?.toDate()?.time ?: 0L)
         }.sortedByDescending { it.updatedAtMillis }
     }
 
@@ -107,63 +88,61 @@ class Firestore {
         if (uid == otherUid) throw FirestoreException("You cannot chat with yourself")
         val id = listOf(uid, otherUid).sorted().joinToString("_")
         val ref = db.collection("chats").document(id)
-        val existing = ref.get().await()
-        if (!existing.exists()) {
-            ref.set(mapOf(
-                "participants" to listOf(uid, otherUid),
-                "${uid}_name" to myName,
-                "${otherUid}_name" to otherName,
-                "lastMessage" to "",
-                "updatedAt" to FieldValue.serverTimestamp(),
-            )).await()
+        if (!ref.get().await().exists()) {
+            ref.set(mapOf("participants" to listOf(uid, otherUid), "${uid}_name" to myName, "${otherUid}_name" to otherName, "lastMessage" to "", "updatedAt" to FieldValue.serverTimestamp(), "${uid}_lastMessage" to "", "${uid}_updatedAt" to FieldValue.serverTimestamp(), "${otherUid}_lastMessage" to "", "${otherUid}_updatedAt" to FieldValue.serverTimestamp())).await()
         }
         id
     }
 
-    fun observeMessages(chatId: String, onChanged: (List<ChatMessage>) -> Unit, onError: (Exception) -> Unit): ListenerRegistration {
-        return db.collection("chats").document(chatId).collection("messages")
-            .orderBy("timestamp", Query.Direction.ASCENDING)
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) { onError(error); return@addSnapshotListener }
-                onChanged(snapshot?.documents?.map { d ->
-                    ChatMessage(
-                        id = d.id,
-                        senderUid = d.getString("senderUid") ?: "",
-                        text = d.getString("text") ?: "",
-                        timestampMillis = d.getTimestamp("timestamp")?.toDate()?.time ?: 0L,
-                    )
-                } ?: emptyList())
-            }
+    fun observeMessages(chatId: String, viewerUid: String, onChanged: (List<ChatMessage>) -> Unit, onError: (Exception) -> Unit): ListenerRegistration {
+        return db.collection("chats").document(chatId).collection("messages").orderBy("timestamp", Query.Direction.ASCENDING).addSnapshotListener { snapshot, error ->
+            if (error != null) { onError(error); return@addSnapshotListener }
+            onChanged(snapshot?.documents?.mapNotNull { d ->
+                val recipientUid = d.getString("recipientUid")
+                if (recipientUid != null && recipientUid != viewerUid) return@mapNotNull null
+                ChatMessage(d.id, d.getString("senderUid") ?: "", d.getString("text") ?: "", d.getTimestamp("timestamp")?.toDate()?.time ?: 0L, d.getString("type") ?: "user", recipientUid)
+            } ?: emptyList())
+        }
     }
 
     suspend fun sendMessage(chatId: String, senderUid: String, text: String) = withContext(Dispatchers.IO) {
         val chat = db.collection("chats").document(chatId)
+        val existing = chat.get().await()
+        val participants = existing.get("participants") as? List<*> ?: emptyList<Any?>()
         val message = chat.collection("messages").document()
         db.runTransaction { transaction ->
-            transaction.set(message, mapOf(
-                "senderUid" to senderUid,
-                "text" to text,
-                "timestamp" to FieldValue.serverTimestamp(),
-            ))
-            transaction.set(chat, mapOf(
-                "lastMessage" to text,
-                "updatedAt" to FieldValue.serverTimestamp(),
-            ), SetOptions.merge())
+            transaction.set(message, mapOf("senderUid" to senderUid, "type" to "user", "text" to text, "timestamp" to FieldValue.serverTimestamp()))
+            transaction.set(chat, mapOf("lastMessage" to text, "updatedAt" to FieldValue.serverTimestamp(), "${senderUid}_lastMessage" to text, "${senderUid}_updatedAt" to FieldValue.serverTimestamp()), SetOptions.merge())
+            participants.filterIsInstance<String>().filter { it != senderUid }.forEach { recipient -> transaction.set(chat, mapOf("${recipient}_lastMessage" to text, "${recipient}_updatedAt" to FieldValue.serverTimestamp()), SetOptions.merge()) }
         }.await()
     }
 
-    suspend fun createPossibleMatchNotification(foundPostId: String, lostPost: Post, finderUid: String) = withContext(Dispatchers.IO) {
+    suspend fun createPossibleMatchNotification(foundPostId: String, lostPost: Post, finderUid: String): String = withContext(Dispatchers.IO) {
         val owner = findUserByUserNumber(lostPost.userId) ?: throw FirestoreException("Could not find the Lost Cat owner")
-        db.collection("notifications").document().set(mapOf(
-            "recipientUid" to owner.uid,
-            "senderUid" to finderUid,
-            "type" to "possible_cat_match",
-            "foundPostId" to foundPostId,
-            "lostPostId" to lostPost.id,
-            "catName" to lostPost.catName,
-            "createdAt" to FieldValue.serverTimestamp(),
-            "read" to false,
-        )).await()
+        val chatId = createOrGetConversation(owner.uid, finderUid, "Pawsome user", owner.username)
+        val systemText = "🐾 Possible match: someone found a cat that may be ${lostPost.catName}. Check the Found Cat post and contact the finder if you think it is your cat."
+        val chat = db.collection("chats").document(chatId)
+        val message = chat.collection("messages").document()
+        db.runTransaction { transaction ->
+            transaction.set(message, mapOf("senderUid" to "system", "recipientUid" to owner.uid, "type" to "system", "text" to systemText, "foundPostId" to foundPostId, "lostPostId" to lostPost.id, "timestamp" to FieldValue.serverTimestamp()))
+            transaction.set(chat, mapOf("${owner.uid}_lastMessage" to systemText, "${owner.uid}_updatedAt" to FieldValue.serverTimestamp()), SetOptions.merge())
+        }.await()
+        db.collection("notifications").document().set(mapOf("recipientUid" to owner.uid, "senderUid" to finderUid, "type" to "chat_system_message", "chatId" to chatId, "foundPostId" to foundPostId, "lostPostId" to lostPost.id, "catName" to lostPost.catName, "text" to systemText, "createdAt" to FieldValue.serverTimestamp(), "read" to false)).await()
+        chatId
+    }
+
+    fun observeChatNotifications(uid: String, onNotification: (String, String, String, String) -> Unit, onError: (Exception) -> Unit): ListenerRegistration {
+        return db.collection("notifications").whereEqualTo("recipientUid", uid).whereEqualTo("read", false).addSnapshotListener { snapshot, error ->
+            if (error != null) { onError(error); return@addSnapshotListener }
+            snapshot?.documents?.forEach { d ->
+                if (d.getString("type") != "chat_system_message") return@forEach
+                val text = d.getString("text") ?: return@forEach
+                val chatId = d.getString("chatId") ?: return@forEach
+                val senderUid = d.getString("senderUid") ?: ""
+                onNotification(text, chatId, senderUid, "Pawsome user")
+                d.reference.update("read", true)
+            }
+        }
     }
 
     suspend fun fetchOrCreateUser(uid: String, name: String?, image: String?, loginMethod: String = "Unknown"): AppUser = withContext(Dispatchers.IO) {
@@ -177,13 +156,7 @@ class Firestore {
             val counterSnapshot = transaction.get(counterRef)
             val nextUserNumber = (counterSnapshot.getLong("lastUserID") ?: 0L) + 1L
             transaction.set(counterRef, mapOf("lastUserID" to nextUserNumber), SetOptions.merge())
-            transaction.set(userRef, mapOf(
-                "Username" to username,
-                "ProfilePic" to (image ?: ""),
-                "UserID" to nextUserNumber,
-                "LoginMethod" to loginMethod,
-                "JoinedOn" to FieldValue.serverTimestamp(),
-            ))
+            transaction.set(userRef, mapOf("Username" to username, "ProfilePic" to (image ?: ""), "UserID" to nextUserNumber, "LoginMethod" to loginMethod, "JoinedOn" to FieldValue.serverTimestamp()))
             nextUserNumber
         }.await()
         AppUser(uid, username, image, userNumber.toInt(), loginMethod, System.currentTimeMillis())
