@@ -44,11 +44,7 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun ChatScreen(vm: AppViewModel) {
     val conversations = vm.conversations
-    if (vm.activeConversationId != null) {
-        ChatConversationScreen(vm)
-        return
-    }
-
+    if (vm.activeConversationId != null) { ChatConversationScreen(vm); return }
     Column(Modifier.fillMaxSize()) {
         Text("Chat", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(20.dp))
         if (vm.chatLoading && conversations.isEmpty()) {
@@ -66,9 +62,7 @@ fun ChatScreen(vm: AppViewModel) {
                 items(conversations, key = { it.id }) { chat ->
                     Surface(onClick = { vm.openConversation(chat.id, chat.otherUid, chat.otherName) }, modifier = Modifier.fillMaxWidth()) {
                         Row(Modifier.padding(horizontal = 20.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Box(Modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer), contentAlignment = Alignment.Center) {
-                                Text(chat.otherName.take(1).uppercase(), fontWeight = FontWeight.Bold)
-                            }
+                            Box(Modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer), contentAlignment = Alignment.Center) { Text(chat.otherName.take(1).uppercase(), fontWeight = FontWeight.Bold) }
                             Spacer(Modifier.width(14.dp))
                             Column(Modifier.weight(1f)) {
                                 Text(chat.otherName, fontWeight = FontWeight.SemiBold)
@@ -93,19 +87,28 @@ fun ChatConversationScreen(vm: AppViewModel) {
         }
         LazyColumn(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp), reverseLayout = true) {
             items(vm.activeMessages.reversed(), key = { it.id }) { item ->
-                val mine = item.senderUid == vm.uid
-                Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = if (mine) Arrangement.End else Arrangement.Start) {
-                    Surface(shape = RoundedCornerShape(18.dp), color = if (mine) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant) {
-                        Text(item.text, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp), color = MaterialTheme.colorScheme.onSurface)
+                if (item.type == "system") {
+                    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.Center) {
+                        Surface(shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.secondaryContainer) {
+                            Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("Pawsome", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
+                                Text(item.text, color = MaterialTheme.colorScheme.onSecondaryContainer, fontSize = 13.sp)
+                            }
+                        }
+                    }
+                } else {
+                    val mine = item.senderUid == vm.uid
+                    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = if (mine) Arrangement.End else Arrangement.Start) {
+                        Surface(shape = RoundedCornerShape(18.dp), color = if (mine) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant) {
+                            Text(item.text, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp), color = MaterialTheme.colorScheme.onSurface)
+                        }
                     }
                 }
             }
         }
         Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(message, { message = it }, Modifier.weight(1f), placeholder = { Text("Message…") }, maxLines = 4)
-            IconButton(onClick = { val text = message.trim(); if (text.isNotEmpty()) { message = ""; vm.sendMessage(text) } }) {
-                Icon(Icons.AutoMirrored.Filled.Send, "Send")
-            }
+            IconButton(onClick = { val text = message.trim(); if (text.isNotEmpty()) { message = ""; vm.sendMessage(text) } }) { Icon(Icons.AutoMirrored.Filled.Send, "Send") }
         }
     }
 }
