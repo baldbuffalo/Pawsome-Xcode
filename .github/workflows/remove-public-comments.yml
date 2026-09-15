@@ -1,0 +1,111 @@
+name: Remove public comments
+
+on:
+  push:
+    paths:
+      - '.github/workflows/remove-public-comments.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  remove-comments:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Remove comments feature
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          def replace(path, old, new):
+              p = Path(path); s = p.read_text();
+              if old not in s:
+                  raise SystemExit(f'Expected text not found in {path}')
+              p.write_text(s.replace(old, new, 1))
+
+          # Android: comments are UI-only at this point; remove the model field,
+          # post creation field, and the public comment button.
+          replace('Android/app/src/main/java/com/pawsome/app/model/Convert Firestore data.kt',
+                  '    val likes: List<String>,\n    val commentCount: Int,\n',
+                  '    val likes: List<String>,\n')
+          replace('Android/app/src/main/java/com/pawsome/app/model/Convert Firestore data.kt',
+                  '                commentCount =\n                    (document.getLong("commentCount") ?: 0L).toInt(),\n', '')
+          replace('Android/app/src/main/java/com/pawsome/app/ui/AppViewModel.kt',
+                  '                "imageURL" to url, "likes" to emptyList<String>(), "commentCount" to 0L, "status" to status.name,\n',
+                  '                "imageURL" to url, "likes" to emptyList<String>(), "status" to status.name,\n')
+
+          p = Path('Android/app/src/main/java/com/pawsome/app/ui/Display Firestore data.kt')
+          s = p.read_text()
+          pattern = re.compile(r'\n                Spacer\(Modifier\.width\(12\.dp\)\)\n                FilledTonalButton\(onClick = \{ \}, shape = RoundedCornerShape\(12\.dp\)\) \{ Icon\(Icons\.Default\.ChatBubbleOutline, null, modifier = Modifier\.size\(20\.dp\)\); Spacer\(Modifier\.width\(6\.dp\)\); Text\("\$\{post\.commentCount\} comments"\) \}\n')
+          s2, n = pattern.subn('\n', s, count=1)
+          if n != 1: raise SystemExit('Android comment button not found')
+          p.write_text(s2)
+
+          # iOS form no longer writes commentCount.
+          replace('iOS/Pawsome/FormView.swift',
+                  '                "likes": [String](),\n                "commentCount": 0\n',
+                  '                "likes": [String]()\n')
+
+          # Windows model/view-model/card/service no longer expose comments.
+          replace('Pawsome-Windows/Pawsome.Core/Models/Post.cs',
+                  '    public IReadOnlyList<string> Likes { get; init; } = Array.Empty<string>();\n    public int CommentCount { get; init; }\n',
+                  '    public IReadOnlyList<string> Likes { get; init; } = Array.Empty<string>();\n')
+          replace('Pawsome-Windows/Pawsome.Core/Models/Post.cs',
+                  '            Likes = data.GetStringList("likes"),\n            CommentCount = (int)data.GetLong("commentCount"),\n',
+                  '            Likes = data.GetStringList("likes"),\n')
+          replace('Pawsome-Windows/Pawsome.App/ViewModels/PostItemViewModel.cs',
+                  '        _likeCount = model.LikeCount;\n        _commentCount = model.CommentCount;\n\n        ToggleLikeCommand = new AsyncRelayCommand(ToggleLikeAsync);\n        OpenCommentsCommand = new AsyncRelayCommand(() => _interaction.ShowCommentsAsync(this));\n',
+                  '        _likeCount = model.LikeCount;\n\n        ToggleLikeCommand = new AsyncRelayCommand(ToggleLikeAsync);\n')
+          replace('Pawsome-Windows/Pawsome.App/ViewModels/PostItemViewModel.cs',
+                  '    private int _commentCount;\n    public int CommentCount { get => _commentCount; private set => SetProperty(ref _commentCount, value); }\n\n', '')
+          replace('Pawsome-Windows/Pawsome.App/ViewModels/PostItemViewModel.cs',
+                  '    public IAsyncRelayCommand OpenCommentsCommand { get; }\n', '')
+          replace('Pawsome-Windows/Pawsome.App/ViewModels/PostItemViewModel.cs',
+                  '    public void AdjustCommentCount(int delta) => CommentCount = Math.Max(0, CommentCount + delta);\n\n', '')
+          replace('Pawsome-Windows/Pawsome.App/ViewModels/PostItemViewModel.cs',
+                  '        CommentCount = fresh.CommentCount;\n', '')
+          replace('Pawsome-Windows/Pawsome.App/ViewModels/IPostInteraction.cs',
+                  '    Task ShowCommentsAsync(PostItemViewModel post);\n', '')
+          replace('Pawsome-Windows/Pawsome.App/Views/FeedPage.xaml.cs',
+                  '    // ── IPostInteraction ────────────────────────────────────────────────────\n    public async Task ShowCommentsAsync(PostItemViewModel post)\n    {\n        var dialog = new CommentsDialog(post) { XamlRoot = XamlRoot };\n        await dialog.ShowAsync();\n    }\n\n',
+                  '    // ── IPostInteraction ────────────────────────────────────────────────────\n')
+          replace('Pawsome-Windows/Pawsome.App/Controls/PostCard.xaml',
+                  '''                <Button Command="{Binding OpenCommentsCommand}" Background="Transparent" BorderThickness="0" Padding="6,4">\n                    <StackPanel Orientation="Horizontal" Spacing="6">\n                        <FontIcon Glyph="&#xE90A;" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />\n                        <TextBlock Text="{Binding CommentCount}"\n                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />\n                    </StackPanel>\n                </Button>\n''', '')
+          replace('Pawsome-Windows/Pawsome.App/ViewModels/CreatePostViewModel.cs',
+                  '                ["likes"] = new List<object?>(),\n                ["commentCount"] = 0L,\n',
+                  '                ["likes"] = new List<object?>(),\n')
+
+          p = Path('Pawsome-Windows/Pawsome.Core/Firestore/FirestoreService.cs')
+          s = p.read_text()
+          start = s.index('    public async Task<List<PostComment>> GetCommentsAsync')
+          end = s.index('    public async Task<AppUser?> GetUserAsync', start)
+          s = s[:start] + s[end:]
+          p.write_text(s)
+
+          # Remove standalone comment implementations.
+          for name in [
+              'iOS/Pawsome/CommentsView.swift',
+              'Pawsome-Windows/Pawsome.App/Views/CommentsDialog.xaml',
+              'Pawsome-Windows/Pawsome.App/Views/CommentsDialog.xaml.cs',
+              'Pawsome-Windows/Pawsome.App/ViewModels/CommentsViewModel.cs',
+              'Pawsome-Windows/Pawsome.App/ViewModels/CommentItemViewModel.cs',
+              'Pawsome-Windows/Pawsome.Core/Models/PostComment.cs',
+          ]:
+              p = Path(name)
+              if p.exists(): p.unlink()
+
+          # Remove any explicit iOS project references to the deleted comments file.
+          for p in Path('iOS').rglob('project.pbxproj'):
+              s = p.read_text()
+              s = re.sub(r'.*CommentsView\.swift.*\n', '', s)
+              p.write_text(s)
+          PY
+      - name: Commit changes
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --quiet || git commit -m 'Fully remove public comments feature'
+          git push
