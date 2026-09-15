@@ -15,6 +15,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.pawsome.auth.GoogleAuth
 import com.example.pawsome.model.AppUser
 import com.example.pawsome.model.Post
+import com.example.pawsome.net.ChatConversation
+import com.example.pawsome.net.ChatMessage
 import com.example.pawsome.net.Firestore
 import com.example.pawsome.net.GitHubUploader
 import com.google.firebase.auth.FirebaseAuth
@@ -34,7 +36,6 @@ import java.io.FileInputStream
 import java.io.InputStream
 
 class AppViewModel(private val app: Application) : AndroidViewModel(app) {
-
     private val firebaseAuth = FirebaseAuth.getInstance()
     private val firestore = Firestore()
     private val github = GitHubUploader()
@@ -51,138 +52,82 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
     var user by mutableStateOf<AppUser?>(null); private set
     var posts by mutableStateOf<List<Post>>(emptyList()); private set
 
+    var conversations by mutableStateOf<List<ChatConversation>>(emptyList()); private set
+    var chatLoading by mutableStateOf(false); private set
+    var activeConversationId by mutableStateOf<String?>(null); private set
+    var activeConversationName by mutableStateOf<String?>(null); private set
+    var activeMessages by mutableStateOf<List<ChatMessage>>(emptyList()); private set
+    var possibleMatches by mutableStateOf<List<Post>>(emptyList()); private set
+    var matchLoading by mutableStateOf(false); private set
+    var pendingFoundPostId by mutableStateOf<String?>(null); private set
+
     val isBusy: Boolean get() = busyGoogle || busyTwitter
     val uid: String? get() = firebaseAuth.currentUser?.uid
 
     private var observedUid: String? = null
     private var authStateReceived = false
     private var userListener: ListenerRegistration? = null
+    private var messagesListener: ListenerRegistration? = null
 
     private val authStateListener = FirebaseAuth.AuthStateListener { auth ->
-        busyGoogle = false
-        busyTwitter = false
-        authStateReceived = true
-
+        busyGoogle = false; busyTwitter = false; authStateReceived = true
         val current = auth.currentUser
         val currentUid = current?.uid
-
-        // The first AuthStateListener callback can legitimately have currentUser == null.
-        // Do not treat that initial null state as "no change"; it is the successful
-        // Firebase Auth initialization state and should open the login screen.
-        if (authStateReceived && currentUid == observedUid && observedUid != null) return@AuthStateListener
-
-        userListener?.remove()
-        userListener = null
+        if (currentUid == observedUid && observedUid != null) return@AuthStateListener
+        userListener?.remove(); userListener = null
+        messagesListener?.remove(); messagesListener = null
         observedUid = currentUid
-
+        conversations = emptyList(); activeMessages = emptyList(); activeConversationId = null
         if (current == null) {
-            signedIn = false
-            isAdmin = false
-            user = null
-            posts = emptyList()
-            loading = false
-            error = null
-            return@AuthStateListener
+            signedIn = false; isAdmin = false; user = null; posts = emptyList(); loading = false; error = null; return@AuthStateListener
         }
-
-        // Keep the app on the startup gate until Auth, the user profile,
-        // and the initial Firestore feed have all completed successfully.
-        signedIn = false
-        loading = true
-        error = null
-
+        signedIn = false; loading = true; error = null
         viewModelScope.launch {
             try {
                 val completed = withTimeoutOrNull(15_000L) {
-                    // This must succeed before the app is considered authenticated.
                     val token = current.getIdToken(false).await()
                     isAdmin = token.claims["admin"] == true
-
-                    // This read/create operation verifies that Firestore is reachable
-                    // and that the authenticated user can access their profile.
-                    val profile = firestore.fetchOrCreateUser(
-                        current.uid,
-                        current.displayName,
-                        current.photoUrl?.toString(),
-                        loginMethod(current),
-                    )
-
-                    userListener = firestore.observeUser(
-                        uid = current.uid,
-                        onUserChanged = { updatedUser ->
-                            if (observedUid == current.uid) user = updatedUser ?: profile
-                        },
-                        onError = { e ->
-                            if (observedUid == current.uid) {
-                                error = e.message ?: "Could not listen to user profile"
-                            }
-                        },
-                    )
-
+                    val profile = firestore.fetchOrCreateUser(current.uid, current.displayName, current.photoUrl?.toString(), loginMethod(current))
+                    userListener = firestore.observeUser(current.uid, { updated -> if (observedUid == current.uid) user = updated ?: profile }, { e -> if (observedUid == current.uid) error = e.message ?: "Could not listen to user profile" })
                     user = profile
-
-                    // Do not launch this in a separate coroutine during startup.
-                    // The initial feed read must complete successfully before the
-                    // main UI is allowed to open.
                     posts = firestore.getPosts()
                     signedIn = true
+                    loadConversations()
                     true
                 }
-
                 if (completed == null && observedUid == current.uid) {
-                    signedIn = false
-                    isAdmin = false
-                    user = null
-                    posts = emptyList()
-                    userListener?.remove()
-                    userListener = null
+                    signedIn = false; isAdmin = false; user = null; posts = emptyList(); userListener?.remove(); userListener = null
                     error = "Could not connect to Firebase. Check your internet connection and try again."
                 }
             } catch (e: Exception) {
                 if (observedUid == current.uid) {
-                    signedIn = false
-                    isAdmin = false
-                    user = null
-                    posts = emptyList()
-                    userListener?.remove()
-                    userListener = null
+                    signedIn = false; isAdmin = false; user = null; posts = emptyList(); userListener?.remove(); userListener = null
                     error = e.message ?: "Could not connect to Firebase. Check your connection and try again."
                 }
-            } finally {
-                if (observedUid == current.uid) loading = false
-            }
+            } finally { if (observedUid == current.uid) loading = false }
         }
     }
 
     init {
         firebaseAuth.addAuthStateListener(authStateListener)
-
-        // If Firebase Auth itself never delivers its initial state, keep the app
-        // blocked rather than allowing it into a partially initialized state.
         viewModelScope.launch {
             delay(15_000L)
             if (loading && !authStateReceived) {
-                loading = false
-                signedIn = false
-                isAdmin = false
-                user = null
-                posts = emptyList()
+                loading = false; signedIn = false; isAdmin = false; user = null; posts = emptyList()
                 error = "Firebase Auth is unavailable. Check your internet connection and try again."
             }
         }
     }
 
     override fun onCleared() {
-        userListener?.remove()
-        userListener = null
+        userListener?.remove(); messagesListener?.remove()
         firebaseAuth.removeAuthStateListener(authStateListener)
         super.onCleared()
     }
 
     fun signIn(context: android.content.Context) {
         busyGoogle = true; error = null
-        try { google.startSignIn(context) }
-        catch (e: Exception) { busyGoogle = false; error = e.message ?: "Sign-in failed" }
+        try { google.startSignIn(context) } catch (e: Exception) { busyGoogle = false; error = e.message ?: "Sign-in failed" }
     }
 
     fun handleGoogleSignInResult(resultCode: Int, data: Intent?) = viewModelScope.launch {
@@ -191,8 +136,7 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
             val account = google.getAccountFromResult(data)
             val idToken = account.idToken ?: throw IllegalStateException("Google did not return an ID token.")
             firebaseAuth.signInWithCredential(GoogleAuthProvider.getCredential(idToken, null)).await()
-        } catch (e: Exception) { error = e.message ?: "Sign-in failed" }
-        finally { busyGoogle = false }
+        } catch (e: Exception) { error = e.message ?: "Sign-in failed" } finally { busyGoogle = false }
     }
 
     fun signInTwitter(context: android.content.Context) {
@@ -206,94 +150,113 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
     }
 
     fun signOut() { firebaseAuth.signOut() }
-
-    fun loadFeed() = viewModelScope.launch {
-        try { posts = firestore.getPosts() } catch (e: Exception) { error = e.message }
-    }
-
-    fun toggleLike(p: Post) {
-        val u = uid ?: return
-        viewModelScope.launch {
-            try { firestore.toggleLike(p.id, u, !p.isLikedBy(u)); loadFeed() }
-            catch (e: Exception) { error = e.message }
-        }
-    }
+    fun loadFeed() = viewModelScope.launch { try { posts = firestore.getPosts() } catch (e: Exception) { error = e.message } }
+    fun toggleLike(p: Post) { val u = uid ?: return; viewModelScope.launch { try { firestore.toggleLike(p.id, u, !p.isLikedBy(u)); loadFeed() } catch (e: Exception) { error = e.message } } }
 
     fun deletePost(p: Post) = viewModelScope.launch {
-        try {
-            p.imageFileName?.let { if (github.hasToken) github.deleteFile("postImages/$it") }
-            firestore.deletePost(p.id); loadFeed()
-        } catch (e: Exception) { error = e.message }
+        try { p.imageFileName?.let { if (github.hasToken) github.deleteFile("postImages/$it") }; firestore.deletePost(p.id); loadFeed() }
+        catch (e: Exception) { error = e.message }
     }
 
-    fun createPost(uri: Uri, name: String, age: String, desc: String, location: String,
-                   status: com.example.pawsome.model.PostStatus, onDone: () -> Unit) = viewModelScope.launch {
+    fun createPost(uri: Uri, name: String, age: String, desc: String, location: String, status: com.example.pawsome.model.PostStatus, onDone: () -> Unit) = viewModelScope.launch {
         busyPost = true; error = null
         var cachedFile: File? = null
         try {
             val u = user ?: throw Exception("Not signed in")
             if (!github.hasToken) throw Exception("No image-upload token in this build.")
-
-            // Android pickers return provider-specific content:// URIs. Never assume
-            // that a URI can be read again later or that it maps directly to a file.
-            // Copy the selected bytes into our private cache first so every Android
-            // content provider (Gallery, Files, cloud providers, emulators, etc.)
-            // is handled consistently.
             cachedFile = cachePickedImage(uri)
             val jpeg = withContext(Dispatchers.IO) { encodeJpeg(Uri.fromFile(cachedFile)) }
-
             val fileName = "${u.uid}_${System.currentTimeMillis() / 1000}.jpg"
             val url = github.uploadImage(jpeg, fileName, "postImages")
-            firestore.createPostForUser(u.uid, mapOf(
-                "CatName" to name.trim(), "CatAge" to age.trim(), "description" to desc.trim(),
-                "location" to location.trim(), "imageURL" to url, "likes" to emptyList<String>(),
-                "commentCount" to 0L, "status" to status.name,
+            val createdId = firestore.createPostForUser(u.uid, mapOf(
+                "CatName" to name.trim(), "CatAge" to age.trim(), "description" to desc.trim(), "location" to location.trim(),
+                "imageURL" to url, "likes" to emptyList<String>(), "commentCount" to 0L, "status" to status.name,
             ))
-            loadFeed(); onDone()
+            loadFeed()
+            if (status == com.example.pawsome.model.PostStatus.FOUND) {
+                pendingFoundPostId = createdId
+                findPossibleMatches(name, desc, location)
+            } else {
+                pendingFoundPostId = null
+                possibleMatches = emptyList()
+            }
+            onDone()
         } catch (e: Exception) { error = e.message }
-        finally {
-            cachedFile?.delete()
-            busyPost = false
-        }
+        finally { cachedFile?.delete(); busyPost = false }
+    }
+
+    fun findPossibleMatches(catName: String, description: String, location: String) = viewModelScope.launch {
+        matchLoading = true
+        val lost = posts.filter { it.status == com.example.pawsome.model.PostStatus.LOST }
+        val queryWords = ("$catName $description $location").lowercase().split(Regex("[^a-z0-9]+" )).filter { it.length >= 3 }.toSet()
+        possibleMatches = lost.map { post ->
+            val haystack = "${post.catName} ${post.description} ${post.location}".lowercase()
+            val score = queryWords.count { haystack.contains(it) } + if (location.isNotBlank() && post.location.equals(location.trim(), true)) 5 else 0
+            post to score
+        }.filter { it.second > 0 }.sortedByDescending { it.second }.take(10).map { it.first }
+        matchLoading = false
+    }
+
+    fun notifyPossibleMatch(foundPostId: String, lostPost: Post) = viewModelScope.launch {
+        try {
+            val u = uid ?: throw Exception("Not signed in")
+            firestore.createPossibleMatchNotification(foundPostId, lostPost, u)
+            error = "The owner of ${lostPost.catName} has been notified."
+        } catch (e: Exception) { error = e.message }
+    }
+
+    fun dismissMatches() { pendingFoundPostId = null; possibleMatches = emptyList() }
+
+    fun loadConversations() = viewModelScope.launch {
+        val u = uid ?: return@launch
+        chatLoading = true
+        try { conversations = firestore.getConversations(u) } catch (e: Exception) { error = e.message } finally { chatLoading = false }
+    }
+
+    fun startChatWithUser(otherUid: String, otherName: String) = viewModelScope.launch {
+        try {
+            val u = uid ?: throw Exception("Not signed in")
+            val id = firestore.createOrGetConversation(u, otherUid, otherName, user?.username ?: "User")
+            openConversation(id, otherUid, otherName)
+            loadConversations()
+        } catch (e: Exception) { error = e.message }
+    }
+
+    fun openConversation(id: String, otherUid: String, otherName: String) {
+        messagesListener?.remove()
+        activeConversationId = id; activeConversationName = otherName; activeMessages = emptyList()
+        messagesListener = firestore.observeMessages(id, { activeMessages = it }, { e -> error = e.message })
+    }
+
+    fun closeConversation() { messagesListener?.remove(); messagesListener = null; activeConversationId = null; activeConversationName = null; activeMessages = emptyList(); loadConversations() }
+
+    fun sendMessage(text: String) = viewModelScope.launch {
+        try { val id = activeConversationId ?: return@launch; val u = uid ?: return@launch; firestore.sendMessage(id, u, text) }
+        catch (e: Exception) { error = e.message }
     }
 
     private suspend fun cachePickedImage(uri: Uri): File = withContext(Dispatchers.IO) {
         val file = File.createTempFile("pawsome_image_", ".tmp", app.cacheDir)
         try {
-            openUriInputStream(uri).use { input ->
-                if (input == null) throw Exception("Could not read the selected image")
-                file.outputStream().use { output -> input.copyTo(output) }
-            }
+            openUriInputStream(uri).use { input -> if (input == null) throw Exception("Could not read the selected image"); file.outputStream().use { output -> input.copyTo(output) } }
             if (file.length() == 0L) throw Exception("The selected image is empty")
             file
-        } catch (e: Exception) {
-            file.delete()
-            throw e
-        }
+        } catch (e: Exception) { file.delete(); throw e }
     }
 
-    private fun openUriInputStream(uri: Uri): InputStream? {
-        return when (uri.scheme) {
-            "content" -> app.contentResolver.openInputStream(uri)
-            "file" -> uri.path?.let(::FileInputStream)
-            else -> throw Exception("Unsupported image URI: ${uri.scheme ?: "unknown"}")
-        }
+    private fun openUriInputStream(uri: Uri): InputStream? = when (uri.scheme) {
+        "content" -> app.contentResolver.openInputStream(uri)
+        "file" -> uri.path?.let(::FileInputStream)
+        else -> throw Exception("Unsupported image URI: ${uri.scheme ?: "unknown"}")
     }
 
     private fun loginMethod(user: FirebaseUser): String {
         val providerId = user.providerData.firstOrNull { it.providerId != "firebase" }?.providerId
-        return when (providerId) {
-            "google.com" -> "Google"
-            "twitter.com" -> "Twitter"
-            "password" -> "Email/Password"
-            null -> "Unknown"
-            else -> providerId.substringBefore('.').replaceFirstChar { it.uppercase() }
-        }
+        return when (providerId) { "google.com" -> "Google"; "twitter.com" -> "Twitter"; "password" -> "Email/Password"; null -> "Unknown"; else -> providerId.substringBefore('.').replaceFirstChar { it.uppercase() } }
     }
 
     private fun encodeJpeg(uri: Uri, maxDim: Int = 1200): ByteArray {
-        val src = openUriInputStream(uri).use { BitmapFactory.decodeStream(it) }
-            ?: throw Exception("Could not read image")
+        val src = openUriInputStream(uri).use { BitmapFactory.decodeStream(it) } ?: throw Exception("Could not read image")
         val scale = minOf(1f, maxDim.toFloat() / maxOf(src.width, src.height))
         val bmp = if (scale < 1f) Bitmap.createScaledBitmap(src, (src.width * scale).toInt(), (src.height * scale).toInt(), true) else src
         return ByteArrayOutputStream().apply { bmp.compress(Bitmap.CompressFormat.JPEG, 80, this) }.toByteArray()
