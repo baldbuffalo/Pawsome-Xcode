@@ -1,7 +1,6 @@
 package com.example.pawsome.ui
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -122,6 +121,7 @@ fun FeedScreenWithFoundButton(
                 items(filteredPosts, key = { it.id }) { post ->
                     FoundCatPostCard(
                         post = post,
+                        uid = vm.uid,
                         currentUserNumber = currentUserNumber,
                         onLike = { vm.toggleLike(post) },
                         onDelete = { vm.deletePost(post) },
@@ -137,6 +137,7 @@ fun FeedScreenWithFoundButton(
 @Composable
 private fun FoundCatPostCard(
     post: Post,
+    uid: String?,
     currentUserNumber: Int?,
     onLike: () -> Unit,
     onDelete: () -> Unit,
@@ -277,11 +278,12 @@ private fun FoundCatPostCard(
                 Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val liked = post.isLikedBy(null)
+                val liked = post.isLikedBy(uid)
                 FilledTonalButton(
                     onClick = onLike,
                     colors = ButtonDefaults.filledTonalButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        containerColor = if (liked) LostRed.copy(alpha = 0.15f)
+                        else MaterialTheme.colorScheme.surfaceVariant
                     ),
                     shape = RoundedCornerShape(12.dp)
                 ) {
@@ -294,7 +296,7 @@ private fun FoundCatPostCard(
                     Spacer(Modifier.width(6.dp))
                     Text(
                         if (post.likeCount == 1) "1 like" else "${post.likeCount} likes",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (liked) LostRed else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -308,7 +310,11 @@ private fun FoundCatPostCard(
                 ) {
                     Icon(Icons.Default.Pets, null, tint = FoundGreen)
                     Spacer(Modifier.width(8.dp))
-                    Text("I Found This Cat", color = FoundGreen, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        "I Found This Cat",
+                        color = FoundGreen,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
 
