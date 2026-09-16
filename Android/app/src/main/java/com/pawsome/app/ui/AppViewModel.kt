@@ -224,3 +224,75 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
         val u = uid ?: return@launch
         chatLoading = true
         try { conversations = firestore.getConversations(u) } catch (e: Exception) { error = e.message } finally { chatLoading = false }
+    }
+
+    fun startChatWithUser(otherUid: String, otherName: String) = viewModelScope.launch {
+        try {
+            val u = uid ?: throw Exception("Not signed in")
+            val id = firestore.createOrGetConversation(u, otherUid, otherName, user?.username ?: "User")
+            openConversation(id, otherUid, otherName)
+            loadConversations()
+        } catch (e: Exception) { error = e.message }
+    }
+
+    fun openConversation(id: String, otherUid: String, otherName: String) {
+        messagesListener?.remove()
+        activeConversationId = id; activeConversationName = otherName; activeMessages = emptyList()
+        messagesListener = firestore.observeMessages(id, uid ?: return, { activeMessages = it }, { e -> error = e.message })
+    }
+
+    fun closeConversation() { messagesListener?.remove(); messagesListener = null; activeConversationId = null; activeConversationName = null; activeMessages = emptyList(); loadConversations() }
+
+    fun startChatNotificationListener() {
+        notificationListener?.remove()
+        val u = uid ?: return
+        notificationListener = firestore.observeChatNotifications(u, { text, chatId, otherUid, otherName ->
+            showChatNotification(text, chatId)
+        }, { e -> error = e.message })
+    }
+
+    private fun showChatNotification(text: String, chatId: String) {
+        if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(app, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return
+        val notification = NotificationCompat.Builder(app, "pawsome_chat")
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle("Pawsome chat")
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .build()
+        NotificationManagerCompat.from(app).notify(chatId.hashCode() and 0x7fffffff, notification)
+    }
+
+    fun sendMessage(text: String) = viewModelScope.launch {
+        try { val id = activeConversationId ?: return@launch; val u = uid ?: return@launch; firestore.sendMessage(id, u, text) }
+        catch (e: Exception) { error = e.message }
+    }
+
+    private suspend fun cachePickedImage(uri: Uri): File = withContext(Dispatchers.IO) {
+        val file = File.createTempFile("pawsome_image_", ".tmp", app.cacheDir)
+        try {
+            openUriInputStream(uri).use { input -> if (input == null) throw Exception("Could not read the selected image"); file.outputStream().use { output -> input.copyTo(output) } }
+            if (file.length() == 0L) throw Exception("The selected image is empty")
+            file
+        } catch (e: Exception) { file.delete(); throw e }
+    }
+
+    private fun openUriInputStream(uri: Uri): InputStream? = when (uri.scheme) {
+        "content" -> app.contentResolver.openInputStream(uri)
+        "file" -> uri.path?.let(::FileInputStream)
+        else -> throw Exception("Unsupported image URI: ${uri.scheme ?: "unknown"}")
+    }
+
+    private fun loginMethod(user: FirebaseUser): String {
+        val providerId = user.providerData.firstOrNull { it.providerId != "firebase" }?.providerId
+        return when (providerId) { "google.com" -> "Google"; "twitter.com" -> "Twitter"; "password" -> "Email/Password"; null -> "Unknown"; else -> providerId.substringBefore('.').replaceFirstChar { it.uppercase() } }
+    }
+
+    private fun encodeJpeg(uri: Uri, maxDim: Int = 1200): ByteArray {
+        val src = openUriInputStream(uri).use { BitmapFactory.decodeStream(it) } ?: throw Exception("Could not read image")
+        val scale = minOf(1f, maxDim.toFloat() / maxOf(src.width, src.height))
+        val bmp = if (scale < 1f) Bitmap.createScaledBitmap(src, (src.width * scale).toInt(), (src.height * scale).toInt(), true) else src
+        return ByteArrayOutputStream().apply { bmp.compress(Bitmap.CompressFormat.JPEG, 80, this) }.toByteArray()
+    }
+}
