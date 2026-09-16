@@ -5,6 +5,7 @@ import com.example.pawsome.model.Post
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.Query
@@ -43,7 +44,7 @@ class Firestore {
     }
 
     suspend fun createPostForUser(uid: String, fields: Map<String, Any?>): String = withContext(Dispatchers.IO) {
-        val user = getUser(uid) ?: throw IllegalStateException("User profile does not exist")
+        val user = getUser(uid) ?: throw FirebaseFirestoreException("User profile does not exist", FirebaseFirestoreException.Code.NOT_FOUND)
         val postFields = fields.toMutableMap().apply {
             put("UserID", user.userNumber); put("Username", user.username); put("ProfilePic", user.profilePic ?: ""); put("PostedAt", FieldValue.serverTimestamp())
         }
@@ -83,7 +84,7 @@ class Firestore {
     }
 
     suspend fun createOrGetConversation(uid: String, otherUid: String, otherName: String, myName: String): String = withContext(Dispatchers.IO) {
-        if (uid == otherUid) throw IllegalStateException("You cannot chat with yourself")
+        if (uid == otherUid) throw FirebaseFirestoreException("You cannot chat with yourself", FirebaseFirestoreException.Code.INVALID_ARGUMENT)
         val id = listOf(uid, otherUid).sorted().joinToString("_")
         val ref = db.collection("chats").document(id)
         if (!ref.get().await().exists()) {
@@ -116,7 +117,7 @@ class Firestore {
     }
 
     suspend fun createPossibleMatchNotification(foundPostId: String, lostPost: Post, finderUid: String): String = withContext(Dispatchers.IO) {
-        val owner = findUserByUserNumber(lostPost.userId) ?: throw IllegalStateException("Could not find the Lost Cat owner")
+        val owner = findUserByUserNumber(lostPost.userId) ?: throw FirebaseFirestoreException("Could not find the Lost Cat owner", FirebaseFirestoreException.Code.NOT_FOUND)
         val chatId = createOrGetConversation(owner.uid, finderUid, "Pawsome user", owner.username)
         val systemText = "🐾 Possible match: someone found a cat that may be ${lostPost.catName}. Check the Found Cat post and contact the finder if you think it is your cat."
         val chat = db.collection("chats").document(chatId)
@@ -130,8 +131,8 @@ class Firestore {
     }
 
     suspend fun createFoundLostPostNotification(lostPost: Post, finderUid: String): String = withContext(Dispatchers.IO) {
-        val owner = findUserByUserNumber(lostPost.userId) ?: throw IllegalStateException("Could not find the Lost Cat owner")
-        if (owner.uid == finderUid) throw IllegalStateException("You cannot report your own Lost Cat as found")
+        val owner = findUserByUserNumber(lostPost.userId) ?: throw FirebaseFirestoreException("Could not find the Lost Cat owner", FirebaseFirestoreException.Code.NOT_FOUND)
+        if (owner.uid == finderUid) throw FirebaseFirestoreException("You cannot report your own Lost Cat as found", FirebaseFirestoreException.Code.INVALID_ARGUMENT)
         val chatId = createOrGetConversation(owner.uid, finderUid, "Pawsome user", owner.username)
         val systemText = "🐾 Someone found a cat that may be ${lostPost.catName} and thinks it could be your lost cat. You can chat with them to check."
         val chat = db.collection("chats").document(chatId)
