@@ -218,6 +218,16 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
         } catch (e: Exception) { error = e.message }
     }
 
+    fun notifyFoundLostPost(lostPost: Post) = viewModelScope.launch {
+        try {
+            val u = uid ?: throw Exception("Not signed in")
+            if (lostPost.status != com.example.pawsome.model.PostStatus.LOST) return@launch
+            if (lostPost.userId.toString() == u) return@launch
+            firestore.createFoundLostPostNotification(lostPost, u)
+            error = "The owner of ${lostPost.catName} has been notified in their chat."
+        } catch (e: Exception) { error = e.message }
+    }
+
     fun dismissMatches() { pendingFoundPostId = null; possibleMatches = emptyList() }
 
     fun loadConversations() = viewModelScope.launch {
