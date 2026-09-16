@@ -14,8 +14,6 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.time.Instant
 
-class FirestoreException(message: String) : Exception(message)
-
 data class ChatConversation(
     val id: String,
     val otherUid: String,
@@ -128,6 +126,21 @@ class Firestore {
             transaction.set(chat, mapOf("${owner.uid}_lastMessage" to systemText, "${owner.uid}_updatedAt" to FieldValue.serverTimestamp()), SetOptions.merge())
         }.await()
         db.collection("notifications").document().set(mapOf("recipientUid" to owner.uid, "senderUid" to finderUid, "type" to "chat_system_message", "chatId" to chatId, "foundPostId" to foundPostId, "lostPostId" to lostPost.id, "catName" to lostPost.catName, "text" to systemText, "createdAt" to FieldValue.serverTimestamp(), "read" to false)).await()
+        chatId
+    }
+
+    suspend fun createFoundLostPostNotification(lostPost: Post, finderUid: String): String = withContext(Dispatchers.IO) {
+        val owner = findUserByUserNumber(lostPost.userId) ?: throw FirestoreException("Could not find the Lost Cat owner")
+        if (owner.uid == finderUid) throw FirestoreException("You cannot report your own Lost Cat as found")
+        val chatId = createOrGetConversation(owner.uid, finderUid, "Pawsome user", owner.username)
+        val systemText = "🐾 Someone found a cat that may be ${lostPost.catName} and thinks it could be your lost cat. You can chat with them to check."
+        val chat = db.collection("chats").document(chatId)
+        val message = chat.collection("messages").document()
+        db.runTransaction { transaction ->
+            transaction.set(message, mapOf("senderUid" to "system", "recipientUid" to owner.uid, "type" to "system", "text" to systemText, "lostPostId" to lostPost.id, "timestamp" to FieldValue.serverTimestamp()))
+            transaction.set(chat, mapOf("${owner.uid}_lastMessage" to systemText, "${owner.uid}_updatedAt" to FieldValue.serverTimestamp()), SetOptions.merge())
+        }.await()
+        db.collection("notifications").document().set(mapOf("recipientUid" to owner.uid, "senderUid" to finderUid, "type" to "chat_system_message", "chatId" to chatId, "lostPostId" to lostPost.id, "catName" to lostPost.catName, "text" to systemText, "createdAt" to FieldValue.serverTimestamp(), "read" to false)).await()
         chatId
     }
 
