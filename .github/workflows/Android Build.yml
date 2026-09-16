@@ -10,6 +10,9 @@ on:
 permissions:
   contents: write
 
+env:
+  JDK_JAVA_OPTIONS: --enable-native-access=ALL-UNNAMED
+
 jobs:
   android-app:
     name: Android Release Build (Jetpack Compose)
