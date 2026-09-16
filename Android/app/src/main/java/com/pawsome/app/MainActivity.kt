@@ -30,7 +30,7 @@ import com.example.pawsome.ui.AboutScreen
 import com.example.pawsome.ui.AppViewModel
 import com.example.pawsome.ui.ChatScreen
 import com.example.pawsome.ui.CreatePostScreen
-import com.example.pawsome.ui.FeedScreen
+import com.example.pawsome.ui.FeedScreenWithFoundButton
 import com.example.pawsome.ui.HelpScreen
 import com.example.pawsome.ui.ImageViewer
 import com.example.pawsome.ui.LoginScreen
@@ -111,7 +111,7 @@ private fun MainScaffold(vm: AppViewModel) {
                     creating -> CreatePostScreen(vm) { creating = false }
                     tab == 1 -> ChatScreen(vm)
                     tab == 2 -> ProfileScreen(vm, { showAbout = true }, { showHelp = true })
-                    else -> FeedScreen(vm, { creating = true }, { imageToView = it })
+                    else -> FeedScreenWithFoundButton(vm, { creating = true }, { imageToView = it })
                 }
             }
         }
