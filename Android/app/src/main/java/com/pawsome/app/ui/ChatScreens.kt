@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.ChatBubbleOutline
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -29,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -115,6 +117,8 @@ fun ChatConversationScreen(vm: AppViewModel) {
 
 @Composable
 fun PossibleMatchesScreen(vm: AppViewModel, foundPostId: String, onDone: () -> Unit) {
+    var selectedPost by remember { mutableStateOf<com.example.pawsome.model.Post?>(null) }
+
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         Text("Possible matches", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         Spacer(Modifier.size(8.dp))
@@ -127,17 +131,43 @@ fun PossibleMatchesScreen(vm: AppViewModel, foundPostId: String, onDone: () -> U
         } else {
             LazyColumn(Modifier.weight(1f)) {
                 items(vm.possibleMatches, key = { it.id }) { post ->
-                    Surface(onClick = { vm.notifyPossibleMatch(foundPostId, post) }, modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp), shape = RoundedCornerShape(16.dp), tonalElevation = 2.dp) {
+                    Surface(
+                        onClick = { selectedPost = post },
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        tonalElevation = 2.dp
+                    ) {
                         Column(Modifier.padding(16.dp)) {
                             Text(post.catName, fontWeight = FontWeight.Bold)
                             Text("Lost by ${post.username}")
                             if (post.location.isNotBlank()) Text("📍 ${post.location}", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("Tap to notify the owner", fontSize = 13.sp, color = MaterialTheme.colorScheme.primary)
+                            Text("Tap to review this possible match", fontSize = 13.sp, color = MaterialTheme.colorScheme.primary)
                         }
                     }
                 }
             }
             Button(onClick = onDone, modifier = Modifier.fillMaxWidth()) { Text("Done") }
         }
+    }
+
+    selectedPost?.let { post ->
+        AlertDialog(
+            onDismissRequest = { selectedPost = null },
+            title = { Text("Notify ${post.username}?") },
+            text = {
+                Text(
+                    "This will send a Pawsome system message to the person who posted about the lost cat ${post.catName}. It will appear in their chat with you so they can contact you if this is their cat."
+                )
+            },
+            confirmButton = {
+                Button(onClick = {
+                    vm.notifyPossibleMatch(foundPostId, post)
+                    selectedPost = null
+                }) { Text("Notify owner") }
+            },
+            dismissButton = {
+                TextButton(onClick = { selectedPost = null }) { Text("Not this one") }
+            }
+        )
     }
 }
