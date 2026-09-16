@@ -294,6 +294,11 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
         else -> throw Exception("Unsupported image URI: ${uri.scheme ?: "unknown"}")
     }
 
+    private fun loginMethod(user: FirebaseUser): String {
+        val providerId = user.providerData.firstOrNull { it.providerId != "firebase" }?.providerId
+        return when (providerId) { "google.com" -> "Google"; "twitter.com" -> "Twitter"; "password" -> "Email/Password"; null -> "Unknown"; else -> providerId.substringBefore('.').replaceFirstChar { it.uppercase() } }
+    }
+
     private fun encodeJpeg(uri: Uri, maxDim: Int = 1200): ByteArray {
         val src = openUriInputStream(uri).use { BitmapFactory.decodeStream(it) } ?: throw Exception("Could not read image")
         val scale = minOf(1f, maxDim.toFloat() / maxOf(src.width, src.height))
