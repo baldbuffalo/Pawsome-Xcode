@@ -222,7 +222,7 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
         try {
             val u = uid ?: throw Exception("Not signed in")
             if (lostPost.status != com.example.pawsome.model.PostStatus.LOST) return@launch
-            if (lostPost.userId.toString() == u) return@launch
+            if (user?.userNumber == lostPost.userId) return@launch
             firestore.createFoundLostPostNotification(lostPost, u)
             error = "The owner of ${lostPost.catName} has been notified in their chat."
         } catch (e: Exception) { error = e.message }
@@ -292,11 +292,6 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
         "content" -> app.contentResolver.openInputStream(uri)
         "file" -> uri.path?.let(::FileInputStream)
         else -> throw Exception("Unsupported image URI: ${uri.scheme ?: "unknown"}")
-    }
-
-    private fun loginMethod(user: FirebaseUser): String {
-        val providerId = user.providerData.firstOrNull { it.providerId != "firebase" }?.providerId
-        return when (providerId) { "google.com" -> "Google"; "twitter.com" -> "Twitter"; "password" -> "Email/Password"; null -> "Unknown"; else -> providerId.substringBefore('.').replaceFirstChar { it.uppercase() } }
     }
 
     private fun encodeJpeg(uri: Uri, maxDim: Int = 1200): ByteArray {
