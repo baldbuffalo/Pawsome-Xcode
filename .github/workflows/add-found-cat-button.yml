@@ -1,0 +1,64 @@
+name: Add found-cat match button
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Add found-cat action
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('Android/app/src/main/java/com/pawsome/app/ui/Display Firestore data.kt')
+          text = path.read_text()
+
+          old_sig = 'private fun PostCard(post: Post, uid: String?, onLike: () -> Unit, onDelete: () -> Unit, onImageClick: () -> Unit) {'
+          new_sig = 'private fun PostCard(post: Post, uid: String?, onLike: () -> Unit, onDelete: () -> Unit, onImageClick: () -> Unit, onFound: () -> Unit) {'
+          if old_sig not in text:
+              raise SystemExit('PostCard signature not found')
+          text = text.replace(old_sig, new_sig, 1)
+
+          old_call = 'PostCard(p, vm.uid, { vm.toggleLike(p) }, { vm.deletePost(p) }, { onImageClick(p.imageUrl) })'
+          new_call = 'PostCard(p, vm.uid, { vm.toggleLike(p) }, { vm.deletePost(p) }, { onImageClick(p.imageUrl) }, { vm.checkFoundPostForMatches(p) })'
+          if old_call not in text:
+              raise SystemExit('Feed PostCard call not found')
+          text = text.replace(old_call, new_call, 1)
+
+          old_row_end = '''                FilledTonalButton(onClick = onLike, colors = ButtonDefaults.filledTonalButtonColors(containerColor = if (liked) LostRed.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(12.dp)) {
+                    Icon(if (liked) Icons.Default.Favorite else Icons.Default.FavoriteBorder, null, tint = if (liked) LostRed else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp)); Spacer(Modifier.width(6.dp)); Text(if (post.likeCount == 1) "1 like" else "${post.likeCount} likes", color = if (liked) LostRed else MaterialTheme.colorScheme.onSurfaceVariant)
+                }'''
+          new_row_end = old_row_end + '''
+                if (post.status == PostStatus.FOUND && post.userId.toString() == uid) {
+                    Spacer(Modifier.width(8.dp))
+                    Button(onClick = onFound, shape = RoundedCornerShape(12.dp)) {
+                        Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("I Found This Cat")
+                    }
+                }'''
+          if old_row_end not in text:
+              raise SystemExit('Like button block not found')
+          text = text.replace(old_row_end, new_row_end, 1)
+
+          choose_button = '''            OutlinedButton(onClick = pickPhoto, modifier = Modifier.fillMaxWidth()) { Icon(if (uri == null) Icons.Default.AddAPhoto else Icons.Default.Refresh, null); Spacer(Modifier.width(8.dp)); Text(if (uri == null) "Choose Image" else "Change Image") }
+'''
+          text = text.replace(choose_button, '', 1)
+
+          path.write_text(text)
+          PY
+      - name: Commit changes and remove workflow
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add 'Android/app/src/main/java/com/pawsome/app/ui/Display Firestore data.kt'
+          git rm '.github/workflows/add-found-cat-button.yml'
+          git commit -m 'Add found cat match button'
+          git push origin HEAD:main
