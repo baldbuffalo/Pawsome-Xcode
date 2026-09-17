@@ -126,7 +126,7 @@ fun FeedScreenWithFoundButton(
                         onLike = { vm.toggleLike(post) },
                         onDelete = { vm.deletePost(post) },
                         onImageClick = { onImageClick(post.imageUrl) },
-                        onFoundCat = { vm.checkFoundPostForMatches(post) }
+                        onFoundCat = { vm.notifyFoundLostPost(post) }
                     )
                 }
             }
@@ -301,10 +301,15 @@ private fun FoundCatPostCard(
                 }
             }
 
-            if (post.status == PostStatus.FOUND && isOwnPost) {
+            // This action is for OTHER users viewing a LOST-cat post.
+            // The owner must not see it on their own post, and it is not shown
+            // on FOUND/REUNITED posts.
+            if (post.status == PostStatus.LOST && !isOwnPost) {
                 OutlinedButton(
                     onClick = onFoundCat,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
                     shape = RoundedCornerShape(12.dp),
                     border = BorderStroke(1.dp, FoundGreen)
                 ) {
