@@ -123,12 +123,12 @@ fun FeedScreen(vm: AppViewModel, onCreate: () -> Unit, onImageClick: (String) ->
         Spacer(Modifier.height(8.dp))
         if (vm.loading && vm.posts.isEmpty()) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
         else if (filteredPosts.isEmpty()) Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) { Column(horizontalAlignment = Alignment.CenterHorizontally) { Text("😿", fontSize = 64.sp); Spacer(Modifier.height(16.dp)); Text("No cats found", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold); Text("Be the first to post!", color = MaterialTheme.colorScheme.onSurfaceVariant) } }
-        else LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) { items(filteredPosts, key = { it.id }) { p -> PostCard(p, vm.uid, { vm.toggleLike(p) }, { vm.deletePost(p) }, { onImageClick(p.imageUrl) }, { vm.notifyFoundLostPost(p) }) } }
+        else LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) { items(filteredPosts, key = { it.id }) { p -> PostCard(p, vm.uid, vm.user?.userNumber, { vm.toggleLike(p) }, { vm.deletePost(p) }, { onImageClick(p.imageUrl) }, { vm.notifyFoundLostPost(p) }) } }
     }
 }
 
 @Composable
-private fun PostCard(post: Post, uid: String?, onLike: () -> Unit, onDelete: () -> Unit, onImageClick: () -> Unit, onFoundCat: () -> Unit) {
+private fun PostCard(post: Post, uid: String?, currentUserNumber: Int?, onLike: () -> Unit, onDelete: () -> Unit, onImageClick: () -> Unit, onFoundCat: () -> Unit) {
     val statusColor = when (post.status) { PostStatus.LOST -> LostRed; PostStatus.FOUND -> FoundGreen; PostStatus.REUNITED -> ReunitedGold }
     Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)) {
         Column {
@@ -157,7 +157,7 @@ private fun PostCard(post: Post, uid: String?, onLike: () -> Unit, onDelete: () 
                 FilledTonalButton(onClick = onLike, colors = ButtonDefaults.filledTonalButtonColors(containerColor = if (liked) LostRed.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(12.dp)) {
                     Icon(if (liked) Icons.Default.Favorite else Icons.Default.FavoriteBorder, null, tint = if (liked) LostRed else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp)); Spacer(Modifier.width(6.dp)); Text(if (post.likeCount == 1) "1 like" else "${post.likeCount} likes", color = if (liked) LostRed else MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                if (post.status == PostStatus.LOST && post.userId.toString() != uid) {
+                if (post.status == PostStatus.LOST && post.userId != currentUserNumber) {
                     Spacer(Modifier.width(8.dp))
                     OutlinedButton(onClick = onFoundCat, shape = RoundedCornerShape(12.dp)) {
                         Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(20.dp))
