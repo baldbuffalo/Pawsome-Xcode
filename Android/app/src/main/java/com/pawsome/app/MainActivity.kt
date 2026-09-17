@@ -110,7 +110,7 @@ private fun MainScaffold(vm: AppViewModel) {
                 when {
                     creating -> CreatePostScreen(vm) { creating = false }
                     tab == 1 -> ChatScreen(vm)
-                    tab == 2 -> ProfileScreen(vm, { showAbout = true }, { showHelp = true })
+                    tab == 2 -> ProfileScreen(vm, { showAbout = true }, { showHelp = true }, { showAdmin = true })
                     else -> FeedScreenWithFoundButton(vm, { creating = true }, { imageToView = it })
                 }
             }

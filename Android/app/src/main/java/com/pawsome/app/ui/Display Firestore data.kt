@@ -25,6 +25,7 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddAPhoto
+import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Cake
 import androidx.compose.material.icons.filled.ChatBubbleOutline
@@ -222,7 +223,7 @@ fun CreatePostScreen(vm: AppViewModel, onBack: () -> Unit) {
 }
 
 @Composable
-fun ProfileScreen(vm: AppViewModel, onAboutClick: () -> Unit, onHelpClick: () -> Unit) {
+fun ProfileScreen(vm: AppViewModel, onAboutClick: () -> Unit, onHelpClick: () -> Unit, onAdminClick: () -> Unit) {
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).verticalScroll(rememberScrollState()).padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Spacer(Modifier.height(24.dp))
         Box(contentAlignment = Alignment.Center) {
@@ -230,11 +231,11 @@ fun ProfileScreen(vm: AppViewModel, onAboutClick: () -> Unit, onHelpClick: () ->
         }
         Spacer(Modifier.height(16.dp)); Text(vm.user?.username ?: "User", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold); Text("@${vm.user?.username ?: "user"}", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(32.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) { StatItem(vm.posts.size.toString(), "Posts"); StatItem(vm.posts.sumOf { it.likeCount }.toString(), "Likes"); StatItem(vm.user?.userNumber?.toString() ?: "?", "Member #") }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) { StatItem(vm.posts.count { it.userId == vm.user?.userNumber }.toString(), "Posts"); StatItem(vm.posts.sumOf { it.likeCount }.toString(), "Likes"); StatItem(vm.user?.userNumber?.toString() ?: "?", "Member #") }
         Spacer(Modifier.height(24.dp))
-        Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp)) { Column(modifier = Modifier.padding(4.dp)) { SettingsItem(Icons.Default.Notifications, "Notifications", "Manage your notification preferences") { }; HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)); SettingsItem(Icons.Default.Pets, "My Posts", "${vm.posts.count { it.userId.toString() == vm.uid }} posts") { }; HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)); SettingsItem(Icons.Default.Favorite, "Liked Posts", "Posts you've liked") { } } }
+        Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp)) { Column(modifier = Modifier.padding(4.dp)) { SettingsItem(Icons.Default.Notifications, "Notifications", "Manage your notification preferences") { }; HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)); SettingsItem(Icons.Default.Pets, "My Posts", "${vm.posts.count { it.userId == vm.user?.userNumber }} posts") { }; HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)); SettingsItem(Icons.Default.Favorite, "Liked Posts", "Posts you've liked") { } } }
         Spacer(Modifier.height(16.dp))
-        Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp)) { Column(modifier = Modifier.padding(4.dp)) { SettingsItem(Icons.Default.Info, "About Pawsome", "Version 1.0.0", onAboutClick); HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)); SettingsItem(Icons.AutoMirrored.Filled.Help, "Help & Support", "Get help or report issues", onHelpClick) } }
+        Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp)) { Column(modifier = Modifier.padding(4.dp)) { SettingsItem(Icons.Default.Info, "About Pawsome", "Version 1.0.0", onAboutClick); HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)); SettingsItem(Icons.AutoMirrored.Filled.Help, "Help & Support", "Get help or report issues", onHelpClick); if (vm.isAdmin) { HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)); SettingsItem(Icons.Default.AdminPanelSettings, "Admin", "Manage Pawsome administration", onAdminClick) } } }
         Spacer(Modifier.height(32.dp)); Button(onClick = { vm.signOut() }, modifier = Modifier.fillMaxWidth().height(56.dp), colors = ButtonDefaults.buttonColors(containerColor = LostRed), shape = RoundedCornerShape(16.dp)) { Icon(Icons.AutoMirrored.Filled.Logout, null, Modifier.size(20.dp), tint = Color.White); Spacer(Modifier.width(8.dp)); Text("Log Out", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = Color.White) }; Spacer(Modifier.height(24.dp))
     }
 }
