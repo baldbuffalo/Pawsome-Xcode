@@ -2,6 +2,7 @@ import SwiftUI
 import PhotosUI
 import FirebaseAuth
 import FirebaseFirestore
+import Vision
 
 struct FormView: View {
     @EnvironmentObject var appState: PawsomeApp.AppState
@@ -10,6 +11,8 @@ struct FormView: View {
 
     @State private var catName = ""
     @State private var age = ""
+    @State private var breed = ""
+    @State private var isDetectingBreed = false
     @State private var description = ""
     @State private var location = ""
     @State private var selectedStatus: PostStatus = .LOST
@@ -79,6 +82,19 @@ struct FormView: View {
                     FormField(icon: "pawprint.fill", title: "Cat Name", text: $catName)
                     FormField(icon: "birthday.cake.fill", title: "Age (years)", text: $age, numeric: true)
                         .onChange(of: age) { _, value in age = String(value.filter { $0.isNumber }.prefix(2)) }
+                    HStack(spacing: 10) {
+                        Image(systemName: "cat.fill").frame(width: 22).foregroundStyle(.tint)
+                        TextField("Breed", text: $breed)
+                            .textFieldStyle(.roundedBorder)
+                            .textInputAutocapitalization(.words)
+                        if isDetectingBreed {
+                            ProgressView().controlSize(.small)
+                        }
+                    }
+                    .onChange(of: imageData) { _, value in
+                        guard let value else { return }
+                        Task { await detectBreed(from: value) }
+                    }
                     FormField(icon: "mappin.and.ellipse", title: "Location (optional)", text: $location)
                     FormField(icon: "doc.text", title: "Description", text: $description, axis: .vertical)
                 }
@@ -127,6 +143,24 @@ struct FormView: View {
         #endif
     }
 
+    private func detectBreed(from data: Data) async {
+        isDetectingBreed = true
+        defer { isDetectingBreed = false }
+        guard let image = PlatformImage(data: data),
+              let cgImage = image.cgImageForVision else {
+            return
+        }
+
+        do {
+            let detected = try await CatBreedDetector.detectBreed(in: cgImage)
+            if !detected.isEmpty && breed.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                breed = detected
+            }
+        } catch {
+            // Breed detection is best-effort; posting should still work if it fails.
+        }
+    }
+
     private func submitPost() async {
         guard isComplete, let data = imageData, let uid = Auth.auth().currentUser?.uid, let userID = appState.currentUserID else { return }
         isPosting = true
@@ -143,6 +177,7 @@ struct FormView: View {
             try await Firestore.firestore().collection("posts").addDocument(data: [
                 "CatName": catName.trimmingCharacters(in: .whitespacesAndNewlines),
                 "CatAge": age,
+                "Breed": breed.trimmingCharacters(in: .whitespacesAndNewlines),
                 "description": description.trimmingCharacters(in: .whitespacesAndNewlines),
                 "location": location.trimmingCharacters(in: .whitespacesAndNewlines),
                 "status": selectedStatus.rawValue,
@@ -160,6 +195,57 @@ struct FormView: View {
             onPostCreated?()
         } catch { errorMessage = error.localizedDescription }
         isPosting = false
+    }
+}
+
+private extension PlatformImage {
+    var cgImageForVision: CGImage? {
+        #if os(iOS)
+        return cgImage
+        #else
+        var rect = CGRect(origin: .zero, size: size)
+        return cgImage(forProposedRect: &rect, context: nil, hints: nil)
+        #endif
+    }
+}
+
+private enum CatBreedDetector {
+    static func detectBreed(in image: CGImage) async throws -> String {
+        try await withCheckedThrowingContinuation { continuation in
+            let request = VNClassifyImageRequest { request, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+
+                let observations = (request.results as? [VNClassificationObservation]) ?? []
+                let candidates: [(String, Set<String>)] = [
+                    ("Siamese", ["siamese cat", "siamese"]),
+                    ("Persian", ["persian cat", "persian"]),
+                    ("Egyptian Mau", ["egyptian mau"]),
+                    ("British Shorthair", ["british shorthair"])
+                ]
+
+                for observation in observations where observation.confidence >= 0.20 {
+                    let identifier = observation.identifier.lowercased()
+                    if let match = candidates.first(where: { $0.1.contains(where: { identifier.contains($0) }) }) {
+                        continuation.resume(returning: match.0)
+                        return
+                    }
+                }
+
+                continuation.resume(returning: "")
+            }
+
+            let handler = VNImageRequestHandler(cgImage: image, options: [:])
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    try handler.perform([request])
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
     }
 }
 
