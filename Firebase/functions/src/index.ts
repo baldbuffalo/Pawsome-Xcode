@@ -3,6 +3,7 @@ import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
 import { CallableRequest, HttpsError, onCall } from "firebase-functions/v2/https";
 import { setGlobalOptions } from "firebase-functions/v2";
+import { GoogleGenAI } from "@google/genai";
 
 initializeApp();
 setGlobalOptions({ region: "europe-west1", maxInstances: 10 });
@@ -52,6 +53,82 @@ function serialise(value: unknown): unknown {
   }
   return value;
 }
+
+
+export const detectCatBreed = onCall(
+  { enforceAppCheck: true, timeoutSeconds: 60, memory: "512MiB" },
+  async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "You must be signed in.");
+
+    const data = (request.data ?? {}) as Record<string, unknown>;
+    const imageBase64 = typeof data.imageBase64 === "string" ? data.imageBase64.trim() : "";
+    const mimeType = typeof data.mimeType === "string" ? data.mimeType.trim().toLowerCase() : "image/jpeg";
+
+    if (!imageBase64) throw new HttpsError("invalid-argument", "An image is required.");
+    if (!/^image\\/(jpeg|jpg|png|webp)$/.test(mimeType)) {
+      throw new HttpsError("invalid-argument", "Unsupported image type.");
+    }
+    if (imageBase64.length > 12_000_000) {
+      throw new HttpsError("invalid-argument", "Image is too large.");
+    }
+
+    try {
+      const ai = new GoogleGenAI({
+        vertexai: true,
+        project: "pawsome-90cb3",
+        location: "global",
+      });
+
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: [
+          {
+            inlineData: {
+              mimeType,
+              data: imageBase64,
+            },
+          },
+          {
+            text: [
+              "Identify the cat breed in this image.",
+              "Return the most specific breed you can identify from visible evidence.",
+              "Use a standard/common breed name, such as Siamese, Persian, Maine Coon, Ragdoll, Bengal, British Shorthair, or Domestic Shorthair.",
+              "If the image is not a cat or there is not enough visual evidence to identify a breed, return an empty breed string.",
+              "Do not invent a breed.",
+            ].join(" "),
+          },
+        ],
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "OBJECT",
+            properties: {
+              breed: {
+                type: "STRING",
+                description: "The identified cat breed, or an empty string if it cannot be identified reliably.",
+              },
+            },
+            required: ["breed"],
+          },
+        },
+      });
+
+      const raw = response.text?.trim() ?? "";
+      let result: { breed?: unknown };
+      try {
+        result = JSON.parse(raw) as { breed?: unknown };
+      } catch {
+        throw new Error("The vision model returned invalid JSON.");
+      }
+
+      const breed = typeof result.breed === "string" ? result.breed.trim() : "";
+      return { breed };
+    } catch (error) {
+      console.error("Cat breed detection failed", error);
+      throw new HttpsError("internal", "Cat breed detection failed.");
+    }
+  },
+);
 
 export const adminListDocuments = onCall(async (request) => {
   requireAdmin(request);
