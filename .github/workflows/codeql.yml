@@ -119,6 +119,19 @@ jobs:
           gradle --version 2>&1 | grep -q 'Gradle 9.7.1'
           gradle --version 2>&1 | grep -q '26.0.2.1'
 
+      - name: Setup Node.js for Firebase Functions CodeQL
+        if: matrix.language == 'javascript-typescript'
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: Firebase/functions/package.json
+
+      - name: Install Firebase Functions dependencies
+        if: matrix.language == 'javascript-typescript'
+        working-directory: Firebase/functions
+        run: npm install --no-audit --no-fund
+
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4.38.0
         with:
