@@ -20,6 +20,7 @@ struct Post: Identifiable {
     let catName: String
     let description: String
     let age: String
+    let breed: String
     let location: String
     let status: PostStatus
     let imageURL: String
@@ -41,6 +42,7 @@ struct Post: Identifiable {
         self.catName = catName
         self.description = data["description"] as? String ?? ""
         self.age = data["CatAge"] as? String ?? data["age"] as? String ?? ""
+        self.breed = data["Breed"] as? String ?? data["breed"] as? String ?? ""
         self.location = data["location"] as? String ?? ""
         self.status = PostStatus(rawValue: data["status"] as? String ?? "LOST") ?? .LOST
         self.imageURL = imageURL
