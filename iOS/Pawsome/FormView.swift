@@ -2,7 +2,7 @@ import SwiftUI
 import PhotosUI
 import FirebaseAuth
 import FirebaseFirestore
-import Vision
+import FirebaseFunctions
 
 struct FormView: View {
     @EnvironmentObject var appState: PawsomeApp.AppState
@@ -146,18 +146,29 @@ struct FormView: View {
     private func detectBreed(from data: Data) async {
         isDetectingBreed = true
         defer { isDetectingBreed = false }
-        guard let image = PlatformImage(data: data),
-              let cgImage = image.cgImageForVision else {
-            return
-        }
+
+        guard let image = PlatformImage(data: data) else { return }
+        let resized = image.resizedForUpload(maxDimension: 1200)
+        guard let jpeg = resized.jpegDataCompat(quality: 0.75) else { return }
 
         do {
-            let detected = try await CatBreedDetector.detectBreed(in: cgImage)
-            if !detected.isEmpty && breed.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                breed = detected
+            let callable = Functions.functions(region: "europe-west1").httpsCallable("detectCatBreed")
+            let result = try await callable.call([
+                "imageBase64": jpeg.base64EncodedString(),
+                "mimeType": "image/jpeg"
+            ])
+
+            guard let response = result.data as? [String: Any],
+                  let detectedBreed = response["breed"] as? String else {
+                return
+            }
+
+            let trimmedBreed = detectedBreed.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmedBreed.isEmpty {
+                breed = trimmedBreed
             }
         } catch {
-            // Breed detection is best-effort; posting should still work if it fails.
+            // Breed detection is best-effort; posting still works if detection fails.
         }
     }
 
@@ -195,57 +206,6 @@ struct FormView: View {
             onPostCreated?()
         } catch { errorMessage = error.localizedDescription }
         isPosting = false
-    }
-}
-
-private extension PlatformImage {
-    var cgImageForVision: CGImage? {
-        #if os(iOS)
-        return cgImage
-        #else
-        var rect = CGRect(origin: .zero, size: size)
-        return cgImage(forProposedRect: &rect, context: nil, hints: nil)
-        #endif
-    }
-}
-
-private enum CatBreedDetector {
-    static func detectBreed(in image: CGImage) async throws -> String {
-        try await withCheckedThrowingContinuation { continuation in
-            let request = VNClassifyImageRequest { request, error in
-                if let error {
-                    continuation.resume(throwing: error)
-                    return
-                }
-
-                let observations = (request.results as? [VNClassificationObservation]) ?? []
-                let candidates: [(String, Set<String>)] = [
-                    ("Siamese", ["siamese cat", "siamese"]),
-                    ("Persian", ["persian cat", "persian"]),
-                    ("Egyptian Mau", ["egyptian mau"]),
-                    ("British Shorthair", ["british shorthair"])
-                ]
-
-                for observation in observations where observation.confidence >= 0.20 {
-                    let identifier = observation.identifier.lowercased()
-                    if let match = candidates.first(where: { $0.1.contains(where: { identifier.contains($0) }) }) {
-                        continuation.resume(returning: match.0)
-                        return
-                    }
-                }
-
-                continuation.resume(returning: "")
-            }
-
-            let handler = VNImageRequestHandler(cgImage: image, options: [:])
-            DispatchQueue.global(qos: .userInitiated).async {
-                do {
-                    try handler.perform([request])
-                } catch {
-                    continuation.resume(throwing: error)
-                }
-            }
-        }
     }
 }
 
