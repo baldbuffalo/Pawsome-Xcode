@@ -77,6 +77,11 @@ struct CatPostView: View {
                             .padding(.horizontal, 8).padding(.vertical, 3)
                             .background(Color.purple.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
                     }
+                    if !post.breed.isEmpty {
+                        Text(post.breed).font(.caption).foregroundStyle(.blue)
+                            .padding(.horizontal, 8).padding(.vertical, 3)
+                            .background(Color.blue.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
+                    }
                 }
                 if !post.description.isEmpty {
                     Text(post.description).font(.subheadline).foregroundStyle(.secondary).lineLimit(3)
