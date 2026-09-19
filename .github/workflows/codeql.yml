@@ -36,7 +36,7 @@ jobs:
 
           - language: javascript-typescript
             runner: ubuntu-latest
-            build-mode: manual
+            build-mode: none
 
           - language: csharp
             runner: windows-latest
@@ -137,11 +137,6 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
-
-      - name: Build Firebase Functions for CodeQL
-        if: matrix.language == 'javascript-typescript'
-        working-directory: Firebase/functions
-        run: npm run build
 
       - name: Build Android for CodeQL
         if: matrix.language == 'java-kotlin'
