@@ -90,26 +90,16 @@ class Firestore {
 
         // Do not read the chat before creating it. A new chat has no resource.data,
         // so the participant-based read rule correctly rejects that existence check.
-        // create() lets Firestore atomically create the document without overwriting
-        // an existing conversation. If another request already created it, we can
-        // safely continue because the deterministic chat ID identifies the same chat.
-        try {
-            ref.create(
-                mapOf(
-                    "participants" to listOf(uid, otherUid),
-                    "${uid}_name" to myName,
-                    "${otherUid}_name" to otherName,
-                    "lastMessage" to "",
-                    "updatedAt" to FieldValue.serverTimestamp(),
-                    "${uid}_lastMessage" to "",
-                    "${uid}_updatedAt" to FieldValue.serverTimestamp(),
-                    "${otherUid}_lastMessage" to "",
-                    "${otherUid}_updatedAt" to FieldValue.serverTimestamp()
-                )
-            ).await()
-        } catch (e: FirebaseFirestoreException) {
-            if (e.code != FirebaseFirestoreException.Code.ALREADY_EXISTS) throw e
-        }
+        // A merge write can both create a missing chat and update an existing chat
+        // without replacing its existing messages/metadata.
+        ref.set(
+            mapOf(
+                "participants" to listOf(uid, otherUid),
+                "${uid}_name" to myName,
+                "${otherUid}_name" to otherName
+            ),
+            SetOptions.merge()
+        ).await()
 
         id
     }
