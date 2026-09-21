@@ -149,7 +149,7 @@ class Firestore {
         val chat = db.collection("chats").document(chatId)
         val message = chat.collection("messages").document()
         db.runTransaction { transaction ->
-            transaction.set(message, mapOf("senderUid" to "system", "recipientUid" to owner.uid, "type" to "system", "text" to systemText, "lostPostId" to lostPost.id, "timestamp" to FieldValue.serverTimestamp()))
+            transaction.set(message, mapOf("senderUid" to finderUid, "recipientUid" to owner.uid, "type" to "system", "text" to systemText, "lostPostId" to lostPost.id, "timestamp" to FieldValue.serverTimestamp()))
             transaction.set(chat, mapOf("${owner.uid}_lastMessage" to systemText, "${owner.uid}_updatedAt" to FieldValue.serverTimestamp()), SetOptions.merge())
         }.await()
         db.collection("notifications").document().set(mapOf("recipientUid" to owner.uid, "senderUid" to finderUid, "type" to "chat_system_message", "chatId" to chatId, "lostPostId" to lostPost.id, "catName" to lostPost.catName, "text" to systemText, "createdAt" to FieldValue.serverTimestamp(), "read" to false)).await()
