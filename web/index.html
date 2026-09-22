@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#7c3aed">
+  <meta name="description" content="Pawsome — Help lost cats find their way home">
+  <title>Pawsome</title>
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <div id="loading" class="loading"><div class="spinner"></div></div>
+
+  <main id="auth-screen" class="auth-screen hidden">
+    <div class="paw paw-a">🐾</div><div class="paw paw-b">🐾</div>
+    <section class="auth-card">
+      <div class="logo"><span>🐾</span></div>
+      <h1>🐱 Pawsome</h1>
+      <p>Help lost cats find their way home</p>
+      <button id="google-login" class="btn google"><span>G</span> Continue with Google</button>
+      <button id="twitter-login" class="btn x"><b>𝕏</b> Continue with X</button>
+      <div id="auth-error" class="error"></div>
+    </section>
+  </main>
+
+  <div id="app" class="hidden">
+    <header class="topbar">
+      <div class="brand">🐾 <strong>Pawsome</strong></div>
+      <div class="desktop-status" id="desktop-status"></div>
+      <button id="mobile-profile" class="avatar-btn"></button>
+    </header>
+
+    <div class="layout">
+      <nav class="sidebar">
+        <button class="nav active" data-tab="home">⌂ <span>Home</span></button>
+        <button class="nav" data-tab="profile">◉ <span>Profile</span></button>
+        <button class="nav admin-nav hidden" data-tab="admin">🔑 <span>Admin</span></button>
+        <button class="create-btn" data-tab="create">＋ Create Post</button>
+        <button class="logout-link" id="logout">⇥ Log Out</button>
+      </nav>
+
+      <section class="content">
+        <div id="home-view" class="view">
+          <div class="filters" id="filters">
+            <button class="filter active" data-filter="">All 🐾</button>
+            <button class="filter" data-filter="LOST">🔴 Lost</button>
+            <button class="filter" data-filter="FOUND">🟢 Found</button>
+            <button class="filter" data-filter="REUNITED">🟡 Reunited</button>
+          </div>
+          <button class="mobile-create create-btn" data-tab="create">＋ Create a new post</button>
+          <div id="feed" class="feed"></div>
+        </div>
+
+        <div id="create-view" class="view hidden"></div>
+        <div id="profile-view" class="view hidden"></div>
+        <div id="admin-view" class="view hidden"></div>
+      </section>
+    </div>
+  </div>
+
+  <div id="image-modal" class="modal hidden"><button id="close-image">×</button><img id="full-image" alt="Cat"></div>
+  <div id="toast" class="toast"></div>
+</body>
+</html>
