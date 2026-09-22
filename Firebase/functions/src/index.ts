@@ -4,6 +4,8 @@ import { getAuth } from "firebase-admin/auth";
 import { CallableRequest, HttpsError, onCall } from "firebase-functions/v2/https";
 import { setGlobalOptions } from "firebase-functions/v2";
 import { GoogleGenAI } from "@google/genai";
+import { defineSecret } from "firebase-functions/params";
+
 
 initializeApp();
 setGlobalOptions({ region: "europe-west1", maxInstances: 10 });
@@ -11,6 +13,87 @@ setGlobalOptions({ region: "europe-west1", maxInstances: 10 });
 const db = getFirestore();
 const auth = getAuth();
 const ALLOWED_ROOTS = new Set(["posts", "users", "config"]);
+
+const githubToken = defineSecret("GITHUB_TOKEN");
+const GITHUB_REPO = "baldbuffalo/Pawsome-assets";
+
+function requireImagePath(value: unknown): string {
+  if (typeof value !== "string" || !value.trim()) throw new HttpsError("invalid-argument", "An image path is required.");
+  const clean = value.trim().replace(/^\/+|\/+$/g, "");
+  if (clean.length > 180 || clean.split("/").some((part) => !/^[A-Za-z0-9._-]+$/.test(part))) {
+    throw new HttpsError("invalid-argument", "Invalid image path.");
+  }
+  return clean;
+}
+
+export const githubUploadImage = onCall(
+  { secrets: [githubToken], timeoutSeconds: 60, memory: "256MiB" },
+  async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "You must be signed in.");
+
+    const data = (request.data ?? {}) as Record<string, unknown>;
+    const imageBase64 = typeof data.imageBase64 === "string" ? data.imageBase64.trim() : "";
+    const mimeType = typeof data.mimeType === "string" ? data.mimeType.trim().toLowerCase() : "image/jpeg";
+    const filename = requireImagePath(data.filename);
+    const folder = requireImagePath(data.folder ?? "postImages");
+    const path = folder + "/" + filename;
+
+    if (!/^image\/(jpeg|jpg|png|webp)$/.test(mimeType)) {
+      throw new HttpsError("invalid-argument", "Unsupported image type.");
+    }
+    if (!imageBase64 || !/^[A-Za-z0-9+/=]+$/.test(imageBase64)) {
+      throw new HttpsError("invalid-argument", "Invalid image data.");
+    }
+    if (imageBase64.length > 14_000_000) {
+      throw new HttpsError("invalid-argument", "Image is too large.");
+    }
+
+    const token = githubToken.value();
+    const apiURL = `https://api.github.com/repos/${GITHUB_REPO}/contents/${path}`;
+    const headers = {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+      "Content-Type": "application/json",
+    };
+
+    try {
+      let sha: string | undefined;
+      const existing = await fetch(apiURL, { headers });
+      if (existing.ok) {
+        const existingJSON = await existing.json() as { sha?: string };
+        sha = existingJSON.sha;
+      } else if (existing.status !== 404) {
+        throw new Error(`GitHub lookup failed: HTTP ${existing.status}`);
+      }
+
+      const body: Record<string, string> = {
+        message: typeof data.message === "string" && data.message.trim() ? data.message.trim() : `Upload ${filename}`,
+        content: imageBase64,
+      };
+      if (sha) body.sha = sha;
+
+      const response = await fetch(apiURL, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify(body),
+      });
+      const responseJSON = await response.json() as { message?: string; content?: { download_url?: string } };
+
+      if (!response.ok) throw new Error(responseJSON.message || `GitHub upload failed: HTTP ${response.status}`);
+
+      const downloadURL = responseJSON.content?.download_url;
+      if (!downloadURL) throw new Error("GitHub returned no download URL.");
+
+      return { downloadURL, path };
+    } catch (error) {
+      console.error("GitHub image upload failed", error);
+      throw new HttpsError("internal", "GitHub image upload failed.");
+    }
+  },
+);
+
+
 
 function requireAdmin(request: CallableRequest<unknown>): void {
   if (!request.auth) throw new HttpsError("unauthenticated", "You must be signed in.");
