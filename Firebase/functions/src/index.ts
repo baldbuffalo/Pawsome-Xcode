@@ -14,7 +14,7 @@ const db = getFirestore();
 const auth = getAuth();
 const ALLOWED_ROOTS = new Set(["posts", "users", "config"]);
 
-const githubToken = defineSecret("GITHUB_TOKEN");
+const githubToken = defineSecret("PAWSOME_IMAGE_UPLOAD_TOKEN");
 const GITHUB_REPO = "baldbuffalo/Pawsome-assets";
 
 function requireImagePath(value: unknown): string {
