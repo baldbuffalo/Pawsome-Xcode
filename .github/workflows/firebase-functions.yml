@@ -1,0 +1,60 @@
+name: Firebase Functions Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "Firebase/functions/**"
+      - "Firebase/firebase.json"
+      - ".github/workflows/firebase-functions.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/firebase-service-account.json
+      FIREBASE_PROJECT_ID: pawsome-90cb3
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Write Firebase service account
+        shell: bash
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          set -euo pipefail
+          printf "%s" "$FIREBASE_SERVICE_ACCOUNT" > "$GOOGLE_APPLICATION_CREDENTIALS"
+          chmod 600 "$GOOGLE_APPLICATION_CREDENTIALS"
+
+      - name: Install Firebase CLI
+        run: npm install --global firebase-tools
+
+      - name: Set Firebase GitHub upload secret
+        working-directory: Firebase
+        shell: bash
+        env:
+          PAWSOME_IMAGE_UPLOAD_TOKEN: ${{ secrets.PAWSOME_IMAGE_UPLOAD_TOKEN }}
+        run: |
+          set -euo pipefail
+          printf "%s" "$PAWSOME_IMAGE_UPLOAD_TOKEN" | firebase functions:secrets:set PAWSOME_IMAGE_UPLOAD_TOKEN --project "$FIREBASE_PROJECT_ID"
+
+      - name: Deploy Firebase Functions
+        working-directory: Firebase
+        run: firebase deploy --only functions --project "$FIREBASE_PROJECT_ID" --non-interactive
+
+      - name: Remove service account
+        if: always()
+        run: rm -f "$GOOGLE_APPLICATION_CREDENTIALS"
