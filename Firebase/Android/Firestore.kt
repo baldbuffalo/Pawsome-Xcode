@@ -153,12 +153,11 @@ class Firestore {
         // If the finder already reported this exact Lost Cat, just return the existing chat.
         val existing = chat.collection("messages")
             .whereEqualTo("lostPostId", lostPost.id)
-            .whereEqualTo("senderUid", finderUid)
-            .limit(1)
+            .limit(10)
             .get()
             .await()
 
-        if (existing.documents.isNotEmpty()) return@withContext chatId
+        if (existing.documents.any { it.getString("senderUid") == finderUid }) return@withContext chatId
 
         val systemText = "🐾 Someone found a cat that may be ${lostPost.catName} and thinks it could be your lost cat. You can chat with them to check."
         val message = chat.collection("messages").document()
