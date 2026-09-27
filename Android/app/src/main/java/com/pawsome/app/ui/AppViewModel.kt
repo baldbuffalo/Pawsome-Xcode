@@ -223,8 +223,12 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
             val u = uid ?: throw Exception("Not signed in")
             if (lostPost.status != com.example.pawsome.model.PostStatus.LOST) return@launch
             if (user?.userNumber == lostPost.userId) return@launch
-            firestore.createFoundLostPostNotification(lostPost, u)
-            error = "The owner of ${lostPost.catName} has been notified in their chat."
+            val owner = firestore.findUserByUserNumber(lostPost.userId)
+                ?: throw Exception("Could not find the Lost Cat owner")
+            val chatId = firestore.createFoundLostPostNotification(lostPost, u)
+            openConversation(chatId, owner.uid, owner.username)
+            loadConversations()
+            error = null
         } catch (e: Exception) { error = e.message }
     }
 
