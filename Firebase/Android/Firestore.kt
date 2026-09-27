@@ -144,15 +144,44 @@ class Firestore {
     suspend fun createFoundLostPostNotification(lostPost: Post, finderUid: String): String = withContext(Dispatchers.IO) {
         val owner = findUserByUserNumber(lostPost.userId) ?: throw FirebaseFirestoreException("Could not find the Lost Cat owner", FirebaseFirestoreException.Code.NOT_FOUND)
         if (owner.uid == finderUid) throw FirebaseFirestoreException("You cannot report your own Lost Cat as found", FirebaseFirestoreException.Code.INVALID_ARGUMENT)
+
+        // The chat ID is deterministic for this owner/finder pair, so reuse the same chat.
         val chatId = createOrGetConversation(owner.uid, finderUid, "Pawsome user", owner.username)
-        val systemText = "🐾 Someone found a cat that may be ${lostPost.catName} and thinks it could be your lost cat. You can chat with them to check."
         val chat = db.collection("chats").document(chatId)
+
+        // A found report is identified by its lostPostId inside this chat.
+        // If the finder already reported this exact Lost Cat, just return the existing chat.
+        val existing = chat.collection("messages")
+            .whereEqualTo("lostPostId", lostPost.id)
+            .whereEqualTo("senderUid", finderUid)
+            .limit(1)
+            .get()
+            .await()
+
+        if (existing.documents.isNotEmpty()) return@withContext chatId
+
+        val systemText = "🐾 Someone found a cat that may be ${lostPost.catName} and thinks it could be your lost cat. You can chat with them to check."
         val message = chat.collection("messages").document()
         db.runTransaction { transaction ->
             transaction.set(message, mapOf("senderUid" to finderUid, "recipientUid" to owner.uid, "type" to "system", "text" to systemText, "lostPostId" to lostPost.id, "timestamp" to FieldValue.serverTimestamp()))
             transaction.set(chat, mapOf("${owner.uid}_lastMessage" to systemText, "${owner.uid}_updatedAt" to FieldValue.serverTimestamp()), SetOptions.merge())
         }.await()
-        db.collection("notifications").document().set(mapOf("recipientUid" to owner.uid, "senderUid" to finderUid, "type" to "chat_system_message", "chatId" to chatId, "lostPostId" to lostPost.id, "catName" to lostPost.catName, "text" to systemText, "createdAt" to FieldValue.serverTimestamp(), "read" to false)).await()
+
+        // First report only: create the owner's in-app notification.
+        db.collection("notifications").document().set(
+            mapOf(
+                "recipientUid" to owner.uid,
+                "senderUid" to finderUid,
+                "type" to "chat_system_message",
+                "chatId" to chatId,
+                "lostPostId" to lostPost.id,
+                "catName" to lostPost.catName,
+                "text" to systemText,
+                "createdAt" to FieldValue.serverTimestamp(),
+                "read" to false
+            )
+        ).await()
+
         chatId
     }
 
