@@ -94,6 +94,7 @@ private fun MainScaffold(vm: AppViewModel) {
     }
 
     when {
+        vm.activeConversationId != null -> ChatScreen(vm)
         showAdmin -> AdminScreen { showAdmin = false }
         showAbout -> AboutScreen { showAbout = false }
         showHelp -> HelpScreen { showHelp = false }
