@@ -224,7 +224,7 @@ private struct FormField: View {
                 .keyboardType(numeric ? .numberPad : .default)
                 #endif
                 .textInputAutocapitalization(.sentences)
-                .lineLimit(axis == .vertical ? 3...6 : 1)
+                .lineLimit(axis == .vertical ? 3...6 : 1...1)
         }
     }
 }
