@@ -196,8 +196,7 @@ struct FormView: View {
                 "UserID": userID,
                 "Username": username,
                 "ProfilePic": profilePic,
-                "PostedAt": FieldValue.serverTimestamp(),
-                "likes": [String]()
+                "PostedAt": FieldValue.serverTimestamp()
             ])
             appState.selectedImage = nil
             imageData = nil
