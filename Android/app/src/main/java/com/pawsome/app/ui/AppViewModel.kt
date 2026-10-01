@@ -159,7 +159,6 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
 
     fun signOut() { firebaseAuth.signOut() }
     fun loadFeed() = viewModelScope.launch { try { posts = firestore.getPosts() } catch (e: Exception) { error = e.message } }
-    fun toggleLike(p: Post) { val u = uid ?: return; viewModelScope.launch { try { firestore.toggleLike(p.id, u, !p.isLikedBy(u)); loadFeed() } catch (e: Exception) { error = e.message } } }
 
     fun deletePost(p: Post) = viewModelScope.launch {
         try { p.imageFileName?.let { if (github.hasToken) github.deleteFile("postImages/$it") }; firestore.deletePost(p.id); loadFeed() }
@@ -178,7 +177,7 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
             val url = github.uploadImage(jpeg, fileName, "postImages")
             val createdId = firestore.createPostForUser(u.uid, mapOf(
                 "CatName" to name.trim(), "CatAge" to age.trim(), "description" to desc.trim(), "location" to location.trim(),
-                "imageURL" to url, "likes" to emptyList<String>(), "status" to status.name,
+                "imageURL" to url, "status" to status.name,
             ))
             loadFeed()
             if (status == com.example.pawsome.model.PostStatus.FOUND) {
