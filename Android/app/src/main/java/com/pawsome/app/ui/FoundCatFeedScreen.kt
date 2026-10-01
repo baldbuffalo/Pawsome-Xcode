@@ -11,8 +11,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material3.*
@@ -123,7 +121,6 @@ fun FeedScreenWithFoundButton(
                         post = post,
                         uid = vm.uid,
                         currentUserNumber = currentUserNumber,
-                        onLike = { vm.toggleLike(post) },
                         onDelete = { vm.deletePost(post) },
                         onImageClick = { onImageClick(post.imageUrl) },
                         onFoundCat = { vm.notifyFoundLostPost(post) }
@@ -139,7 +136,6 @@ private fun FoundCatPostCard(
     post: Post,
     uid: String?,
     currentUserNumber: Int?,
-    onLike: () -> Unit,
     onDelete: () -> Unit,
     onImageClick: () -> Unit,
     onFoundCat: () -> Unit
@@ -270,33 +266,6 @@ private fun FoundCatPostCard(
                         post.description,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 3
-                    )
-                }
-            }
-
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                val liked = post.isLikedBy(uid)
-                FilledTonalButton(
-                    onClick = onLike,
-                    colors = ButtonDefaults.filledTonalButtonColors(
-                        containerColor = if (liked) LostRed.copy(alpha = 0.15f)
-                        else MaterialTheme.colorScheme.surfaceVariant
-                    ),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Icon(
-                        if (liked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                        null,
-                        tint = if (liked) LostRed else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        if (post.likeCount == 1) "1 like" else "${post.likeCount} likes",
-                        color = if (liked) LostRed else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
