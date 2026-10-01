@@ -3,14 +3,12 @@ import FirebaseAuth
 
 struct CatPostView: View {
     let post: Post
-    var onLike: () -> Void
     var onDelete: (() -> Void)?
     @EnvironmentObject private var appState: PawsomeApp.AppState
 
     @State private var showFullScreen = false
     @State private var showDeleteConfirm = false
 
-    private var isLiked: Bool { post.likes.contains(Auth.auth().currentUser?.uid ?? "") }
     private var statusColor: Color {
         switch post.status {
         case .LOST: return .red
@@ -89,14 +87,6 @@ struct CatPostView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading).padding(16)
 
-            HStack(spacing: 12) {
-                Button(action: onLike) {
-                    Label("\(post.likes.count) likes", systemImage: isLiked ? "heart.fill" : "heart")
-                        .foregroundStyle(isLiked ? .red : .secondary).frame(minHeight: 40)
-                }.buttonStyle(.bordered)
-                Spacer()
-            }
-            .padding(.horizontal, 8).padding(.bottom, 8)
         }
         .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 20))
         .clipShape(RoundedRectangle(cornerRadius: 20)).shadow(radius: 4, y: 2)
