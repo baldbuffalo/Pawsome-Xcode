@@ -5,6 +5,11 @@ import FirebaseFirestore
 
 @main
 struct PawsomeApp: App {
+    enum HomeFlow {
+        case scan
+        case form
+    }
+
     #if os(iOS)
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
     #elseif os(macOS)
@@ -112,7 +117,7 @@ struct PawsomeApp: App {
                 return
             }
 
-            let newUserID = try await db.runTransaction { transaction, errorPointer -> Int? in
+            let newUserID: Int? = try await db.runTransaction { transaction, errorPointer -> Int? in
                 do {
                     let existing = try transaction.getDocument(userRef)
                     if existing.exists { return existing.data()?["UserID"] as? Int ?? 0 }
@@ -185,7 +190,7 @@ struct PawsomeApp: App {
                         .tag(2)
                 }
             }
-            .onChange(of: selectedTab) { _, newValue in
+            .onChange(of: selectedTab) { newValue in
                 if newValue != 0 { activeHomeFlow = nil }
             }
         }
