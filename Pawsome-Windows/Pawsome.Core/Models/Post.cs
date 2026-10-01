@@ -14,18 +14,13 @@ public sealed class Post
     public string Username { get; init; } = "User";
     public string ProfilePic { get; init; } = "";
     public DateTimeOffset Timestamp { get; init; } = DateTimeOffset.UtcNow;
-    public IReadOnlyList<string> Likes { get; init; } = Array.Empty<string>();
 
     // UI compatibility aliases; Firestore itself uses UserID/Username/ProfilePic.
     public string OwnerUid => UserID.ToString();
     public string OwnerUsername => Username;
     public string OwnerProfilePic => ProfilePic;
 
-    public int LikeCount => Likes.Count;
     public string TimeAgo => Timestamp.TimeAgoDisplay();
-
-    public bool IsLikedBy(string? uid) =>
-        !string.IsNullOrEmpty(uid) && Likes.Contains(uid);
 
     public string? ImageFileName
     {
@@ -53,7 +48,6 @@ public sealed class Post
             Description = data.GetString("description") ?? "",
             Age = data.GetString("age") ?? "",
             Timestamp = data.GetTimestamp("PostedAt") ?? DateTimeOffset.UtcNow,
-            Likes = data.GetStringList("likes"),
         };
     }
 }
