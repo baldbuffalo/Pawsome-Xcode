@@ -97,6 +97,14 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
                     val profile = firestore.fetchOrCreateUser(current.uid, current.displayName, current.photoUrl?.toString(), loginMethod(current))
                     userListener = firestore.observeUser(current.uid, { updated -> if (observedUid == current.uid) user = updated ?: profile }, { e -> if (observedUid == current.uid) error = e.message ?: "Could not listen to user profile" })
                     user = profile
+                    if (!prefs.getBoolean("likes_cleanup_v1", false)) {
+                        try {
+                            firestore.removeLikesFromAllPosts()
+                            prefs.edit().putBoolean("likes_cleanup_v1", true).apply()
+                        } catch (_: Exception) {
+                            // Retry on the next launch if Firestore rules/network temporarily block cleanup.
+                        }
+                    }
                     posts = firestore.getPosts()
                     signedIn = true
                     loadConversations()
