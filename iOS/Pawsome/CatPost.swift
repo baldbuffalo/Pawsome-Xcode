@@ -115,7 +115,7 @@ struct FullScreenImageView: View {
                         .onTapGesture(count: 2) { withAnimation { if scale > 1 { scale = 1; offset = .zero } else { scale = 2.5 } } }
                 } else { ProgressView().tint(.white) }
             }
-            Button { dismiss() } label { Image(systemName: "xmark.circle.fill").font(.title).foregroundStyle(.white).padding() }
+            Button { dismiss() } label: { Image(systemName: "xmark.circle.fill").font(.title).foregroundStyle(.white).padding() }
             .buttonStyle(.plain)
         }
     }
