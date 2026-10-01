@@ -57,7 +57,6 @@ struct HomeView: View {
                         ForEach(filteredPosts) { post in
                             CatPostView(
                                 post: post,
-                                onLike: { toggleLike(post: post) },
                                 onDelete: post.userID == appState.currentUserID ? { Task { await deletePost(post) } } : nil
                             )
                             .padding(.horizontal, 16)
@@ -82,13 +81,6 @@ struct HomeView: View {
                 posts = snapshot?.documents.compactMap { Post(id: $0.documentID, data: $0.data()) } ?? []
                 isLoading = false
             }
-    }
-
-    private func toggleLike(post: Post) {
-        guard let uid = Auth.auth().currentUser?.uid else { return }
-        let ref = Firestore.firestore().collection("posts").document(post.id)
-        if post.likes.contains(uid) { ref.updateData(["likes": FieldValue.arrayRemove([uid])]) }
-        else { ref.updateData(["likes": FieldValue.arrayUnion([uid])]) }
     }
 
     private func deletePost(_ post: Post) async {
