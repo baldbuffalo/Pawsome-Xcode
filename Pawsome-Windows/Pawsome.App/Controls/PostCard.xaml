@@ -72,18 +72,6 @@
             <Border Height="1" Margin="14,0"
                     Background="{ThemeResource DividerStrokeColorDefaultBrush}" />
 
-            <!-- Like / comment bar -->
-            <StackPanel Orientation="Horizontal" Spacing="18" Padding="14,8">
-                <Button Command="{Binding ToggleLikeCommand}" Background="Transparent" BorderThickness="0" Padding="6,4">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <FontIcon Glyph="&#xEB52;"
-                                  Foreground="{Binding IsLiked, Converter={StaticResource LikedToBrush}}" />
-                        <TextBlock Text="{Binding LikeCount}"
-                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                    </StackPanel>
-                </Button>
-
-            </StackPanel>
         </StackPanel>
     </Border>
 </UserControl>
