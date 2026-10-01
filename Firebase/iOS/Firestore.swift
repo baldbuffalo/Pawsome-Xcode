@@ -36,19 +36,6 @@ public final class PawsomeFirestore {
         return snapshot.documents.map { document in var data = document.data(); data["id"] = document.documentID; return data }
     }
 
-    public func removeLikesFromAllPosts() async throws {
-        let snapshot = try await db.collection("posts").getDocuments()
-        let documents = snapshot.documents.filter { $0.data()["likes"] != nil }
-        var start = 0
-        while start < documents.count {
-            let end = min(start + 450, documents.count)
-            let batch = db.batch()
-            documents[start..<end].forEach { batch.updateData(["likes": FieldValue.delete()], forDocument: $0.reference) }
-            try await batch.commit()
-            start = end
-        }
-    }
-
     public func createPost(fields: [String: Any]) async throws -> String {
         var fields = fields
         guard fields["UserID"] != nil else { throw NSError(domain: "PawsomeFirestore", code: 1, userInfo: [NSLocalizedDescriptionKey: "UserID is required when creating a post"]) }
