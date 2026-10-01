@@ -3,7 +3,6 @@ package com.example.pawsome.ui
 import android.Manifest
 import android.app.Activity
 import android.app.Application
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -46,7 +45,6 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
     private val firestore = Firestore()
     private val github = GitHubUploader()
     private val google = GoogleAuth()
-    private val prefs = app.getSharedPreferences("pawsome", Context.MODE_PRIVATE)
 
     var loading by mutableStateOf(true); private set
     var signedIn by mutableStateOf(false); private set
@@ -97,14 +95,6 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
                     val profile = firestore.fetchOrCreateUser(current.uid, current.displayName, current.photoUrl?.toString(), loginMethod(current))
                     userListener = firestore.observeUser(current.uid, { updated -> if (observedUid == current.uid) user = updated ?: profile }, { e -> if (observedUid == current.uid) error = e.message ?: "Could not listen to user profile" })
                     user = profile
-                    if (!prefs.getBoolean("likes_cleanup_v1", false)) {
-                        try {
-                            firestore.removeLikesFromAllPosts()
-                            prefs.edit().putBoolean("likes_cleanup_v1", true).apply()
-                        } catch (_: Exception) {
-                            // Retry on the next launch if Firestore rules/network temporarily block cleanup.
-                        }
-                    }
                     posts = firestore.getPosts()
                     signedIn = true
                     loadConversations()
