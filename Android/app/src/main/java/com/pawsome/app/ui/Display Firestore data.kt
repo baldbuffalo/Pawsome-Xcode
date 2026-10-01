@@ -34,8 +34,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Notifications
@@ -124,12 +122,12 @@ fun FeedScreen(vm: AppViewModel, onCreate: () -> Unit, onImageClick: (String) ->
         Spacer(Modifier.height(8.dp))
         if (vm.loading && vm.posts.isEmpty()) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
         else if (filteredPosts.isEmpty()) Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) { Column(horizontalAlignment = Alignment.CenterHorizontally) { Text("😿", fontSize = 64.sp); Spacer(Modifier.height(16.dp)); Text("No cats found", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold); Text("Be the first to post!", color = MaterialTheme.colorScheme.onSurfaceVariant) } }
-        else LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) { items(filteredPosts, key = { it.id }) { p -> PostCard(p, vm.uid, vm.user?.userNumber, { vm.toggleLike(p) }, { vm.deletePost(p) }, { onImageClick(p.imageUrl) }, { vm.notifyFoundLostPost(p) }) } }
+        else LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) { items(filteredPosts, key = { it.id }) { p -> PostCard(p, vm.uid, vm.user?.userNumber, { vm.deletePost(p) }, { onImageClick(p.imageUrl) }, { vm.notifyFoundLostPost(p) }) } }
     }
 }
 
 @Composable
-private fun PostCard(post: Post, uid: String?, currentUserNumber: Int?, onLike: () -> Unit, onDelete: () -> Unit, onImageClick: () -> Unit, onFoundCat: () -> Unit) {
+private fun PostCard(post: Post, uid: String?, currentUserNumber: Int?, onDelete: () -> Unit, onImageClick: () -> Unit, onFoundCat: () -> Unit) {
     val statusColor = when (post.status) { PostStatus.LOST -> LostRed; PostStatus.FOUND -> FoundGreen; PostStatus.REUNITED -> ReunitedGold }
     Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)) {
         Column {
