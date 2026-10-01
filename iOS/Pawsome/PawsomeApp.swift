@@ -117,7 +117,7 @@ struct PawsomeApp: App {
                 return
             }
 
-            let newUserID: Int? = try await db.runTransaction { transaction, errorPointer -> Int? in
+            let transactionResult = try await db.runTransaction { transaction, errorPointer -> Int? in
                 do {
                     let existing = try transaction.getDocument(userRef)
                     if existing.exists { return existing.data()?["UserID"] as? Int ?? 0 }
@@ -138,7 +138,7 @@ struct PawsomeApp: App {
                     return nil
                 }
             }
-            guard let newUserID else { throw NSError(domain: "Pawsome", code: 1, userInfo: [NSLocalizedDescriptionKey: "Could not create user profile."]) }
+            guard let newUserID = transactionResult as? Int else { throw NSError(domain: "Pawsome", code: 1, userInfo: [NSLocalizedDescriptionKey: "Could not create user profile."]) }
             login(username: defaultUsername ?? "User\(newUserID)", imageURL: defaultImage, userID: newUserID)
         }
 
@@ -160,24 +160,27 @@ struct PawsomeApp: App {
         @State private var selectedTab = 0
         @State private var activeHomeFlow: HomeFlow?
 
+        @ViewBuilder
+        private var homeTabContent: some View {
+            switch activeHomeFlow {
+            case .form:
+                FormView(activeHomeFlow: $activeHomeFlow, onPostCreated: { activeHomeFlow = nil })
+            case .none, .scan:
+                HomeView(
+                    isLoggedIn: $appState.isLoggedIn,
+                    currentUsername: $appState.currentUsername,
+                    profileImageURL: $appState.profileImageURL,
+                    activeFlow: $activeHomeFlow
+                )
+            }
+        }
+
         var body: some View {
             TabView(selection: $selectedTab) {
-                Group {
-                    switch activeHomeFlow {
-                    case .form:
-                        FormView(activeHomeFlow: $activeHomeFlow, onPostCreated: { activeHomeFlow = nil })
-                    case .none, .scan:
-                        HomeView(
-                            isLoggedIn: $appState.isLoggedIn,
-                            currentUsername: $appState.currentUsername,
-                            profileImageURL: $appState.profileImageURL,
-                            activeFlow: $activeHomeFlow
-                        )
-                    }
-                }
-                .environmentObject(appState)
-                .tabItem { Label(activeHomeFlow == .form ? "Post" : "Home", systemImage: activeHomeFlow == .form ? "plus" : "house.fill") }
-                .tag(0)
+                homeTabContent
+                    .environmentObject(appState)
+                    .tabItem { Label(activeHomeFlow == .form ? "Post" : "Home", systemImage: activeHomeFlow == .form ? "plus" : "house.fill") }
+                    .tag(0)
 
                 ProfileView(appState: appState)
                     .environmentObject(appState)
