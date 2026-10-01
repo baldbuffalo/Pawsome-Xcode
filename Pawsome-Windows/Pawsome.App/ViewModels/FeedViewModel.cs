@@ -8,7 +8,7 @@ using Pawsome.Core.Models;
 namespace Pawsome.App.ViewModels;
 
 /// <summary>The home feed: loads posts, polls for near-real-time updates, and
-/// merges changes in place so likes/scroll position survive a refresh.</summary>
+/// merges changes in place so scroll position survives a refresh.</summary>
 public sealed class FeedViewModel : ObservableObject
 {
     private readonly AppServices _services;
