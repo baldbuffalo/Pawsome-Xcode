@@ -28,7 +28,6 @@ struct Post: Identifiable {
     let username: String
     let profilePic: String
     let timestamp: Timestamp
-    var likes: [String]
 
     var ownerUID: String { String(userID) }
     var ownerUsername: String { username }
@@ -50,6 +49,5 @@ struct Post: Identifiable {
         self.username = data["Username"] as? String ?? "User"
         self.profilePic = data["ProfilePic"] as? String ?? ""
         self.timestamp = data["PostedAt"] as? Timestamp ?? Timestamp()
-        self.likes = data["likes"] as? [String] ?? []
     }
 }
