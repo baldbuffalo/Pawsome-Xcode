@@ -73,16 +73,6 @@ struct HomeView: View {
 
     private func startListening() {
         isLoading = true
-        if !UserDefaults.standard.bool(forKey: "pawsome.likesCleanupV1") {
-            Task {
-                do {
-                    try await PawsomeFirestore.shared.removeLikesFromAllPosts()
-                    UserDefaults.standard.set(true, forKey: "pawsome.likesCleanupV1")
-                } catch {
-                    // Retry on the next app launch if cleanup is temporarily unavailable.
-                }
-            }
-        }
         listener?.remove()
         listener = Firestore.firestore().collection("posts")
             .order(by: "PostedAt", descending: true)
