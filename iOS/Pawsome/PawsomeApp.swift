@@ -193,7 +193,7 @@ struct PawsomeApp: App {
                         .tag(2)
                 }
             }
-            .onChange(of: selectedTab) { newValue in
+            .onChange(of: selectedTab) { _, newValue in
                 if newValue != 0 { activeHomeFlow = nil }
             }
         }
