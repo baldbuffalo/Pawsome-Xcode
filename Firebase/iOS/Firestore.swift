@@ -39,10 +39,13 @@ public final class PawsomeFirestore {
     public func removeLikesFromAllPosts() async throws {
         let snapshot = try await db.collection("posts").getDocuments()
         let documents = snapshot.documents.filter { $0.data()["likes"] != nil }
-        for chunk in documents.chunked(into: 450) {
+        var start = 0
+        while start < documents.count {
+            let end = min(start + 450, documents.count)
             let batch = db.batch()
-            chunk.forEach { batch.updateData(["likes": FieldValue.delete()], forDocument: $0.reference) }
+            documents[start..<end].forEach { batch.updateData(["likes": FieldValue.delete()], forDocument: $0.reference) }
             try await batch.commit()
+            start = end
         }
     }
 
