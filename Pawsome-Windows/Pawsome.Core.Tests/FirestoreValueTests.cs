@@ -67,7 +67,6 @@ public class FirestoreValueTests
             "Username":     { "stringValue": "Sam" },
             "ProfilePic":   { "stringValue": "https://example.com/me.jpg" },
             "PostedAt":     { "timestampValue": "2024-01-01T00:00:00Z" },
-            "likes":        { "arrayValue": { "values": [ { "stringValue": "uid-9" } ] } },
             "commentCount": { "integerValue": "2" }
           }
         }
@@ -81,9 +80,6 @@ public class FirestoreValueTests
         Assert.Equal(7, post.UserID);
         Assert.Equal("Sam", post.Username);
         Assert.Equal(2, post.CommentCount);
-        Assert.Single(post.Likes);
-        Assert.True(post.IsLikedBy("uid-9"));
-        Assert.False(post.IsLikedBy("uid-1"));
         Assert.Equal("cat.jpg", post.ImageFileName);
     }
 
@@ -91,11 +87,10 @@ public class FirestoreValueTests
     {
         var fields = FirestoreValue.ToFields(new Dictionary<string, object?>
         {
-            ["catName"] = "Tom", ["UserID"] = 7L, ["likes"] = new List<object?>(), ["commentCount"] = 0L,
+            ["catName"] = "Tom", ["UserID"] = 7L, ["commentCount"] = 0L,
         });
         Assert.Equal("Tom", fields["catName"]!["stringValue"]!.GetValue<string>());
         Assert.Equal("7", fields["UserID"]!["integerValue"]!.GetValue<string>());
-        Assert.Empty(fields["likes"]!["arrayValue"]!["values"]!.AsArray());
         Assert.Equal("0", fields["commentCount"]!["integerValue"]!.GetValue<string>());
     }
 
