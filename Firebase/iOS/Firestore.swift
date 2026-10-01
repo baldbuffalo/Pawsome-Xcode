@@ -45,8 +45,4 @@ public final class PawsomeFirestore {
 
     public func deletePost(id: String) async throws { try await db.collection("posts").document(id).delete() }
 
-    public func toggleLike(postId: String, uid: String, like: Bool) async throws {
-        let value: Any = like ? FieldValue.arrayUnion([uid]) : FieldValue.arrayRemove([uid])
-        try await db.collection("posts").document(postId).updateData(["likes": value])
-    }
 }
