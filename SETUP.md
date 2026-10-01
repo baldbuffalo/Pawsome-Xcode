@@ -24,7 +24,7 @@ firebase deploy --only firestore:rules --project pawsome--signin-ios
 
 The rules (`firebase/firestore.rules`) enforce:
 - users can only edit their own profile,
-- only a post's owner can edit/delete it (anyone signed in can like/comment),
+- only a post's owner can edit/delete it (anyone signed in can comment),
 - only a comment's author can edit/delete it.
 
 ## 2. iOS / macOS image-upload token
@@ -59,5 +59,5 @@ the Google desktop-OAuth client, building, and producing a `.exe` / MSIX.
 - [ ] Windows: Google desktop OAuth client id set; build MSIX, update
       `Package.appxmanifest` publisher to your Partner Center identity.
 - [ ] AdMob: production ad unit IDs verified.
-- [ ] Test sign-in, post, like, comment, delete on each platform against the
+- [ ] Test sign-in, post, comment, delete on each platform against the
       shared Firestore.
