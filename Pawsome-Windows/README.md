@@ -11,7 +11,7 @@ and profiles are shared across every platform in real time.
 | Project | Target | Purpose |
 |---|---|---|
 | `Pawsome.Core` | `net8.0` | Models + Firebase REST client + Google sign-in + GitHub uploader. **No UI** — unit-tested on CI. |
-| `Pawsome.App` | `net8.0-windows` (WinUI 3) | The native Windows UI: feed, create post, comments, likes, profile, full-screen viewer. |
+| `Pawsome.App` | `net8.0-windows` (WinUI 3) | The native Windows UI: feed, create post, comments, profile, full-screen viewer. |
 | `Pawsome.Core.Tests` | `net8.0` | xUnit tests for the Firestore value converter, models and helpers. |
 
 Architecture: **MVVM** (CommunityToolkit.Mvvm) with a thin composition root
@@ -24,7 +24,6 @@ identically** to those of the mobile app.
 - 🔐 **Google sign-in** via the native desktop OAuth loopback + PKCE flow → same Firebase UID as mobile.
 - 🏠 **Feed** of cat posts with near-real-time updates (10s polling + manual refresh) and in-place merge (no flicker).
 - ➕ **Create posts** — pick an image, it's resized/encoded to JPEG and uploaded to the GitHub asset repo.
-- ❤️ **Likes** with optimistic UI, 💬 **comments** with inline edit/delete.
 - 👤 **Profile** — edit username, change avatar, manage the upload token, sign out.
 - 🖼️ Full-screen image viewer with zoom/pan.
 - 🎨 Fluent design, Mica backdrop, brand purple→blue gradients, branded MSIX tiles & icon.
