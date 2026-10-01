@@ -23,10 +23,6 @@ public sealed class PostItemViewModel : ObservableObject
         _currentUid = currentUid;
         _currentUserID = services.Session.CurrentUser?.UserNumber;
 
-        _isLiked = model.IsLikedBy(currentUid);
-        _likeCount = model.LikeCount;
-
-        ToggleLikeCommand = new AsyncRelayCommand(ToggleLikeAsync);
         DeleteCommand = new AsyncRelayCommand(() => _interaction.ConfirmDeleteAsync(this));
         OpenImageCommand = new RelayCommand(() => _interaction.ShowImage(Model.ImageUrl));
     }
@@ -41,33 +37,12 @@ public sealed class PostItemViewModel : ObservableObject
     public string TimeAgo => Model.TimeAgo;
     public bool CanDelete => _currentUserID is not null && Model.UserID == _currentUserID.Value;
 
-    private bool _isLiked;
-    public bool IsLiked { get => _isLiked; private set => SetProperty(ref _isLiked, value); }
-    private int _likeCount;
-    public int LikeCount { get => _likeCount; private set => SetProperty(ref _likeCount, value); }
-    public IAsyncRelayCommand ToggleLikeCommand { get; }
     public IAsyncRelayCommand DeleteCommand { get; }
     public IRelayCommand OpenImageCommand { get; }
-
-    private async Task ToggleLikeAsync()
-    {
-        if (_currentUid is null) return;
-        var like = !IsLiked;
-        IsLiked = like;
-        LikeCount += like ? 1 : -1;
-        try { await _services.Firestore.ToggleLikeAsync(Model.Id, _currentUid, like); }
-        catch
-        {
-            IsLiked = !like;
-            LikeCount += like ? -1 : 1;
-        }
-    }
 
     public void UpdateFrom(Post fresh)
     {
         Model = fresh;
-        LikeCount = fresh.LikeCount;
-        IsLiked = fresh.IsLikedBy(_currentUid);
         OnPropertyChanged(nameof(TimeAgo));
         OnPropertyChanged(nameof(OwnerUsername));
         OnPropertyChanged(nameof(OwnerProfilePic));
