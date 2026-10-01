@@ -39,6 +39,15 @@ class Firestore {
         db.collection("posts").orderBy("PostedAt", Query.Direction.DESCENDING).limit(limit.toLong()).get().await().documents.mapNotNull { Post.fromDocument(it) }
     }
 
+    suspend fun removeLikesFromAllPosts() = withContext(Dispatchers.IO) {
+        val snapshot = db.collection("posts").get().await()
+        snapshot.documents.filter { it.contains("likes") }.chunked(450).forEach { documents ->
+            val batch = db.batch()
+            documents.forEach { batch.update(it.reference, "likes", FieldValue.delete()) }
+            batch.commit().await()
+        }
+    }
+
     suspend fun createPost(fields: Map<String, Any?>): String = withContext(Dispatchers.IO) {
         val ref = db.collection("posts").document(); ref.set(prepareFields(fields)).await(); ref.id
     }
