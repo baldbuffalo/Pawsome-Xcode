@@ -224,7 +224,8 @@ fun ProfileScreen(vm: AppViewModel, onAboutClick: () -> Unit, onHelpClick: () ->
         }
         Spacer(Modifier.height(16.dp)); Text(vm.user?.username ?: "User", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold); Text("@${vm.user?.username ?: "user"}", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(32.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) { StatItem(vm.posts.count { it.userId == vm.user?.userNumber }.toString(), "Posts"); StatItem(vm.user?.userNumber?.toString() ?: "?", "Member #") }
+        val postLabel = if (myPostCount == 1) "Post" else "Posts"
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) { StatItem(myPostCount.toString(), postLabel); StatItem(vm.user?.userNumber?.toString() ?: "?", "Member #") }
         Spacer(Modifier.height(24.dp))
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(16.dp)) { Column(modifier = Modifier.padding(4.dp)) { SettingsItem(Icons.Default.Notifications, "Notifications", "Manage your notification preferences") { }; HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)); val myPostCount = vm.posts.count { it.userId == vm.user?.userNumber }; SettingsItem(Icons.Default.Pets, "My Posts", if (myPostCount == 1) "1 Post" else "${myPostCount} Posts") { } } }
         Spacer(Modifier.height(16.dp))
