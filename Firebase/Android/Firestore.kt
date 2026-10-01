@@ -53,10 +53,6 @@ class Firestore {
 
     suspend fun deletePost(id: String) = withContext(Dispatchers.IO) { db.collection("posts").document(id).delete().await() }
 
-    suspend fun toggleLike(postId: String, uid: String, like: Boolean) = withContext(Dispatchers.IO) {
-        db.collection("posts").document(postId).update("likes", if (like) FieldValue.arrayUnion(uid) else FieldValue.arrayRemove(uid)).await()
-    }
-
     suspend fun getUser(uid: String): AppUser? = withContext(Dispatchers.IO) {
         db.collection("users").document(uid).get().await().takeIf { it.exists() }?.let(AppUser::fromDocument)
     }
