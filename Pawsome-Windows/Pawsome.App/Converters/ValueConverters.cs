@@ -69,15 +69,3 @@ public sealed class UrlToImageSourceConverter : IValueConverter
         => throw new NotSupportedException();
 }
 
-/// <summary>true → liked (red) heart brush, false → neutral.</summary>
-public sealed class LikedToBrushConverter : IValueConverter
-{
-    public object Convert(object value, Type targetType, object parameter, string language)
-        => value is true
-            ? new SolidColorBrush(Microsoft.UI.Colors.Crimson)
-            : (Application.Current.Resources["TextFillColorSecondaryBrush"] as Brush
-               ?? new SolidColorBrush(Microsoft.UI.Colors.Gray));
-
-    public object ConvertBack(object value, Type targetType, object parameter, string language)
-        => throw new NotSupportedException();
-}
