@@ -99,7 +99,7 @@ struct LoginView: View {
             guard let idToken = result.user.idToken?.tokenString else { throw NSError(domain: "Pawsome", code: 1, userInfo: [NSLocalizedDescriptionKey: "Missing Google token."]) }
             let credential = GoogleAuthProvider.credential(withIDToken: idToken, accessToken: result.user.accessToken.tokenString)
             let authResult = try await Auth.auth().signIn(with: credential)
-            await appState.fetchOrCreateUser(uid: authResult.user.uid, defaultUsername: result.user.profile?.name, defaultImage: result.user.profile?.imageURL(withDimension: 200)?.absoluteString)
+            try await appState.fetchOrCreateUser(uid: authResult.user.uid, defaultUsername: result.user.profile?.name, defaultImage: result.user.profile?.imageURL(withDimension: 200)?.absoluteString)
         } catch { errorMessage = error.localizedDescription }
     }
 
@@ -108,7 +108,7 @@ struct LoginView: View {
             let provider = OAuthProvider(providerID: "twitter.com")
             let credential = try await provider.credential(with: nil)
             let result = try await Auth.auth().signIn(with: credential)
-            await appState.fetchOrCreateUser(uid: result.user.uid, defaultUsername: result.user.displayName, defaultImage: result.user.photoURL?.absoluteString)
+            try await appState.fetchOrCreateUser(uid: result.user.uid, defaultUsername: result.user.displayName, defaultImage: result.user.photoURL?.absoluteString)
         } catch { errorMessage = error.localizedDescription }
     }
 }
