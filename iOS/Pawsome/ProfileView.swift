@@ -36,8 +36,7 @@ struct ProfileView: View {
                 Spacer(minLength: 32)
 
                 HStack {
-                    ProfileStat(count: posts.count, label: "Posts")
-                    ProfileStat(count: posts.reduce(0) { $0 + $1.likes.count }, label: "Likes")
+                    ProfileStat(count: posts.filter { $0.userID == appState.currentUserID }.count, label: "Posts")
                     ProfileStat(count: appState.currentUserID ?? 0, label: "Member #")
                 }
                 .frame(maxWidth: .infinity)
@@ -47,9 +46,10 @@ struct ProfileView: View {
                 SettingsCard {
                     SettingsRow(icon: "bell.fill", title: "Notifications", subtitle: "Manage your notification preferences") { }
                     Divider().padding(.horizontal)
-                    SettingsRow(icon: "pawprint.fill", title: "My Posts", subtitle: "\(posts.filter { $0.userID == appState.currentUserID }.count) posts") { }
-                    Divider().padding(.horizontal)
-                    SettingsRow(icon: "heart.fill", title: "Liked Posts", subtitle: "Posts you've liked") { }
+                    SettingsRow(icon: "pawprint.fill", title: "My Posts", subtitle: {
+                        let count = posts.filter { $0.userID == appState.currentUserID }.count
+                        return count == 1 ? "1 Post" : "\(count) Posts"
+                    }()) { }
                 }
                 .padding(.horizontal, 20)
 
