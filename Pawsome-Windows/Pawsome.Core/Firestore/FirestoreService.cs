@@ -59,19 +59,6 @@ public sealed class FirestoreService
     public async Task DeletePostAsync(string postId, CancellationToken ct = default)
         => await DeleteDocumentAsync($"posts/{postId}", ct).ConfigureAwait(false);
 
-    public Task ToggleLikeAsync(string postId, string uid, bool like, CancellationToken ct = default)
-    {
-        var transform = new JsonObject
-        {
-            ["fieldPath"] = "likes",
-            [like ? "appendMissingElements" : "removeAllFromArray"] = new JsonObject
-            {
-                ["values"] = new JsonArray { FirestoreValue.FromObject(uid) }
-            }
-        };
-        return CommitTransformAsync($"posts/{postId}", transform, ct);
-    }
-
     public async Task<AppUser?> GetUserAsync(string uid, CancellationToken ct = default)
     {
         var doc = await GetDocumentAsync($"users/{uid}", transaction: null, ct).ConfigureAwait(false);
