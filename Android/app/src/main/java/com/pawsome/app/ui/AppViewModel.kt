@@ -28,6 +28,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.OAuthProvider
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -52,6 +53,8 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
     var busyGoogle by mutableStateOf(false); private set
     var busyTwitter by mutableStateOf(false); private set
     var busyPost by mutableStateOf(false); private set
+    var isValidatingCatImage by mutableStateOf(false); private set
+    var catImageValid by mutableStateOf<Boolean?>(null); private set
     var error by mutableStateOf<String?>(null)
     var user by mutableStateOf<AppUser?>(null); private set
     var posts by mutableStateOf<List<Post>>(emptyList()); private set
@@ -163,7 +166,33 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
         catch (e: Exception) { error = e.message }
     }
 
+    suspend fun validateCatImage(uri: Uri) {
+        isValidatingCatImage = true
+        catImageValid = null
+        error = null
+        var cachedFile: File? = null
+        try {
+            cachedFile = cachePickedImage(uri)
+            val jpeg = withContext(Dispatchers.IO) { encodeJpeg(Uri.fromFile(cachedFile)) }
+            val result = FirebaseFunctions.getInstance("europe-west1")
+                .getHttpsCallable("detectCatBreed")
+                .call(mapOf("imageBase64" to android.util.Base64.encodeToString(jpeg, android.util.Base64.NO_WRAP), "mimeType" to "image/jpeg"))
+                .await()
+            val response = result.data as? Map<*, *> ?: throw Exception("Could not verify this photo.")
+            val isCat = response["isCat"] as? Boolean ?: throw Exception("Could not verify this photo.")
+            catImageValid = isCat
+            if (!isCat) error = "This photo doesn't appear to show a cat. Please choose a clear cat photo."
+        } catch (e: Exception) {
+            catImageValid = false
+            error = "Could not verify that this is a cat. Check your connection and try again."
+        } finally {
+            cachedFile?.delete()
+            isValidatingCatImage = false
+        }
+    }
+
     fun createPost(uri: Uri, name: String, age: String, desc: String, location: String, status: com.example.pawsome.model.PostStatus, onDone: () -> Unit) = viewModelScope.launch {
+        if (catImageValid != true || isValidatingCatImage) { error = "Please wait for the cat photo check to finish."; return@launch }
         busyPost = true; error = null
         var cachedFile: File? = null
         try {
