@@ -13,6 +13,8 @@ struct FormView: View {
     @State private var age = ""
     @State private var breed = ""
     @State private var isDetectingBreed = false
+    @State private var isCatImage: Bool? = nil
+    @State private var isValidatingCatImage = false
     @State private var description = ""
     @State private var location = ""
     @State private var selectedStatus: PostStatus = .LOST
@@ -92,6 +94,8 @@ struct FormView: View {
                         }
                     }
                     .onChange(of: imageData) { _, value in
+                        isCatImage = nil
+                        errorMessage = nil
                         guard let value else { return }
                         Task { await detectBreed(from: value) }
                     }
@@ -125,7 +129,7 @@ struct FormView: View {
 
     private var isComplete: Bool {
         !catName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !age.isEmpty &&
-        !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && imageData != nil
+        !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && imageData != nil && isCatImage == true && !isValidatingCatImage
     }
 
     private func close() {
@@ -145,7 +149,9 @@ struct FormView: View {
 
     private func detectBreed(from data: Data) async {
         isDetectingBreed = true
-        defer { isDetectingBreed = false }
+        isValidatingCatImage = true
+        isCatImage = nil
+        defer { isDetectingBreed = false; isValidatingCatImage = false }
 
         guard let image = PlatformImage(data: data) else { return }
         let resized = image.resizedForUpload(maxDimension: 1200)
@@ -159,21 +165,29 @@ struct FormView: View {
             ])
 
             guard let response = result.data as? [String: Any],
-                  let detectedBreed = response["breed"] as? String else {
+                  let detectedCat = response["isCat"] as? Bool else {
+                errorMessage = "Could not verify this photo. Please choose another image."
                 return
             }
 
-            let trimmedBreed = detectedBreed.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmedBreed.isEmpty {
-                breed = trimmedBreed
+            isCatImage = detectedCat
+            if !detectedCat {
+                breed = ""
+                errorMessage = "This photo doesn't appear to show a cat. Please upload a clear photo of a cat."
+                return
             }
+
+            let detectedBreed = response["breed"] as? String ?? ""
+            let trimmedBreed = detectedBreed.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmedBreed.isEmpty { breed = trimmedBreed }
         } catch {
-            // Breed detection is best-effort; posting still works if detection fails.
+            isCatImage = false
+            errorMessage = "Could not verify that this is a cat. Check your connection and try again."
         }
     }
 
     private func submitPost() async {
-        guard isComplete, let data = imageData, let uid = Auth.auth().currentUser?.uid, let userID = appState.currentUserID else { return }
+        guard isComplete, isCatImage == true, let data = imageData, let uid = Auth.auth().currentUser?.uid, let userID = appState.currentUserID else { return }
         isPosting = true
         errorMessage = nil
         do {
