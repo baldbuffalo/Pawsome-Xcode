@@ -104,7 +104,7 @@ struct FormView: View {
                         }
                     }
                     if let breedConfidence {
-                        Text(breedConfidence == "high" ? "Breed suggestion — high model confidence. You can edit it." :
+                        Text(breedConfidence == "high" ? "Breed suggestion — high AI confidence estimate. You can edit it." :
                              breedConfidence == "medium" ? "Possible breed suggestion — please review or change it." :
                              "Breed could not be identified reliably. You can enter one or choose Unknown / Not sure.")
                             .font(.caption).foregroundStyle(.secondary)
