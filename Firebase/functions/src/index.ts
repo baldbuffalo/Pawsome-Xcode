@@ -148,7 +148,7 @@ export const detectCatBreed = onCall(
     const mimeType = typeof data.mimeType === "string" ? data.mimeType.trim().toLowerCase() : "image/jpeg";
 
     if (!imageBase64) throw new HttpsError("invalid-argument", "An image is required.");
-    if (!/^image\\/(jpeg|jpg|png|webp)$/.test(mimeType)) {
+    if (!/^image\/(jpeg|jpg|png|webp)$/.test(mimeType)) {
       throw new HttpsError("invalid-argument", "Unsupported image type.");
     }
     if (imageBase64.length > 12_000_000) {
