@@ -13,6 +13,7 @@ struct FormView: View {
     @State private var catName = ""
     @State private var age = ""
     @State private var breed = ""
+    @State private var breedConfidence: String?
     @State private var isDetectingBreed = false
     @State private var isCatImage: Bool? = nil
     @State private var isValidatingCatImage = false
@@ -87,15 +88,31 @@ struct FormView: View {
                         .onChange(of: age) { _, value in age = String(value.filter { $0.isNumber }.prefix(2)) }
                     HStack(spacing: 10) {
                         Image(systemName: "cat.fill").frame(width: 22).foregroundStyle(.tint)
-                        TextField("Breed", text: $breed)
+                        TextField("Breed (editable suggestion)", text: $breed)
                             .textFieldStyle(.roundedBorder)
                             .textInputAutocapitalization(.words)
                         if isDetectingBreed {
                             ProgressView().controlSize(.small)
                         }
+                        Menu {
+                            Button("Domestic Shorthair") { breed = "Domestic Shorthair" }
+                            Button("Domestic Longhair") { breed = "Domestic Longhair" }
+                            Button("Mixed breed") { breed = "Mixed breed" }
+                            Button("Unknown / Not sure") { breed = "Unknown / Not sure" }
+                        } label: {
+                            Image(systemName: "chevron.down.circle").font(.title3)
+                        }
+                    }
+                    if let breedConfidence {
+                        Text(breedConfidence == "high" ? "Breed suggestion — high model confidence. You can edit it." :
+                             breedConfidence == "medium" ? "Possible breed suggestion — please review or change it." :
+                             "Breed could not be identified reliably. You can enter one or choose Unknown / Not sure.")
+                            .font(.caption).foregroundStyle(.secondary)
                     }
                     .onChange(of: imageData) { _, value in
                         isCatImage = nil
+                        breedConfidence = nil
+                        breed = ""
                         errorMessage = nil
                         guard let value else { return }
                         Task { await detectBreed(from: value) }
@@ -152,6 +169,7 @@ struct FormView: View {
         isDetectingBreed = true
         isValidatingCatImage = true
         isCatImage = nil
+        breedConfidence = nil
         defer { isDetectingBreed = false; isValidatingCatImage = false }
 
         guard let image = PlatformImage(data: data) else {
@@ -178,6 +196,7 @@ struct FormView: View {
                 }
             }
 
+            guard imageData == data else { return }
             isCatImage = detectedCat
             guard detectedCat else {
                 breed = ""
@@ -195,8 +214,10 @@ struct FormView: View {
                 ])
                 if let response = result.data as? [String: Any],
                    let detectedBreed = response["breed"] as? String {
+                    guard imageData == data else { return }
                     let trimmedBreed = detectedBreed.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if !trimmedBreed.isEmpty { breed = trimmedBreed }
+                    breed = trimmedBreed.isEmpty ? "Unknown / Not sure" : trimmedBreed
+                    breedConfidence = response["confidence"] as? String ?? "low"
                 }
             } catch {
                 // Breed suggestion is optional; the locally verified cat photo remains accepted.
