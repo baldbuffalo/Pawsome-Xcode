@@ -3,6 +3,7 @@ import PhotosUI
 import FirebaseAuth
 import FirebaseFirestore
 import FirebaseFunctions
+import Vision
 
 struct FormView: View {
     @EnvironmentObject var appState: PawsomeApp.AppState
@@ -166,31 +167,38 @@ struct FormView: View {
         }
 
         do {
-            let callable = Functions.functions(region: "europe-west1").httpsCallable("detectCatBreed")
-            let result = try await callable.call([
-                "imageBase64": jpeg.base64EncodedString(),
-                "mimeType": "image/jpeg"
-            ])
-
-            guard let response = result.data as? [String: Any],
-                  let detectedCat = response["isCat"] as? Bool else {
-                errorMessage = "Could not verify this photo. Please choose another image."
-                return
+            // Apple's Vision animal-recognition model runs locally on the device.
+            let request = VNRecognizeAnimalsRequest()
+            let handler = VNImageRequestHandler(data: jpeg, options: [:])
+            try handler.perform([request])
+            let observations = request.results ?? []
+            let detectedCat = observations.contains { observation in
+                observation.labels.contains { label in
+                    label.identifier.caseInsensitiveCompare("cat") == .orderedSame && label.confidence >= 0.50
+                }
             }
 
             isCatImage = detectedCat
-            if !detectedCat {
+            guard detectedCat else {
                 breed = ""
                 errorMessage = "This photo doesn't appear to show a cat. Please upload a clear photo of a cat."
                 return
             }
 
-            let detectedBreed = response["breed"] as? String ?? ""
-            let trimmedBreed = detectedBreed.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmedBreed.isEmpty { breed = trimmedBreed }
+            // Keep the existing breed suggestion as a separate, optional feature.
+            let callable = Functions.functions(region: "europe-west1").httpsCallable("detectCatBreed")
+            let result = try await callable.call([
+                "imageBase64": jpeg.base64EncodedString(),
+                "mimeType": "image/jpeg"
+            ])
+            if let response = result.data as? [String: Any],
+               let detectedBreed = response["breed"] as? String {
+                let trimmedBreed = detectedBreed.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmedBreed.isEmpty { breed = trimmedBreed }
+            }
         } catch {
             isCatImage = false
-            errorMessage = "Could not verify that this is a cat. Check your connection and try again."
+            errorMessage = "Could not verify this photo on your device. Please choose another image."
         }
     }
 
