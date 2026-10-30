@@ -28,7 +28,9 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.OAuthProvider
 import com.google.firebase.auth.GoogleAuthProvider
-import com.google.firebase.functions.FirebaseFunctions
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.label.ImageLabeling
+import com.google.mlkit.vision.label.defaults.ImageLabelerOptions
 import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -170,23 +172,24 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
         isValidatingCatImage = true
         catImageValid = null
         error = null
-        var cachedFile: File? = null
         try {
-            cachedFile = cachePickedImage(uri)
-            val jpeg = withContext(Dispatchers.IO) { encodeJpeg(Uri.fromFile(cachedFile)) }
-            val result = FirebaseFunctions.getInstance("europe-west1")
-                .getHttpsCallable("detectCatBreed")
-                .call(mapOf("imageBase64" to android.util.Base64.encodeToString(jpeg, android.util.Base64.NO_WRAP), "mimeType" to "image/jpeg"))
-                .await()
-            val response = result.data as? Map<*, *> ?: throw Exception("Could not verify this photo.")
-            val isCat = response["isCat"] as? Boolean ?: throw Exception("Could not verify this photo.")
-            catImageValid = isCat
-            if (!isCat) error = "This photo doesn't appear to show a cat. Please choose a clear cat photo."
+            // ML Kit's bundled image-labeling model runs locally; the photo is not uploaded.
+            val input = InputImage.fromFilePath(app, uri)
+            val labeler = ImageLabeling.getClient(ImageLabelerOptions.DEFAULT_OPTIONS)
+            try {
+                val labels = labeler.process(input).await()
+                val isCat = labels.any {
+                    it.text.equals("Cat", ignoreCase = true) && it.confidence >= 0.65f
+                }
+                catImageValid = isCat
+                if (!isCat) error = "This photo doesn't appear to show a cat. Please choose a clear cat photo."
+            } finally {
+                labeler.close()
+            }
         } catch (e: Exception) {
             catImageValid = false
-            error = "Could not verify that this is a cat. Check your connection and try again."
+            error = "Could not verify this photo on your device. Please choose another image."
         } finally {
-            cachedFile?.delete()
             isValidatingCatImage = false
         }
     }
