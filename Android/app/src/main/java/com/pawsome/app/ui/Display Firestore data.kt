@@ -221,7 +221,7 @@ fun CreatePostScreen(vm: AppViewModel, onBack: () -> Unit) {
                 }
             }
             when (vm.breedConfidence) {
-                "high" -> Text("Breed suggestion — high model confidence. You can edit it.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                "high" -> Text("Breed suggestion — high AI confidence estimate. You can edit it.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                 "medium" -> Text("Possible breed suggestion — please review or change it.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                 "low" -> Text("Breed could not be identified reliably. Choose Unknown / Not sure or enter a breed.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                 else -> if (vm.catImageValid == true && vm.suggestedBreed.isBlank()) Text("Breed suggestion unavailable. You can enter it manually.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
