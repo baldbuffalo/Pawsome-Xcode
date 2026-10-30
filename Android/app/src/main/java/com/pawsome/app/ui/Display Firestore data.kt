@@ -173,6 +173,7 @@ fun CreatePostScreen(vm: AppViewModel, onBack: () -> Unit) {
     var location by remember { mutableStateOf("") }
     var uri by remember { mutableStateOf<android.net.Uri?>(null) }
     var selectedStatus by remember { mutableStateOf(PostStatus.LOST) }
+    LaunchedEffect(uri) { if (uri != null) vm.validateCatImage(uri!!) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result -> uri = result.data?.data }
     val pickPhoto = {
         val intent = Intent(Intent.ACTION_GET_CONTENT).apply { type = "image/*"; addCategory(Intent.CATEGORY_OPENABLE) }
@@ -201,13 +202,14 @@ fun CreatePostScreen(vm: AppViewModel, onBack: () -> Unit) {
                 }
             }
             OutlinedButton(onClick = pickPhoto, modifier = Modifier.fillMaxWidth()) { Icon(if (uri == null) Icons.Default.AddAPhoto else Icons.Default.Refresh, null); Spacer(Modifier.width(8.dp)); Text(if (uri == null) "Choose Image" else "Change Image") }
+            when { vm.isValidatingCatImage -> Row(verticalAlignment = Alignment.CenterVertically) { CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp); Spacer(Modifier.width(8.dp)); Text("Checking that this is a cat…", color = MaterialTheme.colorScheme.onSurfaceVariant) }; vm.catImageValid == true -> Text("✓ Cat photo verified", color = Color(0xFF238636), fontWeight = FontWeight.SemiBold); vm.catImageValid == false -> Text(vm.error ?: "Please choose a photo of a cat.", color = MaterialTheme.colorScheme.error) }
             OutlinedTextField(name, { name = it }, label = { Text("Cat Name") }, modifier = Modifier.fillMaxWidth(), singleLine = true, leadingIcon = { Icon(Icons.Default.Pets, null) })
             OutlinedTextField(age, { value -> if (value.length <= 2 && value.all { it.isDigit() }) age = value }, label = { Text("Age (years)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth(), singleLine = true, leadingIcon = { Icon(Icons.Default.Cake, null) })
             OutlinedTextField(location, { location = it }, label = { Text("Location (optional)") }, modifier = Modifier.fillMaxWidth(), singleLine = true, leadingIcon = { Icon(Icons.Default.LocationOn, null) })
             OutlinedTextField(desc, { desc = it }, label = { Text("Description") }, modifier = Modifier.fillMaxWidth(), minLines = 3, leadingIcon = { Icon(Icons.Default.Description, null) })
             vm.error?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 13.sp) }
             Spacer(Modifier.height(8.dp))
-            Button(onClick = { uri?.let { vm.createPost(it, name, age, desc, location, selectedStatus, onBack) } }, enabled = !vm.busyPost && uri != null && name.isNotBlank() && age.isNotBlank() && desc.isNotBlank(), modifier = Modifier.fillMaxWidth().height(56.dp), shape = RoundedCornerShape(16.dp)) {
+            Button(onClick = { uri?.let { vm.createPost(it, name, age, desc, location, selectedStatus, onBack) } }, enabled = !vm.busyPost && !vm.isValidatingCatImage && vm.catImageValid == true && uri != null && name.isNotBlank() && age.isNotBlank() && desc.isNotBlank(), modifier = Modifier.fillMaxWidth().height(56.dp), shape = RoundedCornerShape(16.dp)) {
                 if (vm.busyPost) CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp) else { Icon(Icons.AutoMirrored.Filled.Send, null); Spacer(Modifier.width(8.dp)); Text("Post ${selectedStatus.emoji}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
             }
             Spacer(Modifier.height(32.dp))
