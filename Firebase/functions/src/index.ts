@@ -147,8 +147,8 @@ export const detectCatBreed = onCall(
     const imageBase64 = typeof data.imageBase64 === "string" ? data.imageBase64.trim() : "";
     const mimeType = typeof data.mimeType === "string" ? data.mimeType.trim().toLowerCase() : "image/jpeg";
 
-    if (!imageBase64 || !/^[A-Za-z0-9+/=]+$/.test(imageBase64)) throw new HttpsError("invalid-argument", "An image is required.");
-    if (!/^image\/(jpeg|jpg|png|webp)$/.test(mimeType)) {
+    if (!imageBase64) throw new HttpsError("invalid-argument", "An image is required.");
+    if (!/^image\\/(jpeg|jpg|png|webp)$/.test(mimeType)) {
       throw new HttpsError("invalid-argument", "Unsupported image type.");
     }
     if (imageBase64.length > 12_000_000) {
@@ -165,16 +165,19 @@ export const detectCatBreed = onCall(
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
         contents: [
-          { inlineData: { mimeType, data: imageBase64 } },
+          {
+            inlineData: {
+              mimeType,
+              data: imageBase64,
+            },
+          },
           {
             text: [
-              "Determine whether the main subject of this image is a real domestic cat.",
-              "Set isCat to true only when a cat is clearly visible as the main subject.",
-              "Set isCat to false for dogs, other animals, people, objects, drawings, cartoons, screenshots, landscapes, empty images, or images where you cannot confidently verify a cat.",
-              "If isCat is false, return an empty breed string.",
-              "If isCat is true, identify the most specific cat breed supported by visible evidence.",
-              "Use a standard/common breed name. If the breed cannot be determined reliably, use Domestic Shorthair only when that is visually justified; otherwise return an empty breed string.",
-              "Do not guess and do not treat a merely cat-related object as a cat.",
+              "Identify the cat breed in this image.",
+              "Return the most specific breed you can identify from visible evidence.",
+              "Use a standard/common breed name, such as Siamese, Persian, Maine Coon, Ragdoll, Bengal, British Shorthair, or Domestic Shorthair.",
+              "If the image is not a cat or there is not enough visual evidence to identify a breed, return an empty breed string.",
+              "Do not invent a breed.",
             ].join(" "),
           },
         ],
@@ -183,28 +186,29 @@ export const detectCatBreed = onCall(
           responseSchema: {
             type: "OBJECT",
             properties: {
-              isCat: { type: "BOOLEAN", description: "True only if a real cat is clearly the main subject." },
-              breed: { type: "STRING", description: "The identified cat breed, or an empty string when unknown or not a cat." },
+              breed: {
+                type: "STRING",
+                description: "The identified cat breed, or an empty string if it cannot be identified reliably.",
+              },
             },
-            required: ["isCat", "breed"],
+            required: ["breed"],
           },
         },
       });
 
       const raw = response.text?.trim() ?? "";
-      let result: { isCat?: unknown; breed?: unknown };
+      let result: { breed?: unknown };
       try {
-        result = JSON.parse(raw) as { isCat?: unknown; breed?: unknown };
+        result = JSON.parse(raw) as { breed?: unknown };
       } catch {
         throw new Error("The vision model returned invalid JSON.");
       }
 
-      const isCat = result.isCat === true;
-      const breed = isCat && typeof result.breed === "string" ? result.breed.trim() : "";
-      return { isCat, breed };
+      const breed = typeof result.breed === "string" ? result.breed.trim() : "";
+      return { breed };
     } catch (error) {
-      console.error("Cat image validation failed", error);
-      throw new HttpsError("internal", "Could not verify that this is a cat. Please try another photo.");
+      console.error("Cat breed detection failed", error);
+      throw new HttpsError("internal", "Cat breed detection failed.");
     }
   },
 );
