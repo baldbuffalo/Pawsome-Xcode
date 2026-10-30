@@ -109,18 +109,18 @@ struct FormView: View {
                              "Breed could not be identified reliably. You can enter one or choose Unknown / Not sure.")
                             .font(.caption).foregroundStyle(.secondary)
                     }
-                    .onChange(of: imageData) { _, value in
-                        isCatImage = nil
-                        breedConfidence = nil
-                        breed = ""
-                        errorMessage = nil
-                        guard let value else { return }
-                        Task { await detectBreed(from: value) }
-                    }
                     FormField(icon: "mappin.and.ellipse", title: "Location (optional)", text: $location)
                     FormField(icon: "doc.text", title: "Description", text: $description, axis: .vertical)
                 }
                 .padding(.horizontal)
+                .onChange(of: imageData) { _, value in
+                    isCatImage = nil
+                    breedConfidence = nil
+                    breed = ""
+                    errorMessage = nil
+                    guard let value else { return }
+                    Task { await detectBreed(from: value) }
+                }
 
                 if let errorMessage { Text(errorMessage).font(.footnote).foregroundStyle(.red).padding(.horizontal) }
 
