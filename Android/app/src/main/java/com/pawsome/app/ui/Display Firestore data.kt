@@ -149,6 +149,7 @@ private fun PostCard(post: Post, uid: String?, currentUserNumber: Int?, onDelete
             }
             Column(Modifier.padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) { Text(post.catName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold); if (post.age.isNotBlank()) { Spacer(Modifier.width(8.dp)); Surface(shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.primaryContainer) { Text("${post.age} yrs", modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp), fontSize = 12.sp, color = MaterialTheme.colorScheme.onPrimaryContainer) } } }
+                if (post.breed.isNotBlank()) { Spacer(Modifier.height(4.dp)); Text("Breed: ${post.breed}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary) }
                 if (post.description.isNotBlank()) { Spacer(Modifier.height(6.dp)); Text(post.description, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 3) }
             }
             if (post.status == PostStatus.LOST && post.userId != currentUserNumber) {
