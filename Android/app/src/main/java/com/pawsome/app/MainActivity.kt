@@ -38,14 +38,11 @@ import com.example.pawsome.ui.PossibleMatchesScreen
 import com.example.pawsome.ui.ProfileScreen
 import com.example.pawsome.ui.theme.PawsomeTheme
 import com.example.pawsome.auth.GoogleAuth
-import com.google.firebase.appcheck.FirebaseAppCheck
-import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
 
 @Suppress("DEPRECATION")
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        FirebaseAppCheck.getInstance().installAppCheckProviderFactory(PlayIntegrityAppCheckProviderFactory.getInstance())
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             getSystemService(NotificationManager::class.java).createNotificationChannel(
                 NotificationChannel("pawsome_chat", "Pawsome Chat", NotificationManager.IMPORTANCE_HIGH)
