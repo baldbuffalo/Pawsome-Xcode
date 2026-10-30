@@ -186,15 +186,20 @@ struct FormView: View {
             }
 
             // Keep the existing breed suggestion as a separate, optional feature.
-            let callable = Functions.functions(region: "europe-west1").httpsCallable("detectCatBreed")
-            let result = try await callable.call([
-                "imageBase64": jpeg.base64EncodedString(),
-                "mimeType": "image/jpeg"
-            ])
-            if let response = result.data as? [String: Any],
-               let detectedBreed = response["breed"] as? String {
-                let trimmedBreed = detectedBreed.trimmingCharacters(in: .whitespacesAndNewlines)
-                if !trimmedBreed.isEmpty { breed = trimmedBreed }
+            // A breed-service outage must never undo a successful local cat check.
+            do {
+                let callable = Functions.functions(region: "europe-west1").httpsCallable("detectCatBreed")
+                let result = try await callable.call([
+                    "imageBase64": jpeg.base64EncodedString(),
+                    "mimeType": "image/jpeg"
+                ])
+                if let response = result.data as? [String: Any],
+                   let detectedBreed = response["breed"] as? String {
+                    let trimmedBreed = detectedBreed.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !trimmedBreed.isEmpty { breed = trimmedBreed }
+                }
+            } catch {
+                // Breed suggestion is optional; the locally verified cat photo remains accepted.
             }
         } catch {
             isCatImage = false
