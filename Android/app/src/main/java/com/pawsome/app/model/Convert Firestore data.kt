@@ -30,7 +30,8 @@ data class Post(
     val profilePic: String,
     val postedAtMillis: Long,
     val status: PostStatus = PostStatus.LOST,
-    val location: String = ""
+    val location: String = "",
+    val breed: String = ""
 ) {
     val timeAgo: String
         get() = timeAgoFrom(postedAtMillis)
@@ -80,7 +81,8 @@ data class Post(
                     PostStatus.fromString(
                         document.getString("status")
                     ),
-                location = document.getString("location") ?: ""
+                location = document.getString("location") ?: "",
+                breed = document.getString("Breed") ?: ""
             )
         }
     }
