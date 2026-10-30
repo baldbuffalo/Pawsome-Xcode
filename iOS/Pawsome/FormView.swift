@@ -153,9 +153,17 @@ struct FormView: View {
         isCatImage = nil
         defer { isDetectingBreed = false; isValidatingCatImage = false }
 
-        guard let image = PlatformImage(data: data) else { return }
+        guard let image = PlatformImage(data: data) else {
+            isCatImage = false
+            errorMessage = "Could not read this photo. Please choose another image."
+            return
+        }
         let resized = image.resizedForUpload(maxDimension: 1200)
-        guard let jpeg = resized.jpegDataCompat(quality: 0.75) else { return }
+        guard let jpeg = resized.jpegDataCompat(quality: 0.75) else {
+            isCatImage = false
+            errorMessage = "Could not process this photo. Please choose another image."
+            return
+        }
 
         do {
             let callable = Functions.functions(region: "europe-west1").httpsCallable("detectCatBreed")
