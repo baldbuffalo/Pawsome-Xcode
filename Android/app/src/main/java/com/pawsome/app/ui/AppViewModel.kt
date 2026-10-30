@@ -28,6 +28,8 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.OAuthProvider
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.functions.FirebaseFunctions
+import android.util.Base64
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.label.ImageLabeling
 import com.google.mlkit.vision.label.defaults.ImageLabelerOptions
@@ -57,6 +59,8 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
     var busyPost by mutableStateOf(false); private set
     var isValidatingCatImage by mutableStateOf(false); private set
     var catImageValid by mutableStateOf<Boolean?>(null); private set
+    var suggestedBreed by mutableStateOf("") ; private set
+    var breedConfidence by mutableStateOf<String?>(null); private set
     var error by mutableStateOf<String?>(null)
     var user by mutableStateOf<AppUser?>(null); private set
     var posts by mutableStateOf<List<Post>>(emptyList()); private set
@@ -171,6 +175,8 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
     suspend fun validateCatImage(uri: Uri) {
         isValidatingCatImage = true
         catImageValid = null
+        suggestedBreed = ""
+        breedConfidence = null
         error = null
         try {
             // ML Kit's bundled image-labeling model runs locally; the photo is not uploaded.
@@ -182,7 +188,31 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
                     it.text.equals("Cat", ignoreCase = true) && it.confidence >= 0.65f
                 }
                 catImageValid = isCat
-                if (!isCat) error = "This photo doesn't appear to show a cat. Please choose a clear cat photo."
+                if (!isCat) {
+                    error = "This photo doesn't appear to show a cat. Please choose a clear cat photo."
+                } else {
+                    // Breed identification is a separate optional cloud suggestion.
+                    // The local ML Kit cat check remains valid if the suggestion service fails.
+                    try {
+                        val bitmap = withContext(Dispatchers.IO) {
+                            app.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it) }
+                        } ?: throw IllegalStateException("Could not read the selected photo.")
+                        val output = ByteArrayOutputStream()
+                        bitmap.compress(Bitmap.CompressFormat.JPEG, 85, output)
+                        val imageBase64 = Base64.encodeToString(output.toByteArray(), Base64.NO_WRAP)
+                        val response = FirebaseFunctions.getInstance("europe-west1")
+                            .getHttpsCallable("detectCatBreed")
+                            .call(mapOf("imageBase64" to imageBase64, "mimeType" to "image/jpeg"))
+                            .await()
+                        val result = response.data as? Map<*, *>
+                        val detected = result?.get("breed") as? String
+                        suggestedBreed = detected?.takeIf { it.isNotBlank() } ?: "Unknown / Not sure"
+                        breedConfidence = result?.get("confidence") as? String ?: "low"
+                    } catch (_: Exception) {
+                        suggestedBreed = ""
+                        breedConfidence = null
+                    }
+                }
             } finally {
                 labeler.close()
             }
@@ -194,7 +224,7 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun createPost(uri: Uri, name: String, age: String, desc: String, location: String, status: com.example.pawsome.model.PostStatus, onDone: () -> Unit) = viewModelScope.launch {
+    fun createPost(uri: Uri, name: String, age: String, breed: String, desc: String, location: String, status: com.example.pawsome.model.PostStatus, onDone: () -> Unit) = viewModelScope.launch {
         if (catImageValid != true || isValidatingCatImage) { error = "Please wait for the cat photo check to finish."; return@launch }
         busyPost = true; error = null
         var cachedFile: File? = null
@@ -206,7 +236,7 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
             val fileName = "${u.uid}_${System.currentTimeMillis() / 1000}.jpg"
             val url = github.uploadImage(jpeg, fileName, "postImages")
             val createdId = firestore.createPostForUser(u.uid, mapOf(
-                "CatName" to name.trim(), "CatAge" to age.trim(), "description" to desc.trim(), "location" to location.trim(),
+                "CatName" to name.trim(), "CatAge" to age.trim(), "Breed" to breed.trim(), "description" to desc.trim(), "location" to location.trim(),
                 "imageURL" to url, "status" to status.name,
             ))
             loadFeed()
