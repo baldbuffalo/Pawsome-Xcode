@@ -3,7 +3,6 @@ import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
 import { CallableRequest, HttpsError, onCall } from "firebase-functions/v2/https";
 import { setGlobalOptions } from "firebase-functions/v2";
-import { GoogleGenAI } from "@google/genai";
 import { defineSecret } from "firebase-functions/params";
 
 
@@ -137,90 +136,6 @@ function serialise(value: unknown): unknown {
   return value;
 }
 
-
-export const detectCatBreed = onCall(
-  { enforceAppCheck: true, timeoutSeconds: 60, memory: "512MiB" },
-  async (request) => {
-    if (!request.auth) throw new HttpsError("unauthenticated", "You must be signed in.");
-
-    const data = (request.data ?? {}) as Record<string, unknown>;
-    const imageBase64 = typeof data.imageBase64 === "string" ? data.imageBase64.trim() : "";
-    const mimeType = typeof data.mimeType === "string" ? data.mimeType.trim().toLowerCase() : "image/jpeg";
-
-    if (!imageBase64) throw new HttpsError("invalid-argument", "An image is required.");
-    if (!/^image\/(jpeg|jpg|png|webp)$/.test(mimeType)) {
-      throw new HttpsError("invalid-argument", "Unsupported image type.");
-    }
-    if (imageBase64.length > 12_000_000) {
-      throw new HttpsError("invalid-argument", "Image is too large.");
-    }
-
-    try {
-      const ai = new GoogleGenAI({
-        vertexai: true,
-        project: "pawsome-90cb3",
-        location: "global",
-      });
-
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: [
-          { inlineData: { mimeType, data: imageBase64 } },
-          {
-            text: [
-              "You are suggesting a cat breed from a photograph for a lost-cat finder app.",
-              "Do not restrict the answer to a predefined list of pedigree breeds. Consider any recognised domestic cat breed when the visual evidence supports it.",
-              "Use one of these breedKind values: specific, domestic_shorthair, domestic_longhair, mixed, unknown.",
-              "For a clearly identifiable pedigree breed, use breedKind specific and give its common breed name.",
-              "For an ordinary short-haired or long-haired domestic cat without reliable pedigree evidence, use Domestic Shorthair or Domestic Longhair respectively.",
-              "If the cat appears to be a mix, use Mixed breed.",
-              "If the image is not clearly a cat, the photo is unclear, or the breed/type cannot be judged confidently, use breedKind unknown and breed Unknown / Not sure.",
-              "Return confidence as high, medium, or low. If confidence is low, breed MUST be Unknown / Not sure and breedKind MUST be unknown.",
-              "Do not infer pedigree from coat colour or pattern alone. Do not invent a breed.",
-              "The breed is only a suggestion and will be editable by the user.",
-            ].join(" "),
-          },
-        ],
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: "OBJECT",
-            properties: {
-              breed: { type: "STRING" },
-              breedKind: { type: "STRING", enum: ["specific", "domestic_shorthair", "domestic_longhair", "mixed", "unknown"] },
-              confidence: { type: "STRING", enum: ["high", "medium", "low"] },
-            },
-            required: ["breed", "breedKind", "confidence"],
-          },
-        },
-      });
-
-      const raw = response.text?.trim() ?? "";
-      let result: { breed?: unknown; breedKind?: unknown; confidence?: unknown };
-      try {
-        result = JSON.parse(raw) as { breed?: unknown; breedKind?: unknown; confidence?: unknown };
-      } catch {
-        throw new Error("The vision model returned invalid JSON.");
-      }
-
-      const confidence = result.confidence === "high" || result.confidence === "medium" || result.confidence === "low"
-        ? result.confidence : "low";
-      const validKinds = new Set(["specific", "domestic_shorthair", "domestic_longhair", "mixed", "unknown"]);
-      const breedKind = typeof result.breedKind === "string" && validKinds.has(result.breedKind)
-        ? result.breedKind : "unknown";
-      const candidate = typeof result.breed === "string" ? result.breed.trim() : "";
-      const unknown = confidence === "low" || breedKind === "unknown" || !candidate;
-      return {
-        breed: unknown ? "Unknown / Not sure" : candidate,
-        breedKind: unknown ? "unknown" : breedKind,
-        confidence,
-      };
-    } catch (error) {
-      console.error("Cat breed detection failed", error);
-      throw new HttpsError("internal", "Cat breed detection failed.");
-    }
-  },
-);
 
 export const adminListDocuments = onCall(async (request) => {
   requireAdmin(request);

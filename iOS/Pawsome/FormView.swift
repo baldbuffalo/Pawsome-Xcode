@@ -2,7 +2,6 @@ import SwiftUI
 import PhotosUI
 import FirebaseAuth
 import FirebaseFirestore
-import FirebaseFunctions
 import Vision
 
 struct FormView: View {
@@ -12,9 +11,6 @@ struct FormView: View {
 
     @State private var catName = ""
     @State private var age = ""
-    @State private var breed = ""
-    @State private var breedConfidence: String?
-    @State private var isDetectingBreed = false
     @State private var isCatImage: Bool? = nil
     @State private var isValidatingCatImage = false
     @State private var description = ""
@@ -86,40 +82,15 @@ struct FormView: View {
                     FormField(icon: "pawprint.fill", title: "Cat Name", text: $catName)
                     FormField(icon: "birthday.cake.fill", title: "Age (years)", text: $age, numeric: true)
                         .onChange(of: age) { _, value in age = String(value.filter { $0.isNumber }.prefix(2)) }
-                    HStack(spacing: 10) {
-                        Image(systemName: "cat.fill").frame(width: 22).foregroundStyle(.tint)
-                        TextField("Breed (editable suggestion)", text: $breed)
-                            .textFieldStyle(.roundedBorder)
-                            .textInputAutocapitalization(.words)
-                        if isDetectingBreed {
-                            ProgressView().controlSize(.small)
-                        }
-                        Menu {
-                            Button("Domestic Shorthair") { breed = "Domestic Shorthair" }
-                            Button("Domestic Longhair") { breed = "Domestic Longhair" }
-                            Button("Mixed breed") { breed = "Mixed breed" }
-                            Button("Unknown / Not sure") { breed = "Unknown / Not sure" }
-                        } label: {
-                            Image(systemName: "chevron.down.circle").font(.title3)
-                        }
-                    }
-                    if let breedConfidence {
-                        Text(breedConfidence == "high" ? "Breed suggestion — high AI confidence estimate. You can edit it." :
-                             breedConfidence == "medium" ? "Possible breed suggestion — please review or change it." :
-                             "Breed could not be identified reliably. You can enter one or choose Unknown / Not sure.")
-                            .font(.caption).foregroundStyle(.secondary)
-                    }
                     FormField(icon: "mappin.and.ellipse", title: "Location (optional)", text: $location)
                     FormField(icon: "doc.text", title: "Description", text: $description, axis: .vertical)
                 }
                 .padding(.horizontal)
                 .onChange(of: imageData) { _, value in
                     isCatImage = nil
-                    breedConfidence = nil
-                    breed = ""
                     errorMessage = nil
                     guard let value else { return }
-                    Task { await detectBreed(from: value) }
+                    Task { await validateCatImage(from: value) }
                 }
 
                 if let errorMessage { Text(errorMessage).font(.footnote).foregroundStyle(.red).padding(.horizontal) }
@@ -165,12 +136,10 @@ struct FormView: View {
         #endif
     }
 
-    private func detectBreed(from data: Data) async {
-        isDetectingBreed = true
+    private func validateCatImage(from data: Data) async {
         isValidatingCatImage = true
         isCatImage = nil
-        breedConfidence = nil
-        defer { isDetectingBreed = false; isValidatingCatImage = false }
+        defer { isValidatingCatImage = false }
 
         guard let image = PlatformImage(data: data) else {
             isCatImage = false
@@ -199,29 +168,10 @@ struct FormView: View {
             guard imageData == data else { return }
             isCatImage = detectedCat
             guard detectedCat else {
-                breed = ""
                 errorMessage = "This photo doesn't appear to show a cat. Please upload a clear photo of a cat."
                 return
             }
 
-            // Keep the existing breed suggestion as a separate, optional feature.
-            // A breed-service outage must never undo a successful local cat check.
-            do {
-                let callable = Functions.functions(region: "europe-west1").httpsCallable("detectCatBreed")
-                let result = try await callable.call([
-                    "imageBase64": jpeg.base64EncodedString(),
-                    "mimeType": "image/jpeg"
-                ])
-                if let response = result.data as? [String: Any],
-                   let detectedBreed = response["breed"] as? String {
-                    guard imageData == data else { return }
-                    let trimmedBreed = detectedBreed.trimmingCharacters(in: .whitespacesAndNewlines)
-                    breed = trimmedBreed.isEmpty ? "Unknown / Not sure" : trimmedBreed
-                    breedConfidence = response["confidence"] as? String ?? "low"
-                }
-            } catch {
-                // Breed suggestion is optional; the locally verified cat photo remains accepted.
-            }
         } catch {
             isCatImage = false
             errorMessage = "Could not verify this photo on your device. Please choose another image."
@@ -244,7 +194,6 @@ struct FormView: View {
             try await Firestore.firestore().collection("posts").addDocument(data: [
                 "CatName": catName.trimmingCharacters(in: .whitespacesAndNewlines),
                 "CatAge": age,
-                "Breed": breed.trimmingCharacters(in: .whitespacesAndNewlines),
                 "description": description.trimmingCharacters(in: .whitespacesAndNewlines),
                 "location": location.trimmingCharacters(in: .whitespacesAndNewlines),
                 "status": selectedStatus.rawValue,
