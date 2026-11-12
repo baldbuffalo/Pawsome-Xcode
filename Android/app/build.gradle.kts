@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId = "Com.GameBuster.Pawsome"
-        minSdk = 26
+        minSdk = 35
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
