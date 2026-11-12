@@ -35,6 +35,7 @@ import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -77,6 +78,8 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
     private var userListener: ListenerRegistration? = null
     private var messagesListener: ListenerRegistration? = null
     private var notificationListener: ListenerRegistration? = null
+    private val foundPostChatMutex = Mutex()
+    private val foundPostChatCache = mutableMapOf<String, Triple<String, String, String>>()
 
     private val authStateListener = FirebaseAuth.AuthStateListener { auth ->
         busyGoogle = false; busyTwitter = false; authStateReceived = true
@@ -86,6 +89,7 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
         userListener?.remove(); userListener = null
         messagesListener?.remove(); messagesListener = null
         notificationListener?.remove(); notificationListener = null
+        foundPostChatCache.clear()
         observedUid = currentUid
         conversations = emptyList(); activeMessages = emptyList(); activeConversationId = null
         if (current == null) {
@@ -254,11 +258,29 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
             val u = uid ?: throw Exception("Not signed in")
             if (lostPost.status != com.example.pawsome.model.PostStatus.LOST) return@launch
             if (user?.userNumber == lostPost.userId) return@launch
-            val owner = firestore.findUserByUserNumber(lostPost.userId)
-                ?: throw Exception("Could not find the Lost Cat owner")
-            val chatId = firestore.createFoundLostPostNotification(lostPost, u)
-            openConversation(chatId, owner.uid, owner.username)
-            loadConversations()
+
+            val cacheKey = "$u:${lostPost.id}"
+            foundPostChatMutex.lock()
+            val (conversation, isFirstTap) = try {
+                val cached = foundPostChatCache[cacheKey]
+                if (cached != null) {
+                    cached to false
+                } else {
+                    val owner = firestore.findUserByUserNumber(lostPost.userId)
+                        ?: throw Exception("Could not find the Lost Cat owner")
+                    val chatId = firestore.createFoundLostPostNotification(lostPost, u)
+                    val createdConversation = Triple(chatId, owner.uid, owner.username)
+                    foundPostChatCache[cacheKey] = createdConversation
+                    createdConversation to true
+                }
+            } finally {
+                foundPostChatMutex.unlock()
+            }
+
+            // Always open the post's conversation. The first tap creates/reuses it;
+            // later taps use the cached conversation without repeating the report.
+            openConversation(conversation.first, conversation.second, conversation.third)
+            if (isFirstTap) loadConversations()
             error = null
         } catch (e: Exception) { error = e.message }
     }
