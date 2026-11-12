@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -49,7 +50,7 @@ import androidx.compose.ui.unit.sp
 fun ChatScreen(vm: AppViewModel) {
     val conversations = vm.conversations
     if (vm.activeConversationId != null) { ChatConversationScreen(vm); return }
-    Column(Modifier.fillMaxSize()) {
+    Column(Modifier.fillMaxSize().statusBarsPadding()) {
         Text("Chat", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(20.dp))
         if (vm.chatLoading && conversations.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
@@ -84,10 +85,10 @@ fun ChatScreen(vm: AppViewModel) {
 fun ChatConversationScreen(vm: AppViewModel) {
     var message by remember { mutableStateOf("") }
     val otherName = vm.activeConversationName ?: "Chat"
-    Column(Modifier.fillMaxSize().imePadding()) {
-        Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+    Column(Modifier.fillMaxSize().statusBarsPadding().imePadding()) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = { vm.closeConversation() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
-            Text(otherName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(otherName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
         }
         LazyColumn(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp), reverseLayout = true) {
             items(vm.activeMessages.reversed(), key = { it.id }) { item ->
@@ -131,7 +132,7 @@ fun ChatConversationScreen(vm: AppViewModel) {
                 }
             }
         }
-        Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(message, { message = it }, Modifier.weight(1f), placeholder = { Text("Message…") }, maxLines = 4)
             IconButton(onClick = { val text = message.trim(); if (text.isNotEmpty()) { message = ""; vm.sendMessage(text) } }) { Icon(Icons.AutoMirrored.Filled.Send, "Send") }
         }
