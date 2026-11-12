@@ -268,7 +268,11 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
                 } else {
                     val owner = firestore.findUserByUserNumber(lostPost.userId)
                         ?: throw Exception("Could not find the Lost Cat owner")
-                    val chatId = firestore.createFoundLostPostNotification(lostPost, u)
+                    // Create/reuse the conversation first, then navigate immediately.
+                    // Sending the system notification must not block opening the chat.
+                    val chatId = firestore.createOrGetConversation(
+                        owner.uid, u, "Pawsome user", owner.username
+                    )
                     val createdConversation = Triple(chatId, owner.uid, owner.username)
                     foundPostChatCache[cacheKey] = createdConversation
                     createdConversation to true
@@ -277,12 +281,21 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
                 foundPostChatMutex.unlock()
             }
 
-            // Always open the post's conversation. The first tap creates/reuses it;
-            // later taps use the cached conversation without repeating the report.
+            // Open the chat before doing any additional Firestore work.
             openConversation(conversation.first, conversation.second, conversation.third)
-            if (isFirstTap) loadConversations()
-            error = null
-        } catch (e: Exception) { error = e.message }
+            if (isFirstTap) {
+                loadConversations()
+                // Report/notify after navigation. A notification failure should not
+                // prevent the user from reaching the conversation.
+                try {
+                    firestore.createFoundLostPostNotification(lostPost, u)
+                } catch (notificationError: Exception) {
+                    error = "Chat opened, but the owner could not be notified: ${notificationError.message ?: "Unknown error"}"
+                }
+            }
+        } catch (e: Exception) {
+            error = e.message ?: "Could not open the chat."
+        }
     }
 
     fun dismissMatches() { pendingFoundPostId = null; possibleMatches = emptyList() }
