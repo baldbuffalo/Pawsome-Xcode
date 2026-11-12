@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -132,7 +131,7 @@ fun ChatConversationScreen(vm: AppViewModel) {
                 }
             }
         }
-        Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(message, { message = it }, Modifier.weight(1f), placeholder = { Text("Message…") }, maxLines = 4)
             IconButton(onClick = { val text = message.trim(); if (text.isNotEmpty()) { message = ""; vm.sendMessage(text) } }) { Icon(Icons.AutoMirrored.Filled.Send, "Send") }
         }
