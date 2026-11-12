@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -35,6 +36,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -85,12 +87,16 @@ fun ChatScreen(vm: AppViewModel) {
 fun ChatConversationScreen(vm: AppViewModel) {
     var message by remember { mutableStateOf("") }
     val otherName = vm.activeConversationName ?: "Chat"
+    val messageListState = rememberLazyListState()
+    LaunchedEffect(vm.activeMessages.lastOrNull()?.id) {
+        if (vm.activeMessages.isNotEmpty()) messageListState.animateScrollToItem(0)
+    }
     Column(Modifier.fillMaxSize().statusBarsPadding().imePadding()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = { vm.closeConversation() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
             Text(otherName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
         }
-        LazyColumn(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp), reverseLayout = true) {
+        LazyColumn(state = messageListState, modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp), reverseLayout = true) {
             items(vm.activeMessages.reversed(), key = { it.id }) { item ->
                 if (item.type == "system") {
                     Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.Center) {
