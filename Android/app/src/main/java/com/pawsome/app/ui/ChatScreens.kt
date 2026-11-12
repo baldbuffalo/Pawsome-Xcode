@@ -3,6 +3,7 @@ package com.example.pawsome.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -100,9 +102,30 @@ fun ChatConversationScreen(vm: AppViewModel) {
                     }
                 } else {
                     val mine = item.senderUid == vm.uid
-                    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = if (mine) Arrangement.End else Arrangement.Start) {
-                        Surface(shape = RoundedCornerShape(18.dp), color = if (mine) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant) {
-                            Text(item.text, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp), color = MaterialTheme.colorScheme.onSurface)
+                    BoxWithConstraints(Modifier.fillMaxWidth()) {
+                        val bubbleMaxWidth = maxWidth * 0.82f
+                        Row(
+                            Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                            horizontalArrangement = if (mine) Arrangement.End else Arrangement.Start
+                        ) {
+                            Surface(
+                                modifier = Modifier.widthIn(max = bubbleMaxWidth),
+                                shape = RoundedCornerShape(
+                                    topStart = 20.dp,
+                                    topEnd = 20.dp,
+                                    bottomEnd = if (mine) 6.dp else 20.dp,
+                                    bottomStart = if (mine) 20.dp else 6.dp
+                                ),
+                                color = if (mine) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
+                            ) {
+                                Text(
+                                    text = item.text,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                                    color = if (mine) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    softWrap = true
+                                )
+                            }
                         }
                     }
                 }
