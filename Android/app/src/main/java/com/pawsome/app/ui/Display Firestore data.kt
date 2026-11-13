@@ -249,6 +249,126 @@ fun CreatePostScreen(vm: AppViewModel, onBack: () -> Unit) {
 }
 
 @Composable
+fun EditPostScreen(vm: AppViewModel, post: Post, onBack: () -> Unit) {
+    var name by remember(post.id) { mutableStateOf(post.catName) }
+    var age by remember(post.id) { mutableStateOf(post.age) }
+    var description by remember(post.id) { mutableStateOf(post.description) }
+    var location by remember(post.id) { mutableStateOf(post.location) }
+    var selectedStatus by remember(post.id) { mutableStateOf(post.status) }
+
+    Column(
+        Modifier.fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .verticalScroll(rememberScrollState())
+    ) {
+        Row(
+            Modifier.fillMaxWidth()
+                .background(Brush.horizontalGradient(listOf(CatOrange, BrandPurple)))
+                .padding(16.dp)
+                .padding(top = 24.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = Color.White)
+            }
+            Spacer(Modifier.width(8.dp))
+            Text(
+                "Edit Post",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+        }
+        Column(
+            Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            AsyncImage(
+                post.imageUrl,
+                contentDescription = "Current cat photo",
+                modifier = Modifier.fillMaxWidth().height(210.dp),
+                contentScale = ContentScale.Fit
+            )
+            Text(
+                "The current photo will be kept.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall
+            )
+            Text("Post status", fontWeight = FontWeight.SemiBold)
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                PostStatus.entries.forEach { status ->
+                    val color = when (status) {
+                        PostStatus.LOST -> LostRed
+                        PostStatus.FOUND -> FoundGreen
+                        PostStatus.REUNITED -> ReunitedGold
+                    }
+                    FilterChip(
+                        selected = selectedStatus == status,
+                        onClick = { selectedStatus = status },
+                        label = { Text("${status.emoji} ${status.displayName}") },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = color,
+                            selectedLabelColor = Color.White
+                        )
+                    )
+                }
+            }
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("Cat Name") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+            OutlinedTextField(
+                value = age,
+                onValueChange = { value ->
+                    if (value.length <= 2 && value.all { it.isDigit() }) age = value
+                },
+                label = { Text("Age (years)") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+            OutlinedTextField(
+                value = location,
+                onValueChange = { location = it },
+                label = { Text("Location (optional)") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+            OutlinedTextField(
+                value = description,
+                onValueChange = { description = it },
+                label = { Text("Description") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 3
+            )
+            vm.error?.let {
+                Text(it, color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
+            }
+            Button(
+                onClick = {
+                    vm.updatePost(post, name, age, description, location, selectedStatus, onBack)
+                },
+                enabled = !vm.busyPost && name.isNotBlank() && age.isNotBlank() && description.isNotBlank(),
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                if (vm.busyPost) {
+                    CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
+                } else {
+                    Icon(Icons.Default.CheckCircle, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Save Changes", fontWeight = FontWeight.Bold)
+                }
+            }
+            Spacer(Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
 fun ProfileScreen(vm: AppViewModel, onAboutClick: () -> Unit, onHelpClick: () -> Unit, onAdminClick: () -> Unit) {
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).verticalScroll(rememberScrollState()).padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Spacer(Modifier.height(24.dp))
