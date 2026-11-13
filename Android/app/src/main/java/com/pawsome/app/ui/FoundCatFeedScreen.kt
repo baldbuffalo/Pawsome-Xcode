@@ -12,6 +12,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material3.*
@@ -33,7 +35,8 @@ import com.example.pawsome.ui.theme.*
 fun FeedScreenWithFoundButton(
     vm: AppViewModel,
     onCreate: () -> Unit,
-    onImageClick: (String) -> Unit
+    onImageClick: (String) -> Unit,
+    onEditPost: (Post) -> Unit = {}
 ) {
     var selectedFilter by remember { mutableStateOf<PostStatus?>(null) }
     val filteredPosts = remember(vm.posts, selectedFilter) {
@@ -123,6 +126,7 @@ fun FeedScreenWithFoundButton(
                         uid = vm.uid,
                         currentUserNumber = currentUserNumber,
                         onDelete = { vm.deletePost(post) },
+                        onEditPost = onEditPost,
                         onImageClick = { onImageClick(post.imageUrl) },
                         onContactOwner = { vm.contactPostOwner(post) }
                     )
@@ -138,6 +142,7 @@ private fun FoundCatPostCard(
     uid: String?,
     currentUserNumber: Int?,
     onDelete: () -> Unit,
+    onEditPost: (Post) -> Unit,
     onImageClick: () -> Unit,
     onContactOwner: () -> Unit
 ) {
@@ -147,6 +152,7 @@ private fun FoundCatPostCard(
         PostStatus.REUNITED -> ReunitedGold
     }
     val isOwnPost = currentUserNumber != null && post.userId == currentUserNumber
+    var postMenuExpanded by remember(post.id) { mutableStateOf(false) }
 
     Card(
         Modifier.fillMaxWidth(),
@@ -207,12 +213,37 @@ private fun FoundCatPostCard(
                     }
                 }
                 if (isOwnPost) {
-                    IconButton(onClick = onDelete) {
-                        Icon(
-                            Icons.Default.Delete,
-                            "Delete",
-                            tint = MaterialTheme.colorScheme.error
-                        )
+                    Box {
+                        IconButton(onClick = { postMenuExpanded = true }) {
+                            Icon(Icons.Default.MoreVert, "Post options")
+                        }
+                        DropdownMenu(
+                            expanded = postMenuExpanded,
+                            onDismissRequest = { postMenuExpanded = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Edit") },
+                                leadingIcon = { Icon(Icons.Default.Edit, null) },
+                                onClick = {
+                                    postMenuExpanded = false
+                                    onEditPost(post)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        null,
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                },
+                                onClick = {
+                                    postMenuExpanded = false
+                                    onDelete()
+                                }
+                            )
+                        }
                     }
                 }
             }
