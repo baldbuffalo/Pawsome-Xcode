@@ -152,14 +152,18 @@ private fun PostCard(post: Post, uid: String?, currentUserNumber: Int?, onDelete
                 if (post.description.isNotBlank()) { Spacer(Modifier.height(6.dp)); Text(post.description, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 3) }
             }
             if (post.status == PostStatus.LOST && post.userId != currentUserNumber) {
-                OutlinedButton(
+                Button(
                     onClick = onContactOwner,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = BrandPurple,
+                        contentColor = Color.White
+                    )
                 ) {
                     Icon(Icons.Default.ChatBubbleOutline, null, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Contact Owner")
+                    Text("Contact Owner", fontWeight = FontWeight.SemiBold)
                 }
             }
             Spacer(Modifier.height(4.dp))
