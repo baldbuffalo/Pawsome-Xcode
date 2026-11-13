@@ -275,14 +275,18 @@ private fun FoundCatPostCard(
             // The owner must not see it on their own post, and it is not shown
             // on FOUND/REUNITED posts.
             if (post.status == PostStatus.LOST && !isOwnPost) {
-                OutlinedButton(
+                Button(
                     onClick = onContactOwner,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = BrandPurple,
+                        contentColor = Color.White
+                    )
                 ) {
                     Icon(Icons.Default.ChatBubbleOutline, null)
                     Spacer(Modifier.width(8.dp))
-                    Text("Contact Owner")
+                    Text("Contact Owner", fontWeight = FontWeight.SemiBold)
                 }
             }
 
