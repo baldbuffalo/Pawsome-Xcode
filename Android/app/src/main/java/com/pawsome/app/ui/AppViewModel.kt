@@ -86,7 +86,6 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
         userListener?.remove(); userListener = null
         messagesListener?.remove(); messagesListener = null
         notificationListener?.remove(); notificationListener = null
-        foundPostChatCache.clear()
         observedUid = currentUid
         conversations = emptyList(); activeMessages = emptyList(); activeConversationId = null
         if (current == null) {
