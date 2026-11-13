@@ -319,7 +319,15 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
             try { firestore.markConversationRead(id, viewerUid, otherUid) }
             catch (e: Exception) { error = e.message ?: "Could not update unread messages." }
         }
-        messagesListener = firestore.observeMessages(id, viewerUid, { activeMessages = it }, { e -> error = e.message })
+        messagesListener = firestore.observeMessages(id, viewerUid, { messages ->
+            activeMessages = messages
+            if (messages.any { it.senderUid == otherUid && it.type == "user" }) {
+                viewModelScope.launch {
+                    try { firestore.markConversationRead(id, viewerUid, otherUid) }
+                    catch (e: Exception) { error = e.message ?: "Could not update unread messages." }
+                }
+            }
+        }, { e -> error = e.message })
     }
 
     fun closeConversation() { messagesListener?.remove(); messagesListener = null; activeConversationId = null; activeConversationName = null; activeMessages = emptyList(); loadConversations() }
