@@ -52,6 +52,10 @@ class Firestore {
         val ref = db.collection("posts").document(); ref.set(prepareFields(postFields)).await(); ref.id
     }
 
+    suspend fun updatePost(id: String, fields: Map<String, Any?>) = withContext(Dispatchers.IO) {
+        db.collection("posts").document(id).set(prepareFields(fields), SetOptions.merge()).await()
+    }
+
     suspend fun deletePost(id: String) = withContext(Dispatchers.IO) { db.collection("posts").document(id).delete().await() }
 
     suspend fun getUser(uid: String): AppUser? = withContext(Dispatchers.IO) {
