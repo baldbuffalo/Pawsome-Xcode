@@ -33,6 +33,8 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
@@ -110,7 +112,7 @@ fun ImageViewer(imageUrl: String, onDismiss: () -> Unit) {
 }
 
 @Composable
-fun FeedScreen(vm: AppViewModel, onCreate: () -> Unit, onImageClick: (String) -> Unit) {
+fun FeedScreen(vm: AppViewModel, onCreate: () -> Unit, onImageClick: (String) -> Unit, onEditPost: (Post) -> Unit = {}) {
     var selectedFilter by remember { mutableStateOf<PostStatus?>(null) }
     val filteredPosts = remember(vm.posts, selectedFilter) { if (selectedFilter == null) vm.posts else vm.posts.filter { it.status == selectedFilter } }
     Column(Modifier.fillMaxSize()) {
@@ -122,13 +124,14 @@ fun FeedScreen(vm: AppViewModel, onCreate: () -> Unit, onImageClick: (String) ->
         Spacer(Modifier.height(8.dp))
         if (vm.loading && vm.posts.isEmpty()) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
         else if (filteredPosts.isEmpty()) Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) { Column(horizontalAlignment = Alignment.CenterHorizontally) { Text("😿", fontSize = 64.sp); Spacer(Modifier.height(16.dp)); Text("No cats found", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold); Text("Be the first to post!", color = MaterialTheme.colorScheme.onSurfaceVariant) } }
-        else LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) { items(filteredPosts, key = { it.id }) { p -> PostCard(p, vm.uid, vm.user?.userNumber, { vm.deletePost(p) }, { onImageClick(p.imageUrl) }, { vm.contactPostOwner(p) }) } }
+        else LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) { items(filteredPosts, key = { it.id }) { p -> PostCard(p, vm.uid, vm.user?.userNumber, { vm.deletePost(p) }, { editingPost -> onEditPost(editingPost) }, { onImageClick(p.imageUrl) }, { vm.contactPostOwner(p) }) } }
     }
 }
 
 @Composable
-private fun PostCard(post: Post, uid: String?, currentUserNumber: Int?, onDelete: () -> Unit, onImageClick: () -> Unit, onContactOwner: () -> Unit) {
+private fun PostCard(post: Post, uid: String?, currentUserNumber: Int?, onDelete: () -> Unit, onEditPost: (Post) -> Unit, onImageClick: () -> Unit, onContactOwner: () -> Unit) {
     val statusColor = when (post.status) { PostStatus.LOST -> LostRed; PostStatus.FOUND -> FoundGreen; PostStatus.REUNITED -> ReunitedGold }
+    var postMenuExpanded by remember(post.id) { mutableStateOf(false) }
     Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)) {
         Column {
             Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -141,7 +144,25 @@ private fun PostCard(post: Post, uid: String?, currentUserNumber: Int?, onDelete
                     }
                     Row { Text(post.timeAgo, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant); if (post.location.isNotBlank()) { Text(" • ", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant); Icon(Icons.Default.LocationOn, null, Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant); Text(post.location, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1) } }
                 }
-                if (post.userId.toString() == uid) IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, "Delete", tint = MaterialTheme.colorScheme.error) }
+                if (post.userId.toString() == uid) {
+                    Box {
+                        IconButton(onClick = { postMenuExpanded = true }) {
+                            Icon(Icons.Default.MoreVert, "Post options")
+                        }
+                        DropdownMenu(expanded = postMenuExpanded, onDismissRequest = { postMenuExpanded = false }) {
+                            DropdownMenuItem(
+                                text = { Text("Edit") },
+                                leadingIcon = { Icon(Icons.Default.Edit, null) },
+                                onClick = { postMenuExpanded = false; onEditPost(post) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
+                                leadingIcon = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) },
+                                onClick = { postMenuExpanded = false; onDelete() }
+                            )
+                        }
+                    }
+                }
             }
             Box {
                 AsyncImage(post.imageUrl, null, Modifier.fillMaxWidth().height(280.dp).clickable { onImageClick() }, contentScale = ContentScale.Crop)
