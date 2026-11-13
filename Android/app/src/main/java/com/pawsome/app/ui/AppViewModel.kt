@@ -175,6 +175,26 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
     fun signOut() { firebaseAuth.signOut() }
     fun loadFeed() = viewModelScope.launch { try { posts = firestore.getPosts() } catch (e: Exception) { error = e.message } }
 
+    fun updatePost(post: Post, name: String, age: String, description: String, location: String, status: com.example.pawsome.model.PostStatus, onDone: () -> Unit) = viewModelScope.launch {
+        busyPost = true
+        error = null
+        try {
+            firestore.updatePost(post.id, mapOf(
+                "CatName" to name.trim(),
+                "CatAge" to age.trim(),
+                "description" to description.trim(),
+                "location" to location.trim(),
+                "status" to status.name
+            ))
+            loadFeed()
+            onDone()
+        } catch (e: Exception) {
+            error = e.message ?: "Could not update this post."
+        } finally {
+            busyPost = false
+        }
+    }
+
     fun deletePost(p: Post) = viewModelScope.launch {
         try { p.imageFileName?.let { if (github.hasToken) github.deleteFile("postImages/$it") }; firestore.deletePost(p.id); loadFeed() }
         catch (e: Exception) { error = e.message }
