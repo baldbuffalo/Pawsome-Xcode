@@ -21,6 +21,7 @@ data class ChatConversation(
     val otherName: String,
     val lastMessage: String,
     val updatedAtMillis: Long,
+    val unreadSenderUids: List<String> = emptyList(),
 )
 
 data class ChatMessage(
@@ -71,13 +72,27 @@ class Firestore {
         db.collection("users").document(uid).set(prepareFields(fields), SetOptions.merge()).await()
     }
 
-    suspend fun getConversations(uid: String): List<ChatConversation> = withContext(Dispatchers.IO) {
-        db.collection("chats").whereArrayContains("participants", uid).get().await().documents.mapNotNull { d ->
+    private fun mapConversations(uid: String, documents: List<com.google.firebase.firestore.DocumentSnapshot>): List<ChatConversation> =
+        documents.mapNotNull { d ->
             val participants = d.get("participants") as? List<*> ?: return@mapNotNull null
             if ((d.get("hiddenFor") as? List<*>)?.contains(uid) == true) return@mapNotNull null
             val otherUid = participants.filterIsInstance<String>().firstOrNull { it != uid } ?: return@mapNotNull null
-            ChatConversation(d.id, otherUid, d.getString("${otherUid}_name") ?: "Pawsome user", d.getString("${uid}_lastMessage") ?: d.getString("lastMessage") ?: "", d.getTimestamp("${uid}_updatedAt")?.toDate()?.time ?: d.getTimestamp("updatedAt")?.toDate()?.time ?: 0L)
+            val unreadSenders = (d.get("${uid}_unreadSenders") as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+            ChatConversation(d.id, otherUid, d.getString("${otherUid}_name") ?: "Pawsome user", d.getString("${uid}_lastMessage") ?: d.getString("lastMessage") ?: "", d.getTimestamp("${uid}_updatedAt")?.toDate()?.time ?: d.getTimestamp("updatedAt")?.toDate()?.time ?: 0L, unreadSenders)
         }.sortedByDescending { it.updatedAtMillis }
+
+    suspend fun getConversations(uid: String): List<ChatConversation> = withContext(Dispatchers.IO) {
+        mapConversations(uid, db.collection("chats").whereArrayContains("participants", uid).get().await().documents)
+    }
+
+    fun observeConversations(uid: String, onChanged: (List<ChatConversation>) -> Unit, onError: (Exception) -> Unit): ListenerRegistration =
+        db.collection("chats").whereArrayContains("participants", uid).addSnapshotListener { snapshot, error ->
+            if (error != null) { onError(error); return@addSnapshotListener }
+            onChanged(mapConversations(uid, snapshot?.documents ?: emptyList()))
+        }
+
+    suspend fun markConversationRead(chatId: String, viewerUid: String, senderUid: String) = withContext(Dispatchers.IO) {
+        db.collection("chats").document(chatId).update("${viewerUid}_unreadSenders", FieldValue.arrayRemove(senderUid)).await()
     }
 
     suspend fun createOrGetConversation(uid: String, otherUid: String, otherName: String, myName: String): String = withContext(Dispatchers.IO) {
@@ -127,7 +142,13 @@ class Firestore {
         db.runTransaction { transaction ->
             transaction.set(message, mapOf("senderUid" to senderUid, "type" to "user", "text" to text, "timestamp" to FieldValue.serverTimestamp()))
             transaction.set(chat, mapOf("lastMessage" to text, "updatedAt" to FieldValue.serverTimestamp(), "${senderUid}_lastMessage" to text, "${senderUid}_updatedAt" to FieldValue.serverTimestamp()), SetOptions.merge())
-            participants.filterIsInstance<String>().filter { it != senderUid }.forEach { recipient -> transaction.set(chat, mapOf("${recipient}_lastMessage" to text, "${recipient}_updatedAt" to FieldValue.serverTimestamp()), SetOptions.merge()) }
+            participants.filterIsInstance<String>().filter { it != senderUid }.forEach { recipient ->
+                transaction.set(chat, mapOf(
+                    "${recipient}_lastMessage" to text,
+                    "${recipient}_updatedAt" to FieldValue.serverTimestamp(),
+                    "${recipient}_unreadSenders" to FieldValue.arrayUnion(senderUid)
+                ), SetOptions.merge())
+            }
         }.await()
     }
 
