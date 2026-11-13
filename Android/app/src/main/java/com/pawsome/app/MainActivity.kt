@@ -37,6 +37,8 @@ import com.example.pawsome.ui.ImageViewer
 import com.example.pawsome.ui.LoginScreen
 import com.example.pawsome.ui.PossibleMatchesScreen
 import com.example.pawsome.ui.ProfileScreen
+import com.example.pawsome.ui.EditPostScreen
+import com.example.pawsome.model.Post
 import com.example.pawsome.ui.theme.PawsomeTheme
 import com.example.pawsome.auth.GoogleAuth
 import com.google.firebase.appcheck.FirebaseAppCheck
@@ -82,6 +84,7 @@ private fun Root(vm: AppViewModel = viewModel()) {
 private fun MainScaffold(vm: AppViewModel) {
     var tab by remember { mutableStateOf(0) }
     var creating by remember { mutableStateOf(false) }
+    var editingPost by remember { mutableStateOf<Post?>(null) }
     var showAbout by remember { mutableStateOf(false) }
     var showHelp by remember { mutableStateOf(false) }
     var showAdmin by remember { mutableStateOf(false) }
@@ -93,6 +96,7 @@ private fun MainScaffold(vm: AppViewModel) {
             showAdmin -> showAdmin = false
             showHelp -> showHelp = false
             showAbout -> showAbout = false
+            editingPost != null -> editingPost = null
             creating -> creating = false
             vm.activeConversationId != null -> vm.closeConversation()
             vm.pendingFoundPostId != null -> vm.dismissMatches()
@@ -132,10 +136,11 @@ private fun MainScaffold(vm: AppViewModel) {
         }) { paddingValues ->
             Box(Modifier.fillMaxSize().padding(paddingValues)) {
                 when {
+                    editingPost != null -> EditPostScreen(vm, editingPost!!) { editingPost = null }
                     creating -> CreatePostScreen(vm) { creating = false }
                     tab == 1 -> ChatScreen(vm)
                     tab == 2 -> ProfileScreen(vm, { showAbout = true }, { showHelp = true }, { showAdmin = true })
-                    else -> FeedScreenWithFoundButton(vm, { creating = true }, { imageToView = it })
+                    else -> FeedScreenWithFoundButton(vm, { creating = true }, { imageToView = it }, { editingPost = it })
                 }
             }
         }
