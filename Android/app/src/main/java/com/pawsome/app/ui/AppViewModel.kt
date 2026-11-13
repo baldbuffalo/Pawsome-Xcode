@@ -146,7 +146,15 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
     }
 
     fun handleGoogleSignInResult(resultCode: Int, data: Intent?) = viewModelScope.launch {
-        if (resultCode != Activity.RESULT_OK) { busyGoogle = false; return@launch }
+        if (resultCode != Activity.RESULT_OK) {
+            busyGoogle = false
+            error = if (resultCode == Activity.RESULT_CANCELED) {
+                "Google sign-in was cancelled. Please try again."
+            } else {
+                "Google sign-in could not be completed. Please try again."
+            }
+            return@launch
+        }
         try {
             val account = google.getAccountFromResult(data)
             val idToken = account.idToken ?: throw IllegalStateException("Google did not return an ID token.")
