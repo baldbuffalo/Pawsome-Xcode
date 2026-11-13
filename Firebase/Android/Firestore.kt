@@ -150,7 +150,9 @@ class Firestore {
                 transaction.set(chat, mapOf(
                     "${recipient}_lastMessage" to text,
                     "${recipient}_updatedAt" to FieldValue.serverTimestamp(),
-                    "${recipient}_unreadSenders" to FieldValue.arrayUnion(senderUid)
+                    "${recipient}_unreadSenders" to FieldValue.arrayUnion(senderUid),
+                    // A new incoming message restores this conversation for its recipient.
+                    "hiddenFor" to FieldValue.arrayRemove(recipient)
                 ), SetOptions.merge())
             }
         }.await()
