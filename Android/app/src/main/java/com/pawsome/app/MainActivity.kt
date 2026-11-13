@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -109,7 +110,22 @@ private fun MainScaffold(vm: AppViewModel) {
         else -> Scaffold(bottomBar = {
             NavigationBar {
                 NavigationBarItem(tab == 0 && !creating, { tab = 0; creating = false }, { Icon(Icons.Filled.Home, null) }, label = { Text("Home") })
-                NavigationBarItem(tab == 1 && !creating, { tab = 1; creating = false }, { Icon(Icons.Filled.ChatBubbleOutline, null) }, label = { Text("Chat") })
+                NavigationBarItem(
+                    tab == 1 && !creating,
+                    { tab = 1; creating = false },
+                    {
+                        BadgedBox(badge = {
+                            if (vm.unreadMessagePeopleCount > 0) {
+                                Badge(containerColor = Color(0xFFFF9800), contentColor = Color.Black) {
+                                    Text(vm.unreadMessagePeopleCount.toString())
+                                }
+                            }
+                        }) {
+                            Icon(Icons.Filled.ChatBubbleOutline, null)
+                        }
+                    },
+                    label = { Text("Chat") }
+                )
                 NavigationBarItem(tab == 2 && !creating, { tab = 2; creating = false }, { Icon(Icons.Filled.Person, null) }, label = { Text("Profile") })
                 if (vm.isAdmin) NavigationBarItem(false, { showAdmin = true }, { Icon(Icons.Filled.AdminPanelSettings, null) }, label = { Text("Admin") })
             }
