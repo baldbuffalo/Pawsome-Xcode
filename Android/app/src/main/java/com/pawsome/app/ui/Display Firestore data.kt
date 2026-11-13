@@ -157,8 +157,10 @@ private fun PostCard(post: Post, uid: String?, currentUserNumber: Int?, onDelete
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = BrandPurple,
-                        contentColor = Color.White
+                        containerColor = Color(0xFF7C3AED),
+                        contentColor = Color.White,
+                        disabledContainerColor = Color(0xFF7C3AED),
+                        disabledContentColor = Color.White
                     )
                 ) {
                     Icon(Icons.Default.ChatBubbleOutline, null, modifier = Modifier.size(20.dp))
