@@ -298,6 +298,22 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
         }
     }
 
+    fun contactPostOwner(post: Post) = viewModelScope.launch {
+        try {
+            val currentUid = uid ?: throw Exception("Not signed in")
+            if (user?.userNumber == post.userId) return@launch
+            val owner = firestore.findUserByUserNumber(post.userId)
+                ?: throw Exception("Could not find the post owner")
+            val chatId = firestore.createOrGetConversation(
+                owner.uid, currentUid, "Pawsome user", owner.username
+            )
+            openConversation(chatId, owner.uid, owner.username)
+            loadConversations()
+        } catch (e: Exception) {
+            error = e.message ?: "Could not open the owner's chat."
+        }
+    }
+
     fun dismissMatches() { pendingFoundPostId = null; possibleMatches = emptyList() }
 
     fun loadConversations() = viewModelScope.launch {
