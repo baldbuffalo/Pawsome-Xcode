@@ -74,6 +74,7 @@ class Firestore {
     suspend fun getConversations(uid: String): List<ChatConversation> = withContext(Dispatchers.IO) {
         db.collection("chats").whereArrayContains("participants", uid).get().await().documents.mapNotNull { d ->
             val participants = d.get("participants") as? List<*> ?: return@mapNotNull null
+            if ((d.get("hiddenFor") as? List<*>)?.contains(uid) == true) return@mapNotNull null
             val otherUid = participants.filterIsInstance<String>().firstOrNull { it != uid } ?: return@mapNotNull null
             ChatConversation(d.id, otherUid, d.getString("${otherUid}_name") ?: "Pawsome user", d.getString("${uid}_lastMessage") ?: d.getString("lastMessage") ?: "", d.getTimestamp("${uid}_updatedAt")?.toDate()?.time ?: d.getTimestamp("updatedAt")?.toDate()?.time ?: 0L)
         }.sortedByDescending { it.updatedAtMillis }
@@ -92,12 +93,19 @@ class Firestore {
             mapOf(
                 "participants" to listOf(uid, otherUid),
                 "${uid}_name" to myName,
-                "${otherUid}_name" to otherName
+                "${otherUid}_name" to otherName,
+                "hiddenFor" to FieldValue.arrayRemove(uid)
             ),
             SetOptions.merge()
         ).await()
 
         id
+    }
+
+    suspend fun hideConversation(chatId: String, uid: String) = withContext(Dispatchers.IO) {
+        db.collection("chats").document(chatId)
+            .update("hiddenFor", FieldValue.arrayUnion(uid))
+            .await()
     }
 
     fun observeMessages(chatId: String, viewerUid: String, onChanged: (List<ChatMessage>) -> Unit, onError: (Exception) -> Unit): ListenerRegistration {
