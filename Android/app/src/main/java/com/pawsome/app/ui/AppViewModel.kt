@@ -285,6 +285,17 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
         } catch (e: Exception) { error = e.message }
     }
 
+    fun hideConversation(chatId: String) = viewModelScope.launch {
+        val currentUid = uid ?: return@launch
+        try {
+            firestore.hideConversation(chatId, currentUid)
+            conversations = conversations.filterNot { it.id == chatId }
+            if (activeConversationId == chatId) closeConversation()
+        } catch (e: Exception) {
+            error = e.message ?: "Could not delete this chat."
+        }
+    }
+
     fun openConversation(id: String, otherUid: String, otherName: String) {
         messagesListener?.remove()
         activeConversationId = id; activeConversationName = otherName; activeMessages = emptyList()
