@@ -35,7 +35,6 @@ import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -78,8 +77,6 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
     private var userListener: ListenerRegistration? = null
     private var messagesListener: ListenerRegistration? = null
     private var notificationListener: ListenerRegistration? = null
-    private val foundPostChatMutex = Mutex()
-    private val foundPostChatCache = mutableMapOf<String, Triple<String, String, String>>()
 
     private val authStateListener = FirebaseAuth.AuthStateListener { auth ->
         busyGoogle = false; busyTwitter = false; authStateReceived = true
@@ -251,51 +248,6 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
             firestore.createPossibleMatchNotification(foundPostId, lostPost, u)
             error = "The owner of ${lostPost.catName} has been notified in their chat."
         } catch (e: Exception) { error = e.message }
-    }
-
-    fun notifyFoundLostPost(lostPost: Post) = viewModelScope.launch {
-        try {
-            val u = uid ?: throw Exception("Not signed in")
-            if (lostPost.status != com.example.pawsome.model.PostStatus.LOST) return@launch
-            if (user?.userNumber == lostPost.userId) return@launch
-
-            val cacheKey = "$u:${lostPost.id}"
-            foundPostChatMutex.lock()
-            val (conversation, isFirstTap) = try {
-                val cached = foundPostChatCache[cacheKey]
-                if (cached != null) {
-                    cached to false
-                } else {
-                    val owner = firestore.findUserByUserNumber(lostPost.userId)
-                        ?: throw Exception("Could not find the Lost Cat owner")
-                    // Create/reuse the conversation first, then navigate immediately.
-                    // Sending the system notification must not block opening the chat.
-                    val chatId = firestore.createOrGetConversation(
-                        owner.uid, u, "Pawsome user", owner.username
-                    )
-                    val createdConversation = Triple(chatId, owner.uid, owner.username)
-                    foundPostChatCache[cacheKey] = createdConversation
-                    createdConversation to true
-                }
-            } finally {
-                foundPostChatMutex.unlock()
-            }
-
-            // Open the chat before doing any additional Firestore work.
-            openConversation(conversation.first, conversation.second, conversation.third)
-            if (isFirstTap) {
-                loadConversations()
-                // Report/notify after navigation. A notification failure should not
-                // prevent the user from reaching the conversation.
-                try {
-                    firestore.createFoundLostPostNotification(lostPost, u)
-                } catch (notificationError: Exception) {
-                    error = "Chat opened, but the owner could not be notified: ${notificationError.message ?: "Unknown error"}"
-                }
-            }
-        } catch (e: Exception) {
-            error = e.message ?: "Could not open the chat."
-        }
     }
 
     fun contactPostOwner(post: Post) = viewModelScope.launch {
