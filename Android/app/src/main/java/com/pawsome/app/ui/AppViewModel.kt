@@ -61,6 +61,7 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
     var user by mutableStateOf<AppUser?>(null); private set
     var posts by mutableStateOf<List<Post>>(emptyList()); private set
     var conversations by mutableStateOf<List<ChatConversation>>(emptyList()); private set
+    val unreadMessagePeopleCount: Int get() = conversations.flatMap { it.unreadSenderUids }.toSet().size
     var chatLoading by mutableStateOf(false); private set
     var activeConversationId by mutableStateOf<String?>(null); private set
     var activeConversationName by mutableStateOf<String?>(null); private set
@@ -77,6 +78,7 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
     private var userListener: ListenerRegistration? = null
     private var messagesListener: ListenerRegistration? = null
     private var notificationListener: ListenerRegistration? = null
+    private var conversationsListener: ListenerRegistration? = null
 
     private val authStateListener = FirebaseAuth.AuthStateListener { auth ->
         busyGoogle = false; busyTwitter = false; authStateReceived = true
@@ -86,6 +88,7 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
         userListener?.remove(); userListener = null
         messagesListener?.remove(); messagesListener = null
         notificationListener?.remove(); notificationListener = null
+        conversationsListener?.remove(); conversationsListener = null
         observedUid = currentUid
         conversations = emptyList(); activeMessages = emptyList(); activeConversationId = null
         if (current == null) {
@@ -103,6 +106,7 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
                     posts = firestore.getPosts()
                     signedIn = true
                     loadConversations()
+                    startConversationListener()
                     startChatNotificationListener()
                     true
                 }
@@ -131,7 +135,7 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
     }
 
     override fun onCleared() {
-        userListener?.remove(); messagesListener?.remove(); notificationListener?.remove()
+        userListener?.remove(); messagesListener?.remove(); notificationListener?.remove(); conversationsListener?.remove()
         firebaseAuth.removeAuthStateListener(authStateListener)
         super.onCleared()
     }
@@ -276,6 +280,17 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
         try { conversations = firestore.getConversations(u) } catch (e: Exception) { error = e.message } finally { chatLoading = false }
     }
 
+    private fun startConversationListener() {
+        conversationsListener?.remove()
+        val currentUid = uid ?: return
+        conversationsListener = firestore.observeConversations(currentUid, { updated ->
+            if (uid == currentUid) {
+                conversations = updated
+                chatLoading = false
+            }
+        }, { e -> if (uid == currentUid) error = e.message ?: "Could not listen to chats" })
+    }
+
     fun startChatWithUser(otherUid: String, otherName: String) = viewModelScope.launch {
         try {
             val u = uid ?: throw Exception("Not signed in")
@@ -298,8 +313,13 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
 
     fun openConversation(id: String, otherUid: String, otherName: String) {
         messagesListener?.remove()
+        val viewerUid = uid ?: return
         activeConversationId = id; activeConversationName = otherName; activeMessages = emptyList()
-        messagesListener = firestore.observeMessages(id, uid ?: return, { activeMessages = it }, { e -> error = e.message })
+        viewModelScope.launch {
+            try { firestore.markConversationRead(id, viewerUid, otherUid) }
+            catch (e: Exception) { error = e.message ?: "Could not update unread messages." }
+        }
+        messagesListener = firestore.observeMessages(id, viewerUid, { activeMessages = it }, { e -> error = e.message })
     }
 
     fun closeConversation() { messagesListener?.remove(); messagesListener = null; activeConversationId = null; activeConversationName = null; activeMessages = emptyList(); loadConversations() }
