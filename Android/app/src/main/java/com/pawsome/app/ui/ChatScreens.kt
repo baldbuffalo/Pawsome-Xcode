@@ -25,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.ChatBubbleOutline
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -51,6 +52,7 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun ChatScreen(vm: AppViewModel) {
     val conversations = vm.conversations
+    var chatToDelete by remember { mutableStateOf<String?>(null) }
     if (vm.activeConversationId != null) { ChatConversationScreen(vm); return }
     Column(Modifier.fillMaxSize().statusBarsPadding()) {
         Text("Chat", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(20.dp))
@@ -75,11 +77,30 @@ fun ChatScreen(vm: AppViewModel) {
                                 Text(chat.otherName, fontWeight = FontWeight.SemiBold)
                                 Text(chat.lastMessage.ifBlank { "Start a conversation" }, maxLines = 1, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
                             }
+                            IconButton(onClick = { chatToDelete = chat.id }) {
+                                Icon(Icons.Default.DeleteOutline, contentDescription = "Delete chat", tint = MaterialTheme.colorScheme.error)
+                            }
                         }
                     }
                 }
             }
         }
+    }
+    chatToDelete?.let { chatId ->
+        AlertDialog(
+            onDismissRequest = { chatToDelete = null },
+            title = { Text("Delete this chat?") },
+            text = { Text("This removes the conversation from your chat list only. The other person keeps the chat, and you can restore it by tapping Contact Owner on the same post.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    vm.hideConversation(chatId)
+                    chatToDelete = null
+                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { chatToDelete = null }) { Text("Cancel") }
+            }
+        )
     }
 }
 
