@@ -256,7 +256,10 @@ class AppViewModel(private val app: Application) : AndroidViewModel(app) {
             val owner = firestore.findUserByUserNumber(post.userId)
                 ?: throw Exception("Could not find the post owner")
             val chatId = firestore.createOrGetConversation(
-                owner.uid, currentUid, "Pawsome user", owner.username
+                currentUid,
+                owner.uid,
+                owner.username,
+                user?.username ?: "Pawsome user"
             )
             openConversation(chatId, owner.uid, owner.username)
             loadConversations()
