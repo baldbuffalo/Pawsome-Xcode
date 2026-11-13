@@ -123,7 +123,6 @@ fun FeedScreenWithFoundButton(
                         currentUserNumber = currentUserNumber,
                         onDelete = { vm.deletePost(post) },
                         onImageClick = { onImageClick(post.imageUrl) },
-                        onFoundCat = { vm.notifyFoundLostPost(post) },
                         onContactOwner = { vm.contactPostOwner(post) }
                     )
                 }
@@ -139,7 +138,6 @@ private fun FoundCatPostCard(
     currentUserNumber: Int?,
     onDelete: () -> Unit,
     onImageClick: () -> Unit,
-    onFoundCat: () -> Unit,
     onContactOwner: () -> Unit
 ) {
     val statusColor = when (post.status) {
@@ -276,33 +274,14 @@ private fun FoundCatPostCard(
             // The owner must not see it on their own post, and it is not shown
             // on FOUND/REUNITED posts.
             if (post.status == PostStatus.LOST && !isOwnPost) {
-                Column(
+                OutlinedButton(
+                    onClick = onContactOwner,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    OutlinedButton(
-                        onClick = onContactOwner,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Icon(Icons.Default.ChatBubbleOutline, null)
-                        Spacer(Modifier.width(8.dp))
-                        Text("Contact Owner")
-                    }
-                    OutlinedButton(
-                        onClick = onFoundCat,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.dp, FoundGreen)
-                    ) {
-                        Icon(Icons.Default.Pets, null, tint = FoundGreen)
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            "I Found This Cat",
-                            color = FoundGreen,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
+                    Icon(Icons.Default.ChatBubbleOutline, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Contact Owner")
                 }
             }
 
