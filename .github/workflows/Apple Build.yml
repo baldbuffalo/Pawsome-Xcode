@@ -89,6 +89,21 @@ jobs:
             exit 1
           }
 
+          # Some Xcode project configurations omit CFBundleVersion from the
+          # generated Info.plist. InstallOnAir and other IPA processors expect it.
+          INFO_PLIST="$APP/Info.plist"
+          test -f "$INFO_PLIST"
+          if /usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$INFO_PLIST" >/dev/null 2>&1; then
+            BUILD_VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$INFO_PLIST")
+            if [ -z "$BUILD_VERSION" ]; then
+              /usr/libexec/PlistBuddy -c 'Set :CFBundleVersion 1' "$INFO_PLIST"
+            fi
+          else
+            /usr/libexec/PlistBuddy -c 'Add :CFBundleVersion string 1' "$INFO_PLIST"
+          fi
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$INFO_PLIST"
+          plutil -lint "$INFO_PLIST"
+
           STAGING="$RUNNER_TEMP/ipa-staging"
           mkdir -p "$STAGING/Payload"
           ditto "$APP" "$STAGING/Payload/Pawsome.app"
