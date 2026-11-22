@@ -480,7 +480,7 @@
   repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
   requirement = {
    kind = upToNextMajorVersion;
-   minimumVersion = 13.13.0;
+   minimumVersion = 13.2.0;
   };
  };
  62D18A9B2F01D2930066C05C /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */ = {
