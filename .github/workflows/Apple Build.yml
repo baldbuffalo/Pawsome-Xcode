@@ -52,7 +52,7 @@ jobs:
           # FirebaseApp.configure() loads this file from the app bundle.
           cp "$GOOGLE_PLIST" iOS/Pawsome/GoogleService-Info.plist
 
-      - name: Resolve Swift packages
+      - name: Resolve and lock latest allowed Swift packages
         run: |
           set -euo pipefail
           xcodebuild \
@@ -60,6 +60,17 @@ jobs:
             -project iOS/Pawsome.xcodeproj \
             -scheme Pawsome \
             -clonedSourcePackagesDirPath "$RUNNER_TEMP/PawsomeSourcePackages"
+
+          # Save the resolved dependency graph so local Xcode builds use the
+          # same versions that CI compiled.
+          RESOLVED="iOS/Pawsome.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
+          if ! git diff --quiet -- "$RESOLVED"; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add "$RESOLVED"
+            git commit -m "chore: refresh resolved iOS dependencies [skip ci]"
+            git push
+          fi
 
       - name: Build iOS app without code signing
         run: |
